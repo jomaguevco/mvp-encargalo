@@ -22,7 +22,7 @@
       "package": "pe.encargalo.app"
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

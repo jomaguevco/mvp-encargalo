@@ -13,11 +13,18 @@ if (!url || !anonKey) {
   );
 }
 
+/**
+ * Expo Router renderiza las rutas web en Node, donde no existe `window`.
+ * AsyncStorage lo usa por debajo, así que sin esta guarda el servidor de
+ * desarrollo se cae en cuanto alguien abre localhost:8081 en el navegador.
+ */
+const enServidor = typeof window === 'undefined';
+
 export const supabase = createClient(url, anonKey, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    storage: enServidor ? undefined : AsyncStorage,
+    autoRefreshToken: !enServidor,
+    persistSession: !enServidor,
     // En móvil no hay URL de la que leer el token
     detectSessionInUrl: false,
   },
