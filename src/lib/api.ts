@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 import type {
   Calificacion,
@@ -82,11 +83,15 @@ export async function enviarVerificacion(opts: {
 
 // ---------------------------------------------------------------- archivos
 export async function subirArchivo(bucket: string, ruta: string, uri: string) {
-  const respuesta = await fetch(uri);
-  const blob = await respuesta.arrayBuffer();
+  // En React Native, fetch(uri).arrayBuffer() suele devolver cero bytes y el
+  // archivo llega vacío. La lectura directa del sistema de archivos es fiable.
+  const bytes = await new File(uri).bytes();
+  if (bytes.byteLength === 0) {
+    throw new Error('La imagen llegó vacía. Vuelve a tomarla.');
+  }
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(ruta, blob, { contentType: 'image/jpeg', upsert: true });
+    .upload(ruta, bytes, { contentType: 'image/jpeg', upsert: true });
   revienta(error);
   return ruta;
 }
