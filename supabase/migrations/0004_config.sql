@@ -22,7 +22,7 @@ on conflict (clave) do update
 -- =====================================================================
 --  Comprobación rápida del desglose de precio
 --  Con un encargo de S/ 491.40 debe dar:
---    comisión 49.14 · procesamiento 15.67 · total 556.21
+--    comisión 49.14 · procesamiento 15.68 · total 556.22
 --    tarifa comprador 14.74 · recibe 476.66
 -- =====================================================================
 -- select * from desglose_precio(491.40);
