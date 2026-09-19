@@ -1,23 +1,25 @@
 {
   "expo": {
-    "name": "mvp-encargalo",
-    "slug": "mvp-encargalo",
+    "name": "Encargalo",
+    "slug": "encargalo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mvpencargalo",
-    "userInterfaceStyle": "automatic",
+    "scheme": "encargalo",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "pe.encargalo.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1F3864",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "pe.encargalo.app"
     },
     "web": {
       "output": "static",
@@ -28,15 +30,24 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#1F3864",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Encargalo usa la camara para tomar la foto de tu DNI y tu selfie de verificacion.",
+          "photosPermission": "Encargalo accede a tus fotos para que subas el comprobante de tu pago."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "primaryColor": "#1F3864"
   }
 }
