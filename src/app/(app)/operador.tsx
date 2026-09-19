@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
+import { Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
 import * as api from '@/lib/api';
 import { fechaHora, soles } from '@/lib/negocio';
 import type { DisputaAbierta, PagoPendiente, VerificacionPendiente } from '@/lib/tipos';
@@ -16,6 +16,7 @@ import {
   Tarjeta,
   Vacio,
 } from '@/ui/componentes';
+import { avisar, confirmar } from '@/ui/dialogos';
 import { C, E, R } from '@/ui/tema';
 
 /**
@@ -76,7 +77,7 @@ export default function Operador() {
       await fn();
       await cargar();
     } catch (e) {
-      Alert.alert('No se pudo completar', (e as Error).message);
+      avisar('No se pudo completar', (e as Error).message);
     } finally {
       setOcupado(null);
     }
@@ -161,23 +162,22 @@ export default function Operador() {
                 titulo="Rechazar"
                 variante="fantasma"
                 cargando={ocupado === `no-${v.perfil_id}`}
-                onPress={() =>
-                  Alert.alert('Rechazar verificación', '¿Seguro?', [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                      text: 'Rechazar',
-                      style: 'destructive',
-                      onPress: () =>
-                        accion(`no-${v.perfil_id}`, () =>
-                          api.resolverVerificacion(
-                            v.perfil_id,
-                            false,
-                            'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz y sin reflejos.',
-                          ),
-                        ),
-                    },
-                  ])
-                }
+                onPress={async () => {
+                  const seguro = await confirmar(
+                    'Rechazar verificación',
+                    `Se rechazará la verificación de ${v.nombre_completo} y tendrá que volver a enviar sus documentos.`,
+                    'Rechazar',
+                    true,
+                  );
+                  if (!seguro) return;
+                  accion(`no-${v.perfil_id}`, () =>
+                    api.resolverVerificacion(
+                      v.perfil_id,
+                      false,
+                      'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz y sin reflejos.',
+                    ),
+                  );
+                }}
               />
             </Tarjeta>
           ))}
@@ -215,24 +215,19 @@ export default function Operador() {
               <Boton
                 titulo="El dinero llegó · retener"
                 cargando={ocupado === `pago-${p.pedido_id}`}
-                onPress={() =>
-                  Alert.alert(
+                onPress={async () => {
+                  const seguro = await confirmar(
                     'Confirmar retención',
                     `¿Verificaste en la cuenta que llegaron ${soles(
                       p.total_cobrado,
                     )} con el código ${p.codigo_operacion}?`,
-                    [
-                      { text: 'Todavía no', style: 'cancel' },
-                      {
-                        text: 'Sí, confirmo',
-                        onPress: () =>
-                          accion(`pago-${p.pedido_id}`, () =>
-                            api.confirmarRetencion(p.pedido_id),
-                          ),
-                      },
-                    ],
-                  )
-                }
+                    'Sí, confirmo',
+                  );
+                  if (!seguro) return;
+                  accion(`pago-${p.pedido_id}`, () =>
+                    api.confirmarRetencion(p.pedido_id),
+                  );
+                }}
               />
               <View style={{ height: E.sm }} />
               <Boton

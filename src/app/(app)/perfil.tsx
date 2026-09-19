@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, Switch, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import { actualizarPerfil, reputacionDe } from '@/lib/api';
 import { ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
@@ -17,6 +17,7 @@ import {
   Tarjeta,
   Titulo,
 } from '@/ui/componentes';
+import { avisar, confirmar } from '@/ui/dialogos';
 import { C, E } from '@/ui/tema';
 
 export default function Perfil() {
@@ -40,7 +41,7 @@ export default function Perfil() {
       await actualizarPerfil({ es_comprador: valor });
       await refrescarPerfil();
     } catch (e) {
-      Alert.alert('No se pudo guardar', (e as Error).message);
+      avisar('No se pudo guardar', (e as Error).message);
     } finally {
       setGuardando(false);
     }
@@ -149,19 +150,17 @@ export default function Perfil() {
       <Boton
         titulo="Cerrar sesión"
         variante="fantasma"
-        onPress={() =>
-          Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Salir',
-              style: 'destructive',
-              onPress: async () => {
-                await salir();
-                router.replace('/entrar');
-              },
-            },
-          ])
-        }
+        onPress={async () => {
+          const seguro = await confirmar(
+            'Cerrar sesión',
+            '¿Seguro que quieres salir?',
+            'Salir',
+            true,
+          );
+          if (!seguro) return;
+          await salir();
+          router.replace('/entrar');
+        }}
       />
     </ScrollView>
   );

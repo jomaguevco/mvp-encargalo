@@ -109,7 +109,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const salir = useCallback(async () => {
-    await supabase.auth.signOut();
+    // signOut() llama al servidor por defecto. Si la red falla o el token ya
+    // venció, lanza excepción y el usuario se queda atrapado dentro de la app.
+    // Pase lo que pase, la sesión local se limpia.
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        /* la sesión local se limpia igual más abajo */
+      }
+    } finally {
+      setSesion(null);
+      setPerfil(null);
+      setEsOperador(false);
+    }
   }, []);
 
   const valor = useMemo<Ctx>(

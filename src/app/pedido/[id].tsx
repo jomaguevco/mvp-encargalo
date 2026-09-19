@@ -2,7 +2,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -47,6 +46,7 @@ import {
   Subtitulo,
   Tarjeta,
 } from '@/ui/componentes';
+import { avisar, confirmar } from '@/ui/dialogos';
 import { Linea } from '@/ui/Linea';
 import { OfertaItem } from '@/ui/OfertaItem';
 import { C, E, R } from '@/ui/tema';
@@ -68,6 +68,8 @@ export default function DetallePedido() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [mostrarDisputa, setMostrarDisputa] = useState(false);
+  const [motivoDisputa, setMotivoDisputa] = useState('');
 
   const soyCliente = !!pedido && pedido.cliente_id === perfil?.id;
   const soyComprador = !!pago && pago.comprador_id === perfil?.id;
@@ -113,7 +115,7 @@ export default function DetallePedido() {
       await fn();
       await cargar();
     } catch (e) {
-      Alert.alert('No se pudo completar', (e as Error).message);
+      avisar('No se pudo completar', (e as Error).message);
     } finally {
       setOcupado(null);
     }
@@ -219,24 +221,19 @@ export default function DetallePedido() {
                 masBarata={o.precio_final === masBarata}
                 puedeAceptar
                 aceptando={ocupado === `aceptar-${o.id}`}
-                onAceptar={() =>
-                  Alert.alert(
+                onAceptar={async () => {
+                  const seguro = await confirmar(
                     'Elegir esta oferta',
                     `Vas a aceptar la oferta de ${soles(
                       o.precio_final,
                     )} con entrega el ${fecha(
                       o.fecha_entrega,
                     )}.\n\nLas demás ofertas quedarán descartadas y se generará tu orden de pago.`,
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Aceptar oferta',
-                        onPress: () =>
-                          accion(`aceptar-${o.id}`, () => api.aceptarOferta(o.id)),
-                      },
-                    ],
-                  )
-                }
+                    'Aceptar oferta',
+                  );
+                  if (!seguro) return;
+                  accion(`aceptar-${o.id}`, () => api.aceptarOferta(o.id));
+                }}
               />
             ))}
           </>
@@ -315,40 +312,56 @@ export default function DetallePedido() {
             <Boton
               titulo="Sí, lo recibí conforme"
               cargando={ocupado === 'confirmar'}
-              onPress={() =>
-                Alert.alert(
+              onPress={async () => {
+                const seguro = await confirmar(
                   'Confirmar recepción',
                   'Esta acción libera el pago y no se puede deshacer. ¿Recibiste tu producto conforme?',
-                  [
-                    { text: 'Todavía no', style: 'cancel' },
-                    {
-                      text: 'Sí, confirmo',
-                      onPress: () =>
-                        accion('confirmar', () => api.confirmarRecepcion(pedido.id)),
-                    },
-                  ],
-                )
-              }
+                  'Sí, confirmo',
+                );
+                if (!seguro) return;
+                accion('confirmar', () => api.confirmarRecepcion(pedido.id));
+              }}
             />
             <View style={{ height: E.sm }} />
-            <Boton
-              titulo="Tengo un problema con este pedido"
-              variante="fantasma"
-              onPress={() =>
-                Alert.prompt
-                  ? Alert.prompt(
-                      'Abrir disputa',
-                      'Cuéntanos qué pasó (mínimo 10 caracteres). Tu dinero sigue retenido mientras revisamos.',
-                      (texto) =>
-                        texto &&
-                        accion('disputa', () => api.abrirDisputa(pedido.id, texto)),
-                    )
-                  : Alert.alert(
-                      'Abrir disputa',
-                      'Escríbenos por el chat del pedido describiendo el problema y abriremos el caso. Tu dinero sigue retenido.',
-                    )
-              }
-            />
+            {!mostrarDisputa ? (
+              <Boton
+                titulo="Tengo un problema con este pedido"
+                variante="fantasma"
+                onPress={() => setMostrarDisputa(true)}
+              />
+            ) : (
+              <>
+                <Separador />
+                <Campo
+                  etiqueta="¿Qué pasó?"
+                  value={motivoDisputa}
+                  onChangeText={setMotivoDisputa}
+                  multiline
+                  style={{ height: 88, textAlignVertical: 'top' }}
+                  placeholder="Describe el problema con detalle."
+                  ayuda="Mínimo 10 caracteres. Tu dinero sigue retenido mientras revisamos el caso."
+                />
+                <Boton
+                  titulo="Abrir disputa"
+                  variante="peligro"
+                  cargando={ocupado === 'disputa'}
+                  deshabilitado={motivoDisputa.trim().length < 10}
+                  onPress={() =>
+                    accion('disputa', async () => {
+                      await api.abrirDisputa(pedido.id, motivoDisputa.trim());
+                      setMostrarDisputa(false);
+                      setMotivoDisputa('');
+                    })
+                  }
+                />
+                <View style={{ height: E.sm }} />
+                <Boton
+                  titulo="Cancelar"
+                  variante="fantasma"
+                  onPress={() => setMostrarDisputa(false)}
+                />
+              </>
+            )}
           </Tarjeta>
         )}
 
