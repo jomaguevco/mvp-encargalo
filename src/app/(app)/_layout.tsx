@@ -5,33 +5,63 @@ import { Cargando } from '@/ui/componentes';
 import { C } from '@/ui/tema';
 
 /** Punto de una pestaña. Sin librería de iconos: menos peso y cero dependencias. */
-function Punto({ activo, letra }: { activo: boolean; letra: string }) {
+function Punto({
+  activo,
+  letra,
+  globo,
+}: {
+  activo: boolean;
+  letra: string;
+  globo?: number;
+}) {
   return (
-    <View
-      style={{
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: activo ? C.naranja : 'transparent',
-        borderWidth: activo ? 0 : 1.5,
-        borderColor: C.borde,
-      }}>
-      <Text
+    <View>
+      <View
         style={{
-          fontSize: 13,
-          fontWeight: '800',
-          color: activo ? C.blanco : C.textoSuave,
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: activo ? C.naranja : 'transparent',
+          borderWidth: activo ? 0 : 1.5,
+          borderColor: C.borde,
         }}>
-        {letra}
-      </Text>
+        <Text
+          style={{
+            fontSize: 13,
+            fontWeight: '800',
+            color: activo ? C.blanco : C.textoSuave,
+          }}>
+          {letra}
+        </Text>
+      </View>
+
+      {!!globo && globo > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -4,
+            right: -8,
+            minWidth: 17,
+            height: 17,
+            paddingHorizontal: 4,
+            borderRadius: 9,
+            backgroundColor: C.rojo,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: C.blanco }}>
+            {globo > 9 ? '9+' : globo}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 export default function AppLayout() {
-  const { sesion, cargando, esOperador } = useAuth();
+  const { sesion, cargando, esOperador, avisosPendientes } = useAuth();
 
   if (cargando) return <Cargando texto="Cargando…" />;
   if (!sesion) return <Redirect href="/entrar" />;
@@ -45,7 +75,7 @@ export default function AppLayout() {
         tabBarActiveTintColor: C.naranja,
         tabBarInactiveTintColor: C.textoSuave,
         tabBarStyle: { backgroundColor: C.blanco, borderTopColor: C.borde, height: 60 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 6 },
+        tabBarLabelStyle: { fontSize: 10.5, fontWeight: '700', marginBottom: 6 },
         sceneStyle: { backgroundColor: C.fondo },
       }}>
       <Tabs.Screen
@@ -68,8 +98,18 @@ export default function AppLayout() {
         name="entregas"
         options={{
           title: 'Mis entregas',
-          headerTitle: 'Pedidos que estoy trayendo',
+          headerTitle: 'Lo que estoy trayendo',
           tabBarIcon: ({ focused }) => <Punto activo={focused} letra="E" />,
+        }}
+      />
+      <Tabs.Screen
+        name="avisos"
+        options={{
+          title: 'Avisos',
+          headerTitle: 'Avisos',
+          tabBarIcon: ({ focused }) => (
+            <Punto activo={focused} letra="A" globo={avisosPendientes} />
+          ),
         }}
       />
       <Tabs.Screen

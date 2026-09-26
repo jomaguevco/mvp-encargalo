@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
+import { urlPublica } from '@/lib/api';
 import { ESTADO_PEDIDO, diasHasta, fecha, soles } from '@/lib/negocio';
 import type { Pedido } from '@/lib/tipos';
 import { Chip, Micro, Parrafo, Tarjeta } from './componentes';
-import { C, E } from './tema';
+import { C, E, R } from './tema';
 
 export function PedidoCard({
   pedido,
@@ -26,6 +27,20 @@ export function PedidoCard({
         <Parrafo suave style={{ marginTop: E.xs }} numberOfLines={2}>
           {pedido.descripcion}
         </Parrafo>
+      )}
+
+      {!!pedido.imagen_path && (
+        <Image
+          source={{ uri: urlPublica('productos', pedido.imagen_path) ?? undefined }}
+          style={{
+            width: '100%',
+            height: 120,
+            borderRadius: R.sm,
+            marginTop: E.sm,
+            backgroundColor: C.borde,
+          }}
+          resizeMode="cover"
+        />
       )}
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: E.md, marginTop: E.md }}>

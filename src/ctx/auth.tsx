@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { miPerfil, soyOperador } from '@/lib/api';
+import { avisosNoLeidos, miPerfil, soyOperador } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { Perfil } from '@/lib/tipos';
 
@@ -17,7 +17,10 @@ type Ctx = {
   cargando: boolean;
   verificado: boolean;
   esOperador: boolean;
+  /** Avisos sin leer. Alimenta el globo de la pestaña. */
+  avisosPendientes: number;
   refrescarPerfil: () => Promise<void>;
+  refrescarAvisos: () => Promise<void>;
   entrar: (correo: string, clave: string) => Promise<void>;
   registrar: (datos: {
     correo: string;
@@ -34,17 +37,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [esOperador, setEsOperador] = useState(false);
+  const [avisosPendientes, setAvisosPendientes] = useState(0);
   const [cargando, setCargando] = useState(true);
+
+  const refrescarAvisos = useCallback(async () => {
+    try {
+      setAvisosPendientes(await avisosNoLeidos());
+    } catch {
+      setAvisosPendientes(0);
+    }
+  }, []);
 
   const refrescarPerfil = useCallback(async () => {
     try {
       setPerfil(await miPerfil());
       setEsOperador(await soyOperador());
+      await refrescarAvisos();
     } catch {
       setPerfil(null);
       setEsOperador(false);
+      setAvisosPendientes(0);
     }
-  }, []);
+  }, [refrescarAvisos]);
 
   useEffect(() => {
     let vivo = true;
@@ -64,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setPerfil(null);
         setEsOperador(false);
+        setAvisosPendientes(0);
       }
       setCargando(false);
     });
@@ -124,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSesion(null);
       setPerfil(null);
       setEsOperador(false);
+      setAvisosPendientes(0);
     }
   }, []);
 
@@ -134,12 +150,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cargando,
       verificado: perfil?.verificacion === 'verificado',
       esOperador,
+      avisosPendientes,
       refrescarPerfil,
+      refrescarAvisos,
       entrar,
       registrar,
       salir,
     }),
-    [sesion, perfil, cargando, esOperador, refrescarPerfil, entrar, registrar, salir],
+    [
+      sesion,
+      perfil,
+      cargando,
+      esOperador,
+      avisosPendientes,
+      refrescarPerfil,
+      refrescarAvisos,
+      entrar,
+      registrar,
+      salir,
+    ],
   );
 
   return <AuthCtx.Provider value={valor}>{children}</AuthCtx.Provider>;

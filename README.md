@@ -25,7 +25,26 @@ Los nueve módulos que la Unidad 2 definió como imprescindibles, todos operativ
 9. **Mediación de disputas** con reembolso desde el dinero retenido
 
 Más una **consola del equipo** para operar el piloto: cola de verificaciones, cola de
-pagos por confirmar y disputas abiertas.
+pagos por confirmar, disputas abiertas y plazos de confirmación vencidos.
+
+### Lo que se cerró en la última iteración
+
+Los nueve módulos estaban, pero el recorrido tenía huecos por los que un pedido real se
+quedaba trabado. Estos son los que se cerraron:
+
+| Módulo | Qué faltaba | Cómo quedó |
+|---|---|---|
+| **Avisos** | Nada le decía al usuario que tenía una oferta, un pago retenido o un mensaje | Bandeja propia por usuario, escrita por *triggers* de la base sobre los mismos hechos de la bitácora. Globo con el contador en la pestaña |
+| **Cancelar un pedido** | El estado `cancelado` existía y nada podía llegar a él | `cancelar_pedido`: solo el cliente, y solo mientras no haya reportado el pago |
+| **Retirar una oferta** | El comprador externo que ya no podía viajar no tenía salida | `retirar_oferta`, disponible mientras nadie la acepte |
+| **Plazo de confirmación** | `dias_para_confirmar` estaba en `config` sin que nada lo leyera: si el cliente no confirmaba, el dinero quedaba retenido para siempre | El cliente ve su fecha límite; el equipo ve la cola de vencidos y puede liberar con `liberar_por_vencimiento` |
+| **Reseñas públicas** | Solo se veía el promedio, no el comentario | Pantalla de reputación pública con las reseñas de quienes ya operaron con esa persona |
+| **Ofertas enviadas** | Una oferta sin responder no aparecía en ninguna pantalla | Se listan en «Mis entregas», separadas de los pedidos adjudicados |
+| **Disputas** | Solo las abría el cliente y solo al final | Las abren las dos partes, en cualquier estado con dinero retenido, con evidencia adjunta |
+| **Búsqueda** | La lista de pedidos abiertos no se podía filtrar | Buscador sin tildes y filtro por categoría |
+| **Foto del producto** | El bucket `productos` existía sin que nada subiera nada | Foto opcional al publicar, visible en la tarjeta y en el detalle |
+| **Chat** | Había que recargar para ver si te contestaron | Se actualiza solo cada 12 segundos |
+| **Borrado de documentos** | Aprobar una verificación descartaba las rutas, pero los archivos quedaban en el bucket | Al aprobar se borran en la misma operación (Ley N° 29733) |
 
 ## Decisiones que conviene conocer antes de leer el código
 
@@ -48,8 +67,9 @@ comisión al cliente 10 %, tarifa al comprador externo 3 %, procesamiento 2.9 %.
 cambian ahí, cambian aquí.
 
 **Retención mínima de datos personales.** Solo se guarda el número de DNI. Las imágenes
-del documento van a un bucket privado y, al aprobarse la verificación, la app descarta
-sus rutas para que el equipo pueda borrarlas. Es lo que exige la Ley N° 29733.
+del documento van a un bucket privado y, al aprobarse la verificación, la base descarta
+sus rutas y la app borra los archivos en la misma operación. Es lo que exige la Ley
+N° 29733.
 
 ---
 
@@ -73,6 +93,8 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0003_rls.sql` | Seguridad a nivel de fila y políticas de almacenamiento |
 | `0004_config.sql` | Tarifas del modelo de negocio |
 | `0005_operador.sql` | Consola del equipo |
+| `0006_modulos.sql` | Cancelación, retiro de ofertas, reseñas, plazo de confirmación |
+| `0007_avisos.sql` | Bandeja de avisos y sus *triggers* |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -146,6 +168,10 @@ Hacen falta **dos cuentas** (usa dos teléfonos, o un teléfono y el emulador):
 7. **Cuenta A** confirma la recepción. El pago se libera.
 8. Ambas se califican. La reputación aparece en el perfil y en las próximas ofertas.
 
+Cada uno de esos pasos deja un aviso en la pestaña **Avisos** de la otra parte, con el
+globo del contador en la barra inferior. Es la forma más rápida de mostrar en la
+demostración que las dos cuentas están viendo lo mismo desde los dos lados.
+
 Ese recorrido es exactamente la demostración de cinco minutos del informe
 (sección 1.9).
 
@@ -160,11 +186,13 @@ src/
     registro.tsx          Alta de cuenta
     verificacion.tsx      DNI + selfie
     publicar.tsx          Nuevo pedido
-    pedido/[id].tsx       Detalle: ofertas, pago, seguimiento, chat, calificación
+    pedido/[id].tsx       Detalle: ofertas, pago, seguimiento, chat, disputa, calificación
+    reputacion/[id].tsx   Perfil público: métricas y reseñas
     (app)/                Pestañas para sesión iniciada
       pedidos.tsx         Mis pedidos (lado cliente)
-      explorar.tsx        Pedidos abiertos (lado comprador externo)
-      entregas.tsx        Pedidos que estoy trayendo
+      explorar.tsx        Pedidos abiertos, con buscador y filtro
+      entregas.tsx        Ofertas enviadas y pedidos que estoy trayendo
+      avisos.tsx          Bandeja de avisos
       operador.tsx        Consola del equipo (solo operadores)
       perfil.tsx          Perfil y reputación
   ctx/auth.tsx            Sesión, perfil y rol de operador
@@ -182,8 +210,20 @@ supabase/migrations/      Esquema, funciones, RLS y configuración
 | Módulo | Estado |
 |---|---|
 | Registro, verificación, pedidos, ofertas, escrow, seguimiento, chat, calificación, disputas | Operativo |
-| Consola del equipo | Operativa |
+| Cancelación, retiro de ofertas, reseñas públicas, plazo de confirmación, búsqueda | Operativo |
+| Avisos dentro de la app | Operativo |
+| Consola del equipo | Operativa: verificaciones, pagos, disputas y plazos vencidos |
 | Validación de DNI contra RENIEC | Manual. Queda pendiente contratar el proveedor |
 | Pasarela de pagos | Manual. Requiere RUC y afiliación comercial |
-| Notificaciones push | Pendiente |
+| Envío push de los avisos | Pendiente. La bandeja ya existe y los *triggers* ya registran el hecho: falta el *build* nativo con Expo Notifications y guardar el token del dispositivo. En Expo Go no hay push |
+| Publicación en Google Play | Pendiente. El piloto se reparte por APK |
 | Versión iOS | Fuera del alcance del MVP, prevista para T1 2027 |
+
+### Por qué los avisos no son push todavía
+
+El pendiente que decía «notificaciones push» era en realidad dos cosas: registrar el
+hecho y transportarlo al teléfono. Lo primero es lo que importa y es lo que ahora hace la
+base de datos: cada oferta, cada movimiento de dinero, cada mensaje y cada calificación
+crean una fila en `avisos`, con el mismo *trigger* que ya alimentaba la bitácora. El
+transporte push exige un *build* nativo —Expo Go dejó de recibir notificaciones remotas—
+y cuando ese *build* exista no hay que rehacer nada: el mismo `insert` dispara el envío.

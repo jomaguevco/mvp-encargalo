@@ -3,7 +3,12 @@ import { useCallback, useState } from 'react';
 import { Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
 import * as api from '@/lib/api';
 import { fechaHora, soles } from '@/lib/negocio';
-import type { DisputaAbierta, PagoPendiente, VerificacionPendiente } from '@/lib/tipos';
+import type {
+  ConfirmacionVencida,
+  DisputaAbierta,
+  PagoPendiente,
+  VerificacionPendiente,
+} from '@/lib/tipos';
 import {
   Aviso,
   Boton,
@@ -28,20 +33,23 @@ export default function Operador() {
   const [verificaciones, setVerificaciones] = useState<VerificacionPendiente[]>([]);
   const [pagos, setPagos] = useState<PagoPendiente[]>([]);
   const [disputas, setDisputas] = useState<DisputaAbierta[]>([]);
+  const [vencidas, setVencidas] = useState<ConfirmacionVencida[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
-    const [v, p, d] = await Promise.all([
+    const [v, p, d, c] = await Promise.all([
       api.pendientesVerificacion(),
       api.pendientesPago(),
       api.disputasAbiertas(),
+      api.confirmacionesVencidas(),
     ]);
     setVerificaciones(v);
     setPagos(p);
     setDisputas(d);
+    setVencidas(c);
 
     // URLs firmadas para poder mirar los documentos sin hacerlos públicos
     const pares: [string, string][] = [];
@@ -57,6 +65,12 @@ export default function Operador() {
       if (x.comprobante_path) {
         const u = await api.urlFirmada('comprobantes', x.comprobante_path);
         if (u) pares.push([x.comprobante_path, u]);
+      }
+    }
+    for (const x of d) {
+      if (x.evidencia_path) {
+        const u = await api.urlFirmada('comprobantes', x.evidencia_path);
+        if (u) pares.push([x.evidencia_path, u]);
       }
     }
     setUrls(Object.fromEntries(pares));
@@ -86,7 +100,10 @@ export default function Operador() {
   if (cargando) return <Cargando texto="Cargando las colas del equipo…" />;
 
   const vacio =
-    verificaciones.length === 0 && pagos.length === 0 && disputas.length === 0;
+    verificaciones.length === 0 &&
+    pagos.length === 0 &&
+    disputas.length === 0 &&
+    vencidas.length === 0;
 
   return (
     <ScrollView
@@ -109,7 +126,7 @@ export default function Operador() {
       {vacio && (
         <Vacio
           titulo="Todo al día"
-          detalle="No hay verificaciones, pagos ni disputas esperando."
+          detalle="No hay verificaciones, pagos, disputas ni plazos vencidos esperando."
         />
       )}
 
@@ -152,9 +169,17 @@ export default function Operador() {
                 titulo="Aprobar verificación"
                 cargando={ocupado === `ok-${v.perfil_id}`}
                 onPress={() =>
-                  accion(`ok-${v.perfil_id}`, () =>
-                    api.resolverVerificacion(v.perfil_id, true),
-                  )
+                  accion(`ok-${v.perfil_id}`, async () => {
+                    await api.resolverVerificacion(v.perfil_id, true);
+                    // Retención mínima: la función ya descartó las rutas en la
+                    // base; esto borra los archivos del bucket, que era el paso
+                    // que quedaba a mano en el panel de Supabase.
+                    try {
+                      await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
+                    } catch (e) {
+                      avisar('Verificación aprobada', (e as Error).message);
+                    }
+                  })
                 }
               />
               <View style={{ height: E.sm }} />
@@ -240,6 +265,61 @@ export default function Operador() {
         </>
       )}
 
+      {/* ------------------------------------------------ plazos vencidos */}
+      {vencidas.length > 0 && (
+        <>
+          <Subtitulo style={{ marginTop: E.md }}>
+            Plazos de confirmación vencidos ({vencidas.length})
+          </Subtitulo>
+          <Parrafo suave style={{ marginBottom: E.md }}>
+            El comprador externo marcó la entrega y el cliente no confirmó dentro del
+            plazo de config («dias_para_confirmar»). Sin este paso el dinero se quedaba
+            retenido para siempre. Antes de liberar, revisa el chat del pedido.
+          </Parrafo>
+          {vencidas.map((c) => (
+            <Tarjeta
+              key={c.pedido_id}
+              style={{ borderColor: C.ambar, borderWidth: 1.5 }}>
+              <Parrafo style={{ fontWeight: '700' }}>{c.titulo}</Parrafo>
+              <Dato etiqueta="Cliente" valor={c.cliente} />
+              <Dato etiqueta="Comprador externo" valor={c.comprador} />
+              <Dato etiqueta="Monto retenido" valor={soles(c.monto)} fuerte />
+              <Dato etiqueta="Entregado" valor={fechaHora(c.entregado_en)} />
+              <Dato etiqueta="Venció" valor={fechaHora(c.vence_en)} />
+              <Dato
+                etiqueta="Días vencido"
+                valor={String(c.dias_vencido)}
+              />
+              <Separador />
+              <Boton
+                titulo="Liberar el pago al comprador externo"
+                variante="secundario"
+                cargando={ocupado === `venc-${c.pedido_id}`}
+                onPress={async () => {
+                  const seguro = await confirmar(
+                    'Liberar por vencimiento',
+                    `¿Revisaste el pedido y el chat? Se liberarán ${soles(
+                      c.monto,
+                    )} y el pedido quedará confirmado.`,
+                    'Sí, liberar',
+                  );
+                  if (!seguro) return;
+                  accion(`venc-${c.pedido_id}`, () =>
+                    api.liberarPorVencimiento(c.pedido_id),
+                  );
+                }}
+              />
+              <View style={{ height: E.sm }} />
+              <Boton
+                titulo="Abrir el pedido y su chat"
+                variante="fantasma"
+                onPress={() => router.push(`/pedido/${c.pedido_id}`)}
+              />
+            </Tarjeta>
+          ))}
+        </>
+      )}
+
       {/* ------------------------------------------------ disputas */}
       {disputas.length > 0 && (
         <>
@@ -250,10 +330,30 @@ export default function Operador() {
             <Tarjeta key={d.disputa_id} style={{ borderColor: C.rojo, borderWidth: 1.5 }}>
               <Parrafo style={{ fontWeight: '700' }}>{d.titulo}</Parrafo>
               <Dato etiqueta="La abrió" valor={d.abierta_por} />
+              <Dato etiqueta="Estado del pedido" valor={d.estado_pedido} />
               <Dato etiqueta="Monto retenido" valor={soles(d.monto)} fuerte />
+              <Dato etiqueta="Abierta" valor={fechaHora(d.creado_en)} />
               <Separador />
               <Parrafo suave>“{d.motivo}”</Parrafo>
+
+              {d.evidencia_path && urls[d.evidencia_path] && (
+                <Image
+                  source={{ uri: urls[d.evidencia_path] }}
+                  style={{
+                    height: 220,
+                    borderRadius: R.sm,
+                    marginTop: E.md,
+                    backgroundColor: C.borde,
+                  }}
+                  resizeMode="contain"
+                />
+              )}
+
               <Separador />
+              <Micro style={{ marginBottom: E.sm }}>
+                Antes de decidir, lee el chat del pedido: es la única fuente que tienen las
+                dos partes y queda registrada.
+              </Micro>
               <Boton
                 titulo="Reembolsar al cliente"
                 variante="peligro"
@@ -289,6 +389,12 @@ export default function Operador() {
                 variante="fantasma"
                 onPress={() => router.push(`/pedido/${d.pedido_id}`)}
               />
+              <View style={{ height: E.sm }} />
+              <Boton
+                titulo="Ver el historial de quien la abrió"
+                variante="fantasma"
+                onPress={() => router.push(`/reputacion/${d.abierta_por_id}`)}
+              />
             </Tarjeta>
           ))}
         </>
@@ -296,9 +402,9 @@ export default function Operador() {
 
       {verificaciones.length > 0 && (
         <Micro style={{ marginTop: E.lg, lineHeight: 18 }}>
-          Al aprobar una verificación, la app descarta las rutas de las imágenes. Recuerda
-          borrar los archivos del bucket «documentos» desde el panel de Supabase para
-          completar la retención mínima que exige la Ley N° 29733.
+          Al aprobar una verificación, la app descarta las rutas y borra las imágenes del
+          bucket «documentos» en la misma operación. Queda solo el número de DNI, que es
+          la retención mínima que exige la Ley N° 29733.
         </Micro>
       )}
 

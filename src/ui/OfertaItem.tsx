@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { View } from 'react-native';
 import { fecha, soles } from '@/lib/negocio';
 import type { OfertaConReputacion } from '@/lib/tipos';
@@ -26,12 +27,16 @@ export function OfertaItem({
   puedeAceptar,
   onAceptar,
   aceptando,
+  onRetirar,
+  retirando,
 }: {
   oferta: OfertaConReputacion;
   masBarata: boolean;
   puedeAceptar: boolean;
   onAceptar?: () => void;
   aceptando?: boolean;
+  onRetirar?: () => void;
+  retirando?: boolean;
 }) {
   const r = oferta.reputacion;
   const nuevo = (r?.pedidos_cumplidos ?? 0) === 0;
@@ -94,9 +99,27 @@ export function OfertaItem({
         </>
       )}
 
+      <Separador />
+      <Boton
+        titulo="Ver su reputación y reseñas"
+        variante="fantasma"
+        onPress={() => router.push(`/reputacion/${oferta.comprador_id}`)}
+      />
+
       {puedeAceptar && onAceptar && (
-        <View style={{ marginTop: E.md }}>
+        <View style={{ marginTop: E.sm }}>
           <Boton titulo="Elegir esta oferta" onPress={onAceptar} cargando={aceptando} />
+        </View>
+      )}
+
+      {onRetirar && (
+        <View style={{ marginTop: E.sm }}>
+          <Boton
+            titulo="Retirar mi oferta"
+            variante="fantasma"
+            onPress={onRetirar}
+            cargando={retirando}
+          />
         </View>
       )}
     </Tarjeta>

@@ -1,10 +1,19 @@
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { publicarPedido } from '@/lib/api';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { publicarPedido, subirImagenProducto } from '@/lib/api';
 import { CATEGORIAS } from '@/lib/negocio';
 import { Aviso, Boton, Campo, Opciones, Parrafo, Subtitulo } from '@/ui/componentes';
-import { E } from '@/ui/tema';
+import { C, E, R } from '@/ui/tema';
 
 /** Devuelve una fecha ISO (YYYY-MM-DD) a N días de hoy. */
 function enDias(n: number) {
@@ -21,8 +30,17 @@ export default function Publicar() {
   const [cantidad, setCantidad] = useState('1');
   const [valor, setValor] = useState('');
   const [plazo, setPlazo] = useState('30');
+  const [foto, setFoto] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  async function elegirFoto() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.6,
+    });
+    if (!res.canceled && res.assets?.[0]) setFoto(res.assets[0].uri);
+  }
 
   function validar(): string | null {
     if (titulo.trim().length < 3) return 'Escribe qué producto quieres';
@@ -41,6 +59,9 @@ export default function Publicar() {
 
     setEnviando(true);
     try {
+      // La foto va al bucket público `productos`: es referencia del encargo,
+      // no un dato personal.
+      const imagen = foto ? await subirImagenProducto(foto) : null;
       const pedido = await publicarPedido({
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
@@ -50,6 +71,7 @@ export default function Publicar() {
         ciudad_entrega: 'Chiclayo',
         fecha_limite: enDias(Number(plazo)),
         valor_referencial: valor.trim() ? Number(valor) : null,
+        imagen_path: imagen,
       });
       router.replace(`/pedido/${pedido.id}`);
     } catch (e) {
@@ -90,6 +112,54 @@ export default function Publicar() {
           placeholder="https://…"
           ayuda="Opcional, pero es lo que más ayuda a que te coticen bien"
         />
+
+        <Pressable
+          onPress={elegirFoto}
+          style={{
+            borderWidth: 2,
+            borderStyle: foto ? 'solid' : 'dashed',
+            borderColor: foto ? C.verde : C.borde,
+            borderRadius: R.md,
+            marginBottom: E.lg,
+            overflow: 'hidden',
+            alignItems: 'center',
+            padding: foto ? 0 : E.lg,
+            backgroundColor: C.blanco,
+          }}>
+          {foto ? (
+            <>
+              <Image
+                source={{ uri: foto }}
+                style={{ width: '100%', height: 170 }}
+                resizeMode="cover"
+              />
+              <Text
+                style={{
+                  paddingVertical: E.sm,
+                  color: C.verde,
+                  fontWeight: '700',
+                  fontSize: 13,
+                }}>
+                Foto del producto, toca para cambiar
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: C.azul, fontWeight: '700' }}>
+                Agregar una foto del producto
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: C.textoSuave,
+                  marginTop: E.xs,
+                  textAlign: 'center',
+                }}>
+                Opcional. Si no tienes el enlace, una captura evita malentendidos.
+              </Text>
+            </>
+          )}
+        </Pressable>
 
         <Campo
           etiqueta="Detalles"

@@ -1,4 +1,9 @@
-import type { EstadoPago, EstadoPedido, EstadoVerificacion } from './tipos';
+import type {
+  EstadoOferta,
+  EstadoPago,
+  EstadoPedido,
+  EstadoVerificacion,
+} from './tipos';
 
 export const soles = (n: number | null | undefined) =>
   n == null ? '—' : `S/ ${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
@@ -159,4 +164,48 @@ export const SIGUIENTE_PASO_COMPRADOR: Partial<
   pagado: { siguiente: 'comprado', accion: 'Ya compré el producto' },
   comprado: { siguiente: 'en_viaje', accion: 'El producto está en viaje' },
   en_viaje: { siguiente: 'entregado', accion: 'Ya lo entregué' },
+};
+
+/** Cómo se muestra cada aviso en la bandeja. */
+export const TIPO_AVISO: Record<
+  'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion',
+  { etiqueta: string; color: string }
+> = {
+  oferta: { etiqueta: 'Oferta', color: '#2E5C9A' },
+  pedido: { etiqueta: 'Pedido', color: '#ED7D31' },
+  pago: { etiqueta: 'Dinero', color: '#377C4E' },
+  mensaje: { etiqueta: 'Mensaje', color: '#2E5C9A' },
+  calificacion: { etiqueta: 'Reputación', color: '#B7791F' },
+  verificacion: { etiqueta: 'Identidad', color: '#377C4E' },
+};
+
+export const ESTADO_OFERTA: Record<EstadoOferta, { etiqueta: string; color: string }> = {
+  enviada: { etiqueta: 'Esperando respuesta', color: '#ED7D31' },
+  aceptada: { etiqueta: 'Aceptada', color: '#377C4E' },
+  rechazada: { etiqueta: 'No elegida', color: '#767676' },
+  retirada: { etiqueta: 'Retirada', color: '#767676' },
+};
+
+/** Estados del pedido en los que cualquiera de las dos partes puede disputar. */
+export const DISPUTABLES: EstadoPedido[] = [
+  'pagado',
+  'comprado',
+  'en_viaje',
+  'entregado',
+];
+
+/** Estados en los que el cliente todavía puede cancelar desde la app. */
+export const CANCELABLES: EstadoPedido[] = ['publicado', 'aceptado'];
+
+/** «hace 3 días», «hace 2 h». Para la bandeja de avisos y el chat. */
+export const hace = (iso: string) => {
+  const seg = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (seg < 60) return 'ahora';
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `hace ${d} día${d === 1 ? '' : 's'}`;
+  return fecha(iso);
 };

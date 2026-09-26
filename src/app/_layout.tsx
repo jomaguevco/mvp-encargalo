@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="verificacion" options={{ title: 'Verificar identidad' }} />
         <Stack.Screen name="publicar" options={{ title: 'Nuevo pedido' }} />
         <Stack.Screen name="pedido/[id]" options={{ title: 'Pedido' }} />
+        <Stack.Screen name="reputacion/[id]" options={{ title: 'Reputación' }} />
       </Stack>
     </AuthProvider>
   );

@@ -1,7 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -15,9 +16,12 @@ import {
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
 import {
+  CANCELABLES,
+  DISPUTABLES,
   ESTADO_PAGO,
   ESTADO_PEDIDO,
   SIGUIENTE_PASO_COMPRADOR,
+  diasHasta,
   fecha,
   fechaHora,
   soles,
@@ -68,8 +72,7 @@ export default function DetallePedido() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
-  const [mostrarDisputa, setMostrarDisputa] = useState(false);
-  const [motivoDisputa, setMotivoDisputa] = useState('');
+  const [limite, setLimite] = useState<string | null>(null);
 
   const soyCliente = !!pedido && pedido.cliente_id === perfil?.id;
   const soyComprador = !!pago && pago.comprador_id === perfil?.id;
@@ -91,6 +94,9 @@ export default function DetallePedido() {
     setEventos(evs);
     setMensajes(msgs);
     setPropia(mia);
+    // Plazo del cliente para confirmar. Sale de `dias_para_confirmar` en la
+    // tabla config, no de un número escrito aquí.
+    setLimite(p.estado === 'entregado' ? await api.fechaLimiteConfirmacion(id) : null);
   }, [id]);
 
   useEffect(() => {
@@ -108,6 +114,20 @@ export default function DetallePedido() {
       navegacion.setOptions({ title: pedido.titulo.slice(0, 28) });
     }
   }, [pedido, navegacion]);
+
+  // El chat se actualiza solo. Sin realtime, un sondeo cada 12 segundos basta
+  // para una conversación de dos personas y evita el «recarga para ver si te
+  // contestaron», que era el motivo por el que la gente pedía el WhatsApp.
+  useEffect(() => {
+    if (!id || !(soyCliente || soyComprador)) return;
+    const reloj = setInterval(() => {
+      api
+        .mensajesDelPedido(id)
+        .then(setMensajes)
+        .catch(() => undefined);
+    }, 12_000);
+    return () => clearInterval(reloj);
+  }, [id, soyCliente, soyComprador]);
 
   async function accion(clave: string, fn: () => Promise<unknown>) {
     setOcupado(clave);
@@ -174,6 +194,21 @@ export default function DetallePedido() {
               </Parrafo>
             </Pressable>
           )}
+          {!!pedido.imagen_path && (
+            <Image
+              source={{
+                uri: api.urlPublica('productos', pedido.imagen_path) ?? undefined,
+              }}
+              style={{
+                width: '100%',
+                height: 190,
+                borderRadius: R.md,
+                marginTop: E.md,
+                backgroundColor: C.borde,
+              }}
+              resizeMode="cover"
+            />
+          )}
           <Separador />
           <Dato etiqueta="Categoría" valor={pedido.categoria} />
           <Dato etiqueta="Cantidad" valor={String(pedido.cantidad)} />
@@ -192,6 +227,22 @@ export default function DetallePedido() {
         <Tarjeta>
           <Linea estado={pedido.estado} eventos={eventos} />
         </Tarjeta>
+
+        {pago && (soyCliente || soyComprador) && (
+          <Boton
+            titulo={
+              soyCliente
+                ? 'Ver la reputación del comprador externo'
+                : 'Ver la reputación del cliente'
+            }
+            variante="fantasma"
+            onPress={() =>
+              router.push(
+                `/reputacion/${soyCliente ? pago.comprador_id : pago.cliente_id}`,
+              )
+            }
+          />
+        )}
 
         {/* ---------------------------------------------------- ofertas */}
         {pedido.estado === 'publicado' && soyCliente && (
@@ -245,11 +296,22 @@ export default function DetallePedido() {
             pedido={pedido}
             propia={propia}
             ocupado={ocupado === 'ofertar'}
+            retirando={ocupado === 'retirar'}
             onOfertar={(precio, fechaEntrega, nota) =>
               accion('ofertar', () =>
                 api.ofertar(pedido.id, precio, fechaEntrega, nota),
               )
             }
+            onRetirar={async () => {
+              const seguro = await confirmar(
+                'Retirar la oferta',
+                'El cliente dejará de verla. Podrás volver a ofertar mientras el pedido siga abierto.',
+                'Retirar',
+                true,
+              );
+              if (!seguro) return;
+              accion('retirar', () => api.retirarOferta(propia!.id));
+            }}
           />
         )}
 
@@ -309,6 +371,17 @@ export default function DetallePedido() {
               {soles(pago?.monto_liberado)} al comprador externo y ya no podremos
               retenerlo.
             </Parrafo>
+
+            {!!limite && (
+              <Aviso
+                tono={diasHasta(limite.slice(0, 10)) < 0 ? 'alerta' : 'info'}
+                titulo="Tu plazo para revisar">
+                {diasHasta(limite.slice(0, 10)) < 0
+                  ? `El plazo venció el ${fecha(limite)}. Si no respondes, el equipo puede revisar el caso y cerrar el pedido.`
+                  : `Tienes hasta el ${fecha(limite)} para confirmar o abrir una disputa. Después de esa fecha el equipo revisa el caso.`}
+              </Aviso>
+            )}
+
             <Boton
               titulo="Sí, lo recibí conforme"
               cargando={ocupado === 'confirmar'}
@@ -322,46 +395,50 @@ export default function DetallePedido() {
                 accion('confirmar', () => api.confirmarRecepcion(pedido.id));
               }}
             />
-            <View style={{ height: E.sm }} />
-            {!mostrarDisputa ? (
-              <Boton
-                titulo="Tengo un problema con este pedido"
-                variante="fantasma"
-                onPress={() => setMostrarDisputa(true)}
-              />
-            ) : (
-              <>
-                <Separador />
-                <Campo
-                  etiqueta="¿Qué pasó?"
-                  value={motivoDisputa}
-                  onChangeText={setMotivoDisputa}
-                  multiline
-                  style={{ height: 88, textAlignVertical: 'top' }}
-                  placeholder="Describe el problema con detalle."
-                  ayuda="Mínimo 10 caracteres. Tu dinero sigue retenido mientras revisamos el caso."
-                />
-                <Boton
-                  titulo="Abrir disputa"
-                  variante="peligro"
-                  cargando={ocupado === 'disputa'}
-                  deshabilitado={motivoDisputa.trim().length < 10}
-                  onPress={() =>
-                    accion('disputa', async () => {
-                      await api.abrirDisputa(pedido.id, motivoDisputa.trim());
-                      setMostrarDisputa(false);
-                      setMotivoDisputa('');
-                    })
-                  }
-                />
-                <View style={{ height: E.sm }} />
-                <Boton
-                  titulo="Cancelar"
-                  variante="fantasma"
-                  onPress={() => setMostrarDisputa(false)}
-                />
-              </>
-            )}
+          </Tarjeta>
+        )}
+
+        {/* ------------------------------------ disputa */}
+        {(soyCliente || soyComprador) && DISPUTABLES.includes(pedido.estado) && (
+          <PanelDisputa
+            soyCliente={soyCliente}
+            ocupado={ocupado === 'disputa'}
+            onAbrir={(motivo, evidencia) =>
+              accion('disputa', () =>
+                api.abrirDisputaConEvidencia({
+                  pedidoId: pedido.id,
+                  motivo,
+                  evidenciaUri: evidencia,
+                }),
+              )
+            }
+          />
+        )}
+
+        {/* ------------------------------------ cancelar */}
+        {soyCliente && CANCELABLES.includes(pedido.estado) && (
+          <Tarjeta>
+            <Subtitulo>¿Ya no lo necesitas?</Subtitulo>
+            <Parrafo suave style={{ marginBottom: E.md }}>
+              Puedes cancelar mientras no hayas reportado el pago. Las ofertas recibidas
+              quedan descartadas y quien ofertó recibe un aviso. Si ya pagaste, el caso
+              se cierra por disputa para que el equipo te devuelva el dinero.
+            </Parrafo>
+            <Boton
+              titulo="Cancelar el pedido"
+              variante="peligro"
+              cargando={ocupado === 'cancelar'}
+              onPress={async () => {
+                const seguro = await confirmar(
+                  'Cancelar el pedido',
+                  'Se descartarán las ofertas recibidas y el pedido dejará de estar visible. No se puede deshacer.',
+                  'Cancelar el pedido',
+                  true,
+                );
+                if (!seguro) return;
+                accion('cancelar', () => api.cancelarPedido(pedido.id, ''));
+              }}
+            />
           </Tarjeta>
         )}
 
@@ -402,11 +479,15 @@ function FormularioOferta({
   propia,
   ocupado,
   onOfertar,
+  onRetirar,
+  retirando,
 }: {
   pedido: Pedido;
   propia: Oferta | null;
   ocupado: boolean;
   onOfertar: (precio: number, fechaEntrega: string, nota: string) => void;
+  onRetirar: () => void;
+  retirando: boolean;
 }) {
   const [precio, setPrecio] = useState('');
   const [dias, setDias] = useState('21');
@@ -436,9 +517,17 @@ function FormularioOferta({
         <Dato etiqueta="Precio ofertado" valor={soles(propia.precio_final)} fuerte />
         <Dato etiqueta="Fecha de entrega" valor={fecha(propia.fecha_entrega)} />
         <Separador />
-        <Parrafo suave>
+        <Parrafo suave style={{ marginBottom: E.md }}>
           El cliente está comparando las ofertas. Te avisaremos si elige la tuya.
         </Parrafo>
+        {propia.estado === 'enviada' && (
+          <Boton
+            titulo="Retirar mi oferta"
+            variante="fantasma"
+            cargando={retirando}
+            onPress={onRetirar}
+          />
+        )}
       </Tarjeta>
     );
   }
@@ -661,6 +750,107 @@ function PanelPago({
           <Dato etiqueta="Liberado el" valor={fechaHora(pago.liberado_en)} />
         </>
       )}
+    </Tarjeta>
+  );
+}
+
+// =====================================================================
+//  Disputa
+//  La abren las dos partes y en cualquier estado con dinero retenido, no
+//  solo el cliente al final: el comprador externo que ya compró y no puede
+//  entregar también necesita una salida que no sea desaparecer.
+// =====================================================================
+function PanelDisputa({
+  soyCliente,
+  ocupado,
+  onAbrir,
+}: {
+  soyCliente: boolean;
+  ocupado: boolean;
+  onAbrir: (motivo: string, evidencia: string | null) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [evidencia, setEvidencia] = useState<string | null>(null);
+
+  async function elegirEvidencia() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.6,
+    });
+    if (!res.canceled && res.assets?.[0]) setEvidencia(res.assets[0].uri);
+  }
+
+  if (!abierto) {
+    return (
+      <Tarjeta>
+        <Boton
+          titulo="Tengo un problema con este pedido"
+          variante="fantasma"
+          onPress={() => setAbierto(true)}
+        />
+      </Tarjeta>
+    );
+  }
+
+  return (
+    <Tarjeta style={{ borderColor: C.rojo, borderWidth: 1.5 }}>
+      <Subtitulo>Abrir una disputa</Subtitulo>
+      <Parrafo suave style={{ marginBottom: E.md }}>
+        {soyCliente
+          ? 'El pedido queda congelado y tu dinero sigue retenido mientras el equipo revisa el caso. Nadie recibe el pago hasta que se resuelva.'
+          : 'Úsalo si no vas a poder entregar o si el cliente no responde. El equipo revisa el caso y decide qué pasa con el dinero retenido.'}
+      </Parrafo>
+
+      <Campo
+        etiqueta="¿Qué pasó?"
+        value={motivo}
+        onChangeText={setMotivo}
+        multiline
+        style={{ height: 96, textAlignVertical: 'top' }}
+        placeholder="Describe el problema: fechas, qué se acordó y qué ocurrió."
+        ayuda="Mínimo 10 caracteres. Mientras más concreto, más rápido se resuelve."
+      />
+
+      <Pressable
+        onPress={elegirEvidencia}
+        style={{
+          borderWidth: 2,
+          borderStyle: evidencia ? 'solid' : 'dashed',
+          borderColor: evidencia ? C.verde : C.borde,
+          borderRadius: R.md,
+          padding: E.md,
+          alignItems: 'center',
+          marginBottom: E.lg,
+        }}>
+        <Text style={{ color: evidencia ? C.verde : C.azul, fontWeight: '700' }}>
+          {evidencia
+            ? 'Evidencia lista · tocar para cambiar'
+            : 'Adjuntar una foto (opcional)'}
+        </Text>
+      </Pressable>
+
+      <Boton
+        titulo="Abrir disputa"
+        variante="peligro"
+        cargando={ocupado}
+        deshabilitado={motivo.trim().length < 10}
+        onPress={async () => {
+          const seguro = await confirmar(
+            'Abrir disputa',
+            'El pedido queda congelado hasta que el equipo revise el caso.',
+            'Abrir disputa',
+            true,
+          );
+          if (!seguro) return;
+          onAbrir(motivo.trim(), evidencia);
+          setAbierto(false);
+          setMotivo('');
+          setEvidencia(null);
+        }}
+      />
+      <View style={{ height: E.sm }} />
+      <Boton titulo="Cancelar" variante="fantasma" onPress={() => setAbierto(false)} />
     </Tarjeta>
   );
 }

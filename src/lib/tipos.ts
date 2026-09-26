@@ -176,7 +176,65 @@ export type DisputaAbierta = {
   pedido_id: string;
   titulo: string;
   abierta_por: string;
+  abierta_por_id: string;
   motivo: string;
+  evidencia_path: string | null;
   monto: number;
+  estado_pedido: EstadoPedido;
   creado_en: string;
+};
+
+/** Bandeja de avisos (supabase/migrations/0007_avisos.sql). */
+export type TipoAviso =
+  | 'oferta'
+  | 'pedido'
+  | 'pago'
+  | 'mensaje'
+  | 'calificacion'
+  | 'verificacion';
+
+export type Aviso = {
+  id: number;
+  perfil_id: string;
+  pedido_id: string | null;
+  tipo: TipoAviso;
+  titulo: string;
+  cuerpo: string;
+  leido: boolean;
+  creado_en: string;
+};
+
+/** Reseña pública: el comentario detrás del promedio. */
+export type Resena = {
+  id: number;
+  puntaje: number;
+  comentario: string;
+  autor: string;
+  pedido: string;
+  creado_en: string;
+};
+
+/** Oferta propia vista desde «Mis entregas», con el pedido resumido. */
+export type OfertaEnviada = {
+  oferta_id: string;
+  pedido_id: string;
+  titulo: string;
+  categoria: string;
+  precio_final: number;
+  fecha_entrega: string;
+  estado_oferta: EstadoOferta;
+  estado_pedido: EstadoPedido;
+  creado_en: string;
+};
+
+/** Cola del equipo: entregas cuyo plazo de confirmación ya venció. */
+export type ConfirmacionVencida = {
+  pedido_id: string;
+  titulo: string;
+  cliente: string;
+  comprador: string;
+  monto: number;
+  entregado_en: string;
+  vence_en: string;
+  dias_vencido: number;
 };

@@ -1,7 +1,9 @@
 import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 import type {
+  Aviso,
   Calificacion,
+  ConfirmacionVencida,
   DesglosePrecio,
   DisputaAbierta,
   EstadoPedido,
@@ -10,11 +12,13 @@ import type {
   MetodoPago,
   Oferta,
   OfertaConReputacion,
+  OfertaEnviada,
   Pago,
   PagoPendiente,
   Pedido,
   Perfil,
   Reputacion,
+  Resena,
   VerificacionPendiente,
 } from './tipos';
 
@@ -445,4 +449,152 @@ export async function resolverDisputa(
     p_resolucion: resolucion,
   });
   revienta(error);
+}
+
+
+// ---------------------------------------------------------------- avisos
+export async function misAvisos(limite = 50): Promise<Aviso[]> {
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) return [];
+  const { data, error } = await supabase
+    .from('avisos')
+    .select('*')
+    .order('creado_en', { ascending: false })
+    .limit(limite);
+  revienta(error);
+  return (data ?? []) as Aviso[];
+}
+
+export async function avisosNoLeidos(): Promise<number> {
+  const { data, error } = await supabase.rpc('avisos_no_leidos');
+  if (error) return 0;
+  return Number(data ?? 0);
+}
+
+/** Sin ids marca toda la bandeja. Los avisos no se actualizan por UPDATE. */
+export async function marcarAvisosLeidos(ids?: number[]) {
+  const { error } = await supabase.rpc('marcar_avisos_leidos', {
+    p_ids: ids ?? null,
+  });
+  revienta(error);
+}
+
+// ---------------------------------------------------------------- config
+/** Tarifas y plazos. La tabla `config` es de solo lectura desde la app. */
+export async function configuracion(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from('config').select('clave, valor');
+  revienta(error);
+  return Object.fromEntries(
+    ((data ?? []) as { clave: string; valor: number }[]).map((c) => [
+      c.clave,
+      Number(c.valor),
+    ]),
+  );
+}
+
+// ------------------------------------------------- cancelar y retirar
+export async function cancelarPedido(pedidoId: string, motivo: string) {
+  const { data, error } = await supabase.rpc('cancelar_pedido', {
+    p_pedido_id: pedidoId,
+    p_motivo: motivo,
+  });
+  revienta(error);
+  return data as Pedido;
+}
+
+export async function retirarOferta(ofertaId: string) {
+  const { data, error } = await supabase.rpc('retirar_oferta', {
+    p_oferta_id: ofertaId,
+  });
+  revienta(error);
+  return data as Oferta;
+}
+
+// ---------------------------------------------------------------- reputación
+export async function resenasDe(perfilId: string, limite = 20): Promise<Resena[]> {
+  const { data, error } = await supabase.rpc('resenas_de', {
+    p_perfil: perfilId,
+    p_limite: limite,
+  });
+  revienta(error);
+  return (data ?? []) as Resena[];
+}
+
+// ------------------------------------------------- ofertas del comprador
+export async function misOfertasEnviadas(): Promise<OfertaEnviada[]> {
+  const { data, error } = await supabase.rpc('mis_ofertas_enviadas');
+  revienta(error);
+  return (data ?? []) as OfertaEnviada[];
+}
+
+// ------------------------------------------------- plazo de confirmación
+/** Hasta cuándo tiene el cliente para confirmar antes de que el equipo revise. */
+export async function fechaLimiteConfirmacion(pedidoId: string) {
+  const { data, error } = await supabase.rpc('fecha_limite_confirmacion', {
+    p_pedido_id: pedidoId,
+  });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
+// ------------------------------------------------- disputas con evidencia
+export async function abrirDisputaConEvidencia(opts: {
+  pedidoId: string;
+  motivo: string;
+  evidenciaUri?: string | null;
+}) {
+  const { data: sesion } = await supabase.auth.getUser();
+  const uid = sesion.user?.id;
+  if (!uid) throw new Error('No hay sesión activa');
+
+  let ruta: string | null = null;
+  if (opts.evidenciaUri) {
+    ruta = `${uid}/disputa-${opts.pedidoId}-${Date.now()}.jpg`;
+    await subirArchivo('comprobantes', ruta, opts.evidenciaUri);
+  }
+
+  const { error } = await supabase.rpc('abrir_disputa', {
+    p_pedido_id: opts.pedidoId,
+    p_motivo: opts.motivo,
+    p_evidencia_path: ruta,
+  });
+  revienta(error);
+}
+
+// ------------------------------------------------- imagen del producto
+/** El bucket `productos` es público: solo fotos de referencia del encargo. */
+export async function subirImagenProducto(uri: string) {
+  const { data: sesion } = await supabase.auth.getUser();
+  const uid = sesion.user?.id;
+  if (!uid) throw new Error('No hay sesión activa');
+  return subirArchivo('productos', `${uid}/producto-${Date.now()}.jpg`, uri);
+}
+
+// ------------------------------------------------- consola: vencimientos
+export async function confirmacionesVencidas(): Promise<ConfirmacionVencida[]> {
+  const { data, error } = await supabase.rpc('confirmaciones_vencidas');
+  revienta(error);
+  return (data ?? []) as ConfirmacionVencida[];
+}
+
+export async function liberarPorVencimiento(pedidoId: string) {
+  const { data, error } = await supabase.rpc('liberar_por_vencimiento', {
+    p_pedido_id: pedidoId,
+  });
+  revienta(error);
+  return data as Pago;
+}
+
+/**
+ * Borra del bucket las imágenes de una verificación ya resuelta.
+ * `resolver_verificacion` descarta las rutas en la base; esto elimina los
+ * archivos, que era el paso que quedaba a mano en el panel de Supabase
+ * (retención mínima, Ley N° 29733).
+ */
+export async function borrarDocumentos(rutas: (string | null)[]) {
+  const limpias = rutas.filter((r): r is string => !!r);
+  if (limpias.length === 0) return;
+  const { error } = await supabase.storage.from('documentos').remove(limpias);
+  // Si falla, la verificación ya quedó resuelta: se avisa pero no se revierte.
+  if (error) throw new Error(`Se aprobó, pero no se pudieron borrar las imágenes: ${error.message}`);
 }
