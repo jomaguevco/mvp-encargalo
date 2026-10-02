@@ -121,6 +121,18 @@ export default function Operador() {
             <Tarjeta key={v.perfil_id}>
               <Parrafo style={{ fontWeight: '700' }}>{v.nombre_completo}</Parrafo>
               <Dato etiqueta="DNI declarado" valor={v.dni ?? '—'} />
+              <Dato
+                etiqueta="Contraste con RENIEC"
+                valor={
+                  v.dni_validacion === 'coincide'
+                    ? 'El nombre coincide'
+                    : v.dni_validacion === 'no_coincide'
+                      ? '⚠ El nombre NO coincide: revisa el documento'
+                      : v.dni_validacion === 'no_existe'
+                        ? '⚠ RENIEC no reconoce este DNI'
+                        : 'Sin validar automáticamente'
+                }
+              />
               <Dato etiqueta="Celular" valor={v.telefono ?? '—'} />
 
               <View style={{ flexDirection: 'row', gap: E.sm, marginVertical: E.md }}>

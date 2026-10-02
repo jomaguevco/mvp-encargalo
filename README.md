@@ -73,6 +73,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0003_rls.sql` | Seguridad a nivel de fila y políticas de almacenamiento |
 | `0004_config.sql` | Tarifas del modelo de negocio |
 | `0005_operador.sql` | Consola del equipo |
+| `0006_validacion_dni.sql` | Resultado de la validación del DNI contra RENIEC |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -118,7 +119,30 @@ on conflict (perfil_id) do nothing;
 
 La pestaña **Equipo** aparecerá en la app solo para ellos.
 
-### 6. Generar el APK para repartir
+### 6. Activar la validación del DNI contra RENIEC
+
+Al enviar su verificación, la app llama a la Edge Function `validar-dni`, que consulta
+el DNI en la API RENIEC de [Decolecta](https://decolecta.gitbook.io/docs) y compara el
+nombre con el del perfil. El equipo ve el resultado en la consola; la **aprobación sigue
+siendo humana** (la selfie se compara con el documento). Solo se guarda el resultado
+(`coincide`, `no_coincide`, `no_existe`), nunca los datos que devuelve RENIEC.
+
+1. Genera un token en [decolecta.com/profile](https://decolecta.com/profile). El plan
+   gratuito incluye 100 consultas al mes.
+2. Ejecuta `0006_validacion_dni.sql` en el SQL Editor.
+3. Con la [CLI de Supabase](https://supabase.com/docs/guides/cli) vinculada al proyecto:
+
+```bash
+supabase secrets set DECOLECTA_TOKEN=tu_token
+supabase functions deploy validar-dni
+```
+
+Si la consulta falla (cupo agotado, sin red), la solicitud queda en revisión y se
+resuelve a mano como antes. Opcionalmente, `supabase secrets set RECHAZO_AUTOMATICO=1`
+rechaza los DNI que RENIEC no reconoce; actívalo solo después de comprobar cómo responde
+Decolecta ante un DNI inexistente.
+
+### 7. Generar el APK para repartir
 
 ```bash
 npm install -g eas-cli
@@ -175,6 +199,7 @@ src/
     negocio.ts            Estados, etiquetas y formato
   ui/                     Componentes y paleta
 supabase/migrations/      Esquema, funciones, RLS y configuración
+supabase/functions/       Edge Functions (validar-dni: consulta a RENIEC vía Decolecta)
 ```
 
 ## Estado actual y qué falta
@@ -183,7 +208,7 @@ supabase/migrations/      Esquema, funciones, RLS y configuración
 |---|---|
 | Registro, verificación, pedidos, ofertas, escrow, seguimiento, chat, calificación, disputas | Operativo |
 | Consola del equipo | Operativa |
-| Validación de DNI contra RENIEC | Manual. Queda pendiente contratar el proveedor |
+| Validación de DNI contra RENIEC | Automática (existencia y nombre, vía Decolecta). La aprobación final, con la selfie, es manual |
 | Pasarela de pagos | Manual. Requiere RUC y afiliación comercial |
 | Notificaciones push | Pendiente |
 | Versión iOS | Fuera del alcance del MVP, prevista para T1 2027 |

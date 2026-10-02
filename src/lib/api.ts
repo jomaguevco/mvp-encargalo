@@ -15,6 +15,7 @@ import type {
   Pedido,
   Perfil,
   Reputacion,
+  ResultadoDni,
   VerificacionPendiente,
 } from './tipos';
 
@@ -53,12 +54,16 @@ export async function actualizarPerfil(cambios: Partial<Perfil>) {
  * Envía DNI y selfie a verificación.
  * Las imágenes van al bucket privado `documentos`, en la carpeta del propio
  * usuario: las políticas de storage impiden que alguien lea la de otro.
+ *
+ * Después pide a la Edge Function `validar-dni` que contraste el DNI y el nombre
+ * con RENIEC. Devuelve lo que dijo RENIEC, o null si no se pudo consultar: en
+ * ese caso la solicitud sigue en revisión y la resuelve el equipo igual que antes.
  */
 export async function enviarVerificacion(opts: {
   dni: string;
   dniFrenteUri: string;
   selfieUri: string;
-}) {
+}): Promise<ResultadoDni | null> {
   const { data: sesion } = await supabase.auth.getUser();
   const uid = sesion.user?.id;
   if (!uid) throw new Error('No hay sesión activa');
@@ -79,6 +84,15 @@ export async function enviarVerificacion(opts: {
     verificacion: 'en_revision',
     motivo_rechazo: null,
   });
+
+  // Si la consulta falla (sin red, cupo agotado, etc.) no se bloquea a la persona
+  try {
+    const { data } = await supabase.functions.invoke('validar-dni');
+    const r = data?.resultado as string | undefined;
+    return r === 'coincide' || r === 'no_coincide' || r === 'no_existe' ? r : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------- archivos

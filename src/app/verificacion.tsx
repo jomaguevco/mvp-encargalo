@@ -115,12 +115,18 @@ export default function Verificacion() {
 
     setEnviando(true);
     try {
-      await enviarVerificacion({
+      const resultado = await enviarVerificacion({
         dni: dni.trim(),
         dniFrenteUri: frente.uri,
         selfieUri: selfie.uri,
       });
       await refrescarPerfil();
+      if (resultado === 'no_existe') {
+        // Si el rechazo automático está activo, el perfil ya figura como rechazado
+        // y se vuelve a mostrar este formulario. Si no, queda en revisión.
+        setError('RENIEC no reconoce ese número de DNI. Revísalo antes de continuar.');
+        return;
+      }
       router.back();
     } catch (e) {
       setError((e as Error).message);
