@@ -22,13 +22,25 @@ type Ctx = {
   refrescarPerfil: () => Promise<void>;
   refrescarAvisos: () => Promise<void>;
   entrar: (correo: string, clave: string) => Promise<void>;
-  registrar: (datos: {
-    correo: string;
-    clave: string;
-    nombre: string;
-    telefono: string;
-  }) => Promise<void>;
+  registrar: (datos: DatosRegistro) => Promise<void>;
   salir: () => Promise<void>;
+};
+
+/**
+ * Lo que pide la pantalla de registro. El origen, el código de referido y la
+ * aceptación de los términos viajan como metadatos del usuario de Supabase Auth
+ * (auth.users.raw_user_meta_data): quedan registrados sin agregar columnas ni
+ * tocar la base de datos, que está congelada hasta después de la presentación.
+ * Se consultan con la consulta Q11 del instrumento de medición.
+ */
+export type DatosRegistro = {
+  correo: string;
+  clave: string;
+  nombre: string;
+  telefono: string;
+  origen: string;
+  codigoReferido?: string;
+  versionTerminos: string;
 };
 
 const AuthCtx = createContext<Ctx | null>(null);
@@ -104,12 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const registrar = useCallback(
-    async (d: { correo: string; clave: string; nombre: string; telefono: string }) => {
+    async (d: DatosRegistro) => {
       const { error } = await supabase.auth.signUp({
         email: d.correo.trim().toLowerCase(),
         password: d.clave,
         options: {
-          data: { nombre_completo: d.nombre.trim(), telefono: d.telefono.trim() },
+          data: {
+            nombre_completo: d.nombre.trim(),
+            telefono: d.telefono.trim(),
+            origen: d.origen,
+            codigo_referido: d.codigoReferido?.trim().toUpperCase() || null,
+            terminos_version: d.versionTerminos,
+            terminos_aceptados_en: new Date().toISOString(),
+          },
         },
       });
       if (error) {

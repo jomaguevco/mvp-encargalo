@@ -1,0 +1,61 @@
+{
+  "$comentario": [
+    "Perfiles de compilación para EAS Build.",
+    "",
+    "El que interesa para la presentación es 'preview': produce un APK que se",
+    "instala directamente en un teléfono, sin pasar por Google Play. Presentar",
+    "con la aplicación instalada se ve mucho mejor que con Expo Go, y además",
+    "elimina la dependencia del servidor de desarrollo y del wifi del aula.",
+    "",
+    "  npx eas-cli build -p android --profile preview",
+    "",
+    "La primera vez pide iniciar sesión en una cuenta de Expo y genera las",
+    "credenciales de firma, que quedan guardadas en el proyecto de EAS.",
+    "",
+    "Importante: las variables EXPO_PUBLIC_* del archivo .env NO viajan solas a",
+    "la compilación en la nube. Hay que declararlas en el perfil, y por eso van",
+    "abajo como 'env' con la URL y la clave anónima de Supabase, que son",
+    "públicas por diseño. Nunca poner aquí la service_role key."
+  ],
+
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+      }
+    },
+
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+      }
+    }
+  },
+
+  "submit": {
+    "production": {}
+  }
+}

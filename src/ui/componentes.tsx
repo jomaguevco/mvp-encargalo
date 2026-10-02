@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,14 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { C, E, R } from './tema';
+import { C, E, R, T, sombra } from './tema';
+
+/**
+ * Piezas de interfaz de Encárgalo.
+ *
+ * Los nombres y las propiedades son los mismos que antes: quince pantallas los
+ * usan y ninguna tuvo que tocarse. Lo que cambió es cómo se ven.
+ */
 
 // ------------------------------------------------------------------ texto
 type TextoProps = TextProps & { children: ReactNode };
@@ -83,12 +90,19 @@ export function Boton({
     <Pressable
       onPress={onPress}
       disabled={inactivo}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!inactivo, busy: !!cargando }}
       style={({ pressed }) => [
         s.boton,
         { backgroundColor: fondo },
+        // Los botones rellenos llevan sombra; el fantasma no, porque una
+        // sombra sin fondo se ve como una mancha.
+        variante !== 'fantasma' && !inactivo && sombra(2),
         variante === 'fantasma' && s.botonFantasma,
-        pressed && !inactivo && { opacity: 0.85 },
-        inactivo && { opacity: 0.45 },
+        // Hundirse un punto al pulsar da la sensación de que el botón
+        // responde, que es lo que hace que una interfaz se sienta viva.
+        pressed && !inactivo && { transform: [{ scale: 0.985 }], opacity: 0.9 },
+        inactivo && { opacity: 0.4 },
         style,
       ]}>
       {cargando ? (
@@ -107,14 +121,39 @@ type CampoProps = TextInputProps & {
   error?: string | null;
 };
 
-export function Campo({ etiqueta, ayuda, error, style, ...rest }: CampoProps) {
+export function Campo({
+  etiqueta,
+  ayuda,
+  error,
+  style,
+  onFocus,
+  onBlur,
+  ...rest
+}: CampoProps) {
+  // El borde se ilumina al escribir. Sin esto, en un formulario de seis campos
+  // no hay forma de saber en cuál estás si el teclado tapa media pantalla.
+  const [enfocado, setEnfocado] = useState(false);
+
   return (
     <View style={s.campoBloque}>
       <Text style={s.campoEtiqueta}>{etiqueta}</Text>
       <TextInput
-        placeholderTextColor="#9AA5B5"
+        placeholderTextColor="#98A6B8"
         {...rest}
-        style={[s.campo, !!error && s.campoError, style]}
+        onFocus={(e) => {
+          setEnfocado(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setEnfocado(false);
+          onBlur?.(e);
+        }}
+        style={[
+          s.campo,
+          enfocado && s.campoEnfocado,
+          !!error && s.campoError,
+          style,
+        ]}
       />
       {!!ayuda && !error && <Text style={s.campoAyuda}>{ayuda}</Text>}
       {!!error && <Text style={s.campoMensajeError}>{error}</Text>}
@@ -136,7 +175,11 @@ export function Tarjeta({
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [s.tarjeta, pressed && { opacity: 0.7 }, style]}>
+        style={({ pressed }) => [
+          s.tarjeta,
+          pressed && { transform: [{ scale: 0.99 }], borderColor: C.bordeFuerte },
+          style,
+        ]}>
         {children}
       </Pressable>
     );
@@ -155,7 +198,7 @@ export function Chip({
   fondo?: string;
 }) {
   return (
-    <View style={[s.chip, { backgroundColor: fondo ?? `${color}1A` }]}>
+    <View style={[s.chip, { backgroundColor: fondo ?? `${color}14` }]}>
       <View style={[s.chipPunto, { backgroundColor: color }]} />
       <Text style={[s.chipTexto, { color }]}>{texto}</Text>
     </View>
@@ -174,21 +217,24 @@ export function Aviso({
 }) {
   const estilos = {
     info: { bg: C.azulClaro, bd: C.azulMedio, tx: C.azul },
-    exito: { bg: C.verdeClaro, bd: C.verde, tx: '#255C38' },
-    alerta: { bg: C.ambarClaro, bd: C.ambar, tx: '#7A5310' },
-    error: { bg: C.rojoClaro, bd: C.rojo, tx: '#8A0000' },
+    exito: { bg: C.verdeClaro, bd: C.verde, tx: '#0B5B41' },
+    alerta: { bg: C.ambarClaro, bd: C.ambar, tx: '#7A3D06' },
+    error: { bg: C.rojoClaro, bd: C.rojo, tx: '#8A1B12' },
   }[tono];
 
   return (
     <View
-      style={[
-        s.aviso,
-        { backgroundColor: estilos.bg, borderLeftColor: estilos.bd },
-      ]}>
-      {!!titulo && (
-        <Text style={[s.avisoTitulo, { color: estilos.tx }]}>{titulo}</Text>
-      )}
-      <Text style={[s.avisoTexto, { color: estilos.tx }]}>{children}</Text>
+      accessibilityLiveRegion={tono === 'error' ? 'assertive' : 'polite'}
+      style={[s.aviso, { backgroundColor: estilos.bg }]}>
+      {/* Barra de color a la izquierda, con las esquinas redondeadas del
+          propio aviso: antes era un borde recto que rompía la curva. */}
+      <View style={[s.avisoBarra, { backgroundColor: estilos.bd }]} />
+      <View style={s.avisoCuerpo}>
+        {!!titulo && (
+          <Text style={[s.avisoTitulo, { color: estilos.tx }]}>{titulo}</Text>
+        )}
+        <Text style={[s.avisoTexto, { color: estilos.tx }]}>{children}</Text>
+      </View>
     </View>
   );
 }
@@ -208,9 +254,7 @@ export function Dato({
       <Text style={[s.datoEtiqueta, fuerte && { color: C.texto, fontWeight: '700' }]}>
         {etiqueta}
       </Text>
-      <Text style={[s.datoValor, fuerte && { fontSize: 16, color: C.azul }]}>
-        {valor}
-      </Text>
+      <Text style={[s.datoValor, fuerte && s.datoValorFuerte]}>{valor}</Text>
     </View>
   );
 }
@@ -222,7 +266,7 @@ export function Separador() {
 export function Cargando({ texto }: { texto?: string }) {
   return (
     <View style={s.centro}>
-      <ActivityIndicator color={C.azulMedio} size="large" />
+      <ActivityIndicator color={C.naranja} size="large" />
       {!!texto && <Text style={[s.parrafoSuave, { marginTop: E.md }]}>{texto}</Text>}
     </View>
   );
@@ -231,6 +275,9 @@ export function Cargando({ texto }: { texto?: string }) {
 export function Vacio({ titulo, detalle }: { titulo: string; detalle?: string }) {
   return (
     <View style={s.centro}>
+      {/* Un círculo suave en lugar de texto a secas: una pantalla vacía sin
+          nada centrado parece que no terminó de cargar. */}
+      <View style={s.vacioMarca} />
       <Text style={s.vacioTitulo}>{titulo}</Text>
       {!!detalle && <Text style={s.vacioDetalle}>{detalle}</Text>}
     </View>
@@ -255,7 +302,13 @@ export function Opciones<T extends string>({
           <Pressable
             key={o.valor}
             onPress={() => onChange(o.valor)}
-            style={[s.opcion, activa && s.opcionActiva]}>
+            accessibilityRole="radio"
+            accessibilityState={{ selected: activa }}
+            style={({ pressed }) => [
+              s.opcion,
+              activa && s.opcionActiva,
+              pressed && { opacity: 0.8 },
+            ]}>
             <Text style={[s.opcionTexto, activa && s.opcionTextoActivo]}>
               {o.etiqueta}
             </Text>
@@ -267,25 +320,30 @@ export function Opciones<T extends string>({
 }
 
 const s = StyleSheet.create({
-  titulo: { fontSize: 26, fontWeight: '800', color: C.azul, letterSpacing: -0.5 },
-  subtitulo: { fontSize: 17, fontWeight: '700', color: C.azul, marginBottom: E.xs },
-  parrafo: { fontSize: 15, color: C.texto, lineHeight: 22 },
-  parrafoSuave: { color: C.textoSuave, fontSize: 14 },
-  micro: { fontSize: 12, color: C.textoSuave },
+  titulo: { ...T.titulo, color: C.azul },
+  subtitulo: { ...T.subtitulo, color: C.azul, marginBottom: E.xs },
+  parrafo: { ...T.cuerpo, color: C.texto, lineHeight: 23 },
+  parrafoSuave: { color: C.textoSuave, fontSize: 14.5, lineHeight: 22 },
+  micro: { ...T.micro, color: C.textoSuave },
 
   boton: {
-    height: 52,
+    height: 54,
     borderRadius: R.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: E.lg,
   },
-  botonFantasma: { borderWidth: 1.5, borderColor: C.azulClaro, height: 46 },
-  botonTexto: { fontSize: 16, fontWeight: '700' },
+  botonFantasma: {
+    borderWidth: 1.5,
+    borderColor: C.bordeFuerte,
+    height: 50,
+    backgroundColor: C.blanco,
+  },
+  botonTexto: { fontSize: 16.5, fontWeight: '800', letterSpacing: -0.2 },
 
   campoBloque: { marginBottom: E.lg },
   campoEtiqueta: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: C.azul,
     marginBottom: E.xs + 2,
@@ -295,82 +353,102 @@ const s = StyleSheet.create({
     borderColor: C.borde,
     backgroundColor: C.blanco,
     borderRadius: R.md,
-    paddingHorizontal: E.md,
-    paddingVertical: 13,
-    fontSize: 15,
+    paddingHorizontal: E.md + 2,
+    paddingVertical: 14,
+    fontSize: 15.5,
     color: C.texto,
   },
-  campoError: { borderColor: C.rojo },
-  campoAyuda: { fontSize: 12, color: C.textoSuave, marginTop: E.xs },
-  campoMensajeError: { fontSize: 12, color: C.rojo, marginTop: E.xs },
+  campoEnfocado: { borderColor: C.azulMedio, backgroundColor: C.blanco },
+  campoError: { borderColor: C.rojo, backgroundColor: '#FFFBFA' },
+  campoAyuda: { fontSize: 12.5, color: C.textoSuave, marginTop: E.xs + 1 },
+  campoMensajeError: {
+    fontSize: 12.5,
+    color: C.rojo,
+    marginTop: E.xs + 1,
+    fontWeight: '600',
+  },
 
   tarjeta: {
     backgroundColor: C.blanco,
     borderRadius: R.lg,
-    padding: E.lg,
+    padding: E.lg + 2,
     borderWidth: 1,
     borderColor: C.borde,
     marginBottom: E.md,
+    ...sombra(1),
   },
 
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: E.sm + 2,
-    paddingVertical: 5,
+    paddingHorizontal: E.sm + 4,
+    paddingVertical: 6,
     borderRadius: 999,
     gap: 6,
   },
   chipPunto: { width: 7, height: 7, borderRadius: 4 },
-  chipTexto: { fontSize: 12, fontWeight: '700' },
+  chipTexto: { fontSize: 12.5, fontWeight: '800', letterSpacing: -0.1 },
 
   aviso: {
-    borderLeftWidth: 4,
-    borderRadius: R.sm,
-    padding: E.md,
+    flexDirection: 'row',
+    borderRadius: R.md,
     marginBottom: E.md,
+    overflow: 'hidden',
   },
-  avisoTitulo: { fontSize: 14, fontWeight: '800', marginBottom: 3 },
-  avisoTexto: { fontSize: 13.5, lineHeight: 20 },
+  avisoBarra: { width: 4 },
+  avisoCuerpo: { flex: 1, paddingVertical: E.md, paddingHorizontal: E.md + 2 },
+  avisoTitulo: { fontSize: 14.5, fontWeight: '800', marginBottom: 3 },
+  avisoTexto: { fontSize: 14, lineHeight: 21 },
 
   dato: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 7,
+    paddingVertical: 8,
     gap: E.md,
   },
-  datoEtiqueta: { fontSize: 14, color: C.textoSuave, flexShrink: 1 },
-  datoValor: { fontSize: 14, fontWeight: '700', color: C.texto },
+  datoEtiqueta: { fontSize: 14.5, color: C.textoSuave, flexShrink: 1 },
+  datoValor: { fontSize: 14.5, fontWeight: '700', color: C.texto },
+  datoValorFuerte: { fontSize: 17, color: C.azul, fontWeight: '800' },
 
   separador: { height: 1, backgroundColor: C.borde, marginVertical: E.md },
 
   centro: { alignItems: 'center', justifyContent: 'center', padding: E.xxl },
+  vacioMarca: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: C.superficieSuave,
+    borderWidth: 1.5,
+    borderColor: C.borde,
+    marginBottom: E.lg,
+  },
   vacioTitulo: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: C.azul,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   vacioDetalle: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: C.textoSuave,
     textAlign: 'center',
     marginTop: E.sm,
-    lineHeight: 20,
+    lineHeight: 22,
   },
 
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: E.sm },
   opcion: {
-    paddingHorizontal: E.md,
-    paddingVertical: E.sm + 1,
+    paddingHorizontal: E.md + 2,
+    paddingVertical: E.sm + 3,
     borderRadius: 999,
     borderWidth: 1.5,
     borderColor: C.borde,
     backgroundColor: C.blanco,
   },
   opcionActiva: { borderColor: C.azulMedio, backgroundColor: C.azulClaro },
-  opcionTexto: { fontSize: 13.5, color: C.textoSuave, fontWeight: '600' },
-  opcionTextoActivo: { color: C.azul, fontWeight: '700' },
+  opcionTexto: { fontSize: 14, color: C.textoSuave, fontWeight: '700' },
+  opcionTextoActivo: { color: C.azul, fontWeight: '800' },
 });

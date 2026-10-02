@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { publicarPedido, subirImagenProducto } from '@/lib/api';
-import { CATEGORIAS } from '@/lib/negocio';
+import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD } from '@/lib/negocio';
 import { Aviso, Boton, Campo, Opciones, Parrafo, Subtitulo } from '@/ui/componentes';
 import { C, E, R } from '@/ui/tema';
 
@@ -213,6 +213,15 @@ export default function Publicar() {
             ]}
           />
         </View>
+
+        <Aviso tono="alerta" titulo="Antes de publicar">
+          {'No se pueden encargar: ' +
+            PROHIBIDOS.join('; ').toLowerCase() +
+            '. Si el producto cuesta más de US$ ' +
+            UMBRAL_IMPUESTO_USD +
+            ', paga impuestos de importación al llegar al Perú: pregunta al comprador ' +
+            'externo si su oferta ya los incluye.'}
+        </Aviso>
 
         <Aviso tono="info" titulo="Qué pasa después">
           Tu pedido queda visible para los compradores externos verificados. Recibirás

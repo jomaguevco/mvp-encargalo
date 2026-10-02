@@ -1,9 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, Switch, View } from 'react-native';
+import { ScrollView, Share, Switch, Text, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import { actualizarPerfil, reputacionDe } from '@/lib/api';
-import { ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
+import { codigoReferidoDe, ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
 import type { Reputacion } from '@/lib/tipos';
 import {
   Aviso,
@@ -126,6 +126,41 @@ export default function Perfil() {
             trackColor={{ true: C.naranja, false: C.borde }}
           />
         </View>
+      </Tarjeta>
+
+      <View style={{ height: E.lg }} />
+
+      <Subtitulo>Invita a un amigo</Subtitulo>
+      <Tarjeta>
+        <Parrafo suave>
+          Comparte tu código. Cuando tu amigo complete su primer pedido, los dos reciben
+          un descuento.
+        </Parrafo>
+        <Text
+          selectable
+          style={{
+            fontSize: 28,
+            fontWeight: '800',
+            letterSpacing: 4,
+            color: C.azul,
+            textAlign: 'center',
+            marginVertical: E.md,
+          }}>
+          {codigoReferidoDe(perfil.id)}
+        </Text>
+        <Boton
+          titulo="Compartir mi código"
+          variante="secundario"
+          onPress={() =>
+            Share.share({
+              message:
+                'Pide lo que quieras del extranjero sin miedo a que te estafen. ' +
+                'Regístrate en Encárgalo con mi código ' +
+                codigoReferidoDe(perfil.id) +
+                ' y los dos tenemos un descuento en el primer pedido.',
+            })
+          }
+        />
       </Tarjeta>
 
       <View style={{ height: E.lg }} />

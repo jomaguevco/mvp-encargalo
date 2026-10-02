@@ -45,53 +45,59 @@ export const PASOS: EstadoPedido[] = [
   'confirmado',
 ];
 
+/**
+ * Los colores de los estados son los mismos de `ui/tema.ts`, escritos aquí en
+ * hexadecimal porque este archivo describe el negocio y no debería depender de
+ * la capa de interfaz. Si se cambia la paleta, hay que cambiarlos en los dos
+ * sitios: son seis valores y la alternativa era acoplar el negocio al tema.
+ */
 type Info = { etiqueta: string; detalle: string; color: string };
 
 export const ESTADO_PEDIDO: Record<EstadoPedido, Info> = {
   publicado: {
     etiqueta: 'Publicado',
     detalle: 'Esperando ofertas de compradores externos',
-    color: '#2E5C9A',
+    color: '#2A6BA8',
   },
   aceptado: {
     etiqueta: 'Aceptado',
     detalle: 'Elegiste una oferta. Falta que pagues para asegurar el pedido',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   pagado: {
     etiqueta: 'Pago retenido',
     detalle: 'Tu dinero está protegido. El comprador externo ya puede comprar',
-    color: '#377C4E',
+    color: '#12805C',
   },
   comprado: {
     etiqueta: 'Producto comprado',
     detalle: 'El comprador externo ya adquirió tu producto',
-    color: '#377C4E',
+    color: '#12805C',
   },
   en_viaje: {
     etiqueta: 'En viaje',
     detalle: 'Tu producto está en camino al Perú',
-    color: '#377C4E',
+    color: '#12805C',
   },
   entregado: {
     etiqueta: 'Entregado',
     detalle: 'El comprador externo marcó la entrega. Confirma si lo recibiste',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   confirmado: {
     etiqueta: 'Confirmado',
     detalle: 'Recibiste tu pedido y el pago fue liberado',
-    color: '#377C4E',
+    color: '#12805C',
   },
   en_disputa: {
     etiqueta: 'En disputa',
     detalle: 'Tu dinero sigue retenido mientras revisamos el caso',
-    color: '#C00000',
+    color: '#B42318',
   },
   cancelado: {
     etiqueta: 'Cancelado',
     detalle: 'Este pedido ya no está activo',
-    color: '#767676',
+    color: '#6B7280',
   },
 };
 
@@ -99,27 +105,27 @@ export const ESTADO_PAGO: Record<EstadoPago, Info> = {
   pendiente: {
     etiqueta: 'Sin pagar',
     detalle: 'Todavía no reportaste el pago',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   en_revision: {
     etiqueta: 'Verificando pago',
     detalle: 'Recibimos tu comprobante y lo estamos validando',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   retenido: {
     etiqueta: 'Dinero retenido',
     detalle: 'Encárgalo tiene tu dinero. No se mueve hasta que confirmes',
-    color: '#377C4E',
+    color: '#12805C',
   },
   liberado: {
     etiqueta: 'Pago liberado',
     detalle: 'El comprador externo ya recibió su dinero',
-    color: '#377C4E',
+    color: '#12805C',
   },
   reembolsado: {
     etiqueta: 'Reembolsado',
     detalle: 'Te devolvimos el dinero',
-    color: '#2E5C9A',
+    color: '#2A6BA8',
   },
 };
 
@@ -127,22 +133,22 @@ export const ESTADO_VERIFICACION: Record<EstadoVerificacion, Info> = {
   pendiente: {
     etiqueta: 'Sin verificar',
     detalle: 'Verifica tu identidad para publicar pedidos u ofertar',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   en_revision: {
     etiqueta: 'En revisión',
     detalle: 'Estamos validando tu DNI. Suele tomar menos de 24 horas',
-    color: '#ED7D31',
+    color: '#EE6C34',
   },
   verificado: {
     etiqueta: 'Identidad verificada',
     detalle: 'Tu DNI fue validado. Ya puedes operar',
-    color: '#377C4E',
+    color: '#12805C',
   },
   rechazado: {
     etiqueta: 'Verificación rechazada',
     detalle: 'No pudimos validar tus documentos',
-    color: '#C00000',
+    color: '#B42318',
   },
 };
 
@@ -171,19 +177,19 @@ export const TIPO_AVISO: Record<
   'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion',
   { etiqueta: string; color: string }
 > = {
-  oferta: { etiqueta: 'Oferta', color: '#2E5C9A' },
-  pedido: { etiqueta: 'Pedido', color: '#ED7D31' },
-  pago: { etiqueta: 'Dinero', color: '#377C4E' },
-  mensaje: { etiqueta: 'Mensaje', color: '#2E5C9A' },
-  calificacion: { etiqueta: 'Reputación', color: '#B7791F' },
-  verificacion: { etiqueta: 'Identidad', color: '#377C4E' },
+  oferta: { etiqueta: 'Oferta', color: '#2A6BA8' },
+  pedido: { etiqueta: 'Pedido', color: '#EE6C34' },
+  pago: { etiqueta: 'Dinero', color: '#12805C' },
+  mensaje: { etiqueta: 'Mensaje', color: '#2A6BA8' },
+  calificacion: { etiqueta: 'Reputación', color: '#B45309' },
+  verificacion: { etiqueta: 'Identidad', color: '#12805C' },
 };
 
 export const ESTADO_OFERTA: Record<EstadoOferta, { etiqueta: string; color: string }> = {
-  enviada: { etiqueta: 'Esperando respuesta', color: '#ED7D31' },
-  aceptada: { etiqueta: 'Aceptada', color: '#377C4E' },
-  rechazada: { etiqueta: 'No elegida', color: '#767676' },
-  retirada: { etiqueta: 'Retirada', color: '#767676' },
+  enviada: { etiqueta: 'Esperando respuesta', color: '#EE6C34' },
+  aceptada: { etiqueta: 'Aceptada', color: '#12805C' },
+  rechazada: { etiqueta: 'No elegida', color: '#6B7280' },
+  retirada: { etiqueta: 'Retirada', color: '#6B7280' },
 };
 
 /** Estados del pedido en los que cualquiera de las dos partes puede disputar. */
@@ -209,3 +215,46 @@ export const hace = (iso: string) => {
   if (d < 30) return `hace ${d} día${d === 1 ? '' : 's'}`;
   return fecha(iso);
 };
+
+// ------------------------------------------------- medición del plan de marketing
+/**
+ * De dónde llegó el usuario (requisito R16). Es una lista cerrada a propósito:
+ * con texto libre, «insta», «IG» e «instagram» serían tres canales distintos y la
+ * medición de cada acción del plan de marketing dejaría de cuadrar.
+ */
+export const ORIGENES = [
+  { valor: 'instagram', etiqueta: 'Instagram' },
+  { valor: 'tiktok', etiqueta: 'TikTok' },
+  { valor: 'facebook', etiqueta: 'Grupo de Facebook' },
+  { valor: 'activacion', etiqueta: 'Módulo en mi universidad' },
+  { valor: 'volante', etiqueta: 'Volante' },
+  { valor: 'referido', etiqueta: 'Me lo recomendaron' },
+  { valor: 'otro', etiqueta: 'Otro' },
+] as const;
+
+/** Versión de los términos que el usuario acepta. Cambia cuando cambia el texto. */
+export const VERSION_TERMINOS = '2026-10-borrador';
+
+/**
+ * Código de referido de un usuario (requisito R18): las seis primeras letras de
+ * su identificador, en mayúsculas. No necesita columna nueva: el operador lo
+ * cruza con upper(left(id::text, 6)) en la consulta Q11.
+ */
+export const codigoReferidoDe = (perfilId: string) =>
+  perfilId.replace(/-/g, '').slice(0, 6).toUpperCase();
+
+/**
+ * Lo que no se puede encargar (acción ES-16). La lista sigue las mercancías
+ * restringidas o prohibidas para envíos de entrega rápida y equipaje.
+ */
+export const PROHIBIDOS = [
+  'Medicamentos y suplementos con receta',
+  'Armas, municiones, réplicas y piezas',
+  'Alimentos frescos, plantas y semillas',
+  'Productos inflamables, baterías sueltas y aerosoles',
+  'Dinero, joyas de alto valor y bienes de origen dudoso',
+  'Drogas y productos con sustancias controladas',
+];
+
+/** Umbral desde el que un envío paga impuestos de importación (US$). */
+export const UMBRAL_IMPUESTO_USD = 200;

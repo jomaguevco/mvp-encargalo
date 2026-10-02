@@ -1,9 +1,12 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
-import { Aviso, Boton, Campo, Parrafo, Subtitulo } from '@/ui/componentes';
-import { E } from '@/ui/tema';
+import { ORIGENES, VERSION_TERMINOS } from '@/lib/negocio';
+import { Aviso, Boton, Campo, Opciones, Parrafo, Subtitulo } from '@/ui/componentes';
+import { C, E } from '@/ui/tema';
+
+type Origen = (typeof ORIGENES)[number]['valor'];
 
 export default function Registro() {
   const { registrar, entrar } = useAuth();
@@ -11,6 +14,9 @@ export default function Registro() {
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
+  const [origen, setOrigen] = useState<Origen | null>(null);
+  const [codigo, setCodigo] = useState('');
+  const [acepto, setAcepto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
@@ -20,6 +26,10 @@ export default function Registro() {
       return 'El celular debe tener 9 dígitos y empezar en 9';
     if (!/^\S+@\S+\.\S+$/.test(correo.trim())) return 'Revisa tu correo electrónico';
     if (clave.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+    if (!origen) return 'Cuéntanos cómo conociste Encárgalo';
+    if (codigo.trim() && !/^[0-9A-Fa-f]{6}$/.test(codigo.trim()))
+      return 'El código de quien te invitó tiene 6 caracteres, como A1B2C3';
+    if (!acepto) return 'Para crear la cuenta tienes que aceptar los términos y la política de privacidad';
     return null;
   }
 
@@ -30,7 +40,15 @@ export default function Registro() {
 
     setCargando(true);
     try {
-      await registrar({ correo, clave, nombre, telefono });
+      await registrar({
+        correo,
+        clave,
+        nombre,
+        telefono,
+        origen: origen as string,
+        codigoReferido: codigo,
+        versionTerminos: VERSION_TERMINOS,
+      });
       // Si el proyecto no exige confirmación por correo, la sesión ya queda abierta.
       try {
         await entrar(correo, clave);
@@ -92,6 +110,57 @@ export default function Registro() {
           secureTextEntry
           ayuda="Mínimo 8 caracteres"
         />
+
+        <View style={{ marginBottom: E.lg }}>
+          <Parrafo style={{ fontWeight: '700', fontSize: 13, marginBottom: E.sm }}>
+            ¿Cómo conociste Encárgalo?
+          </Parrafo>
+          <Opciones
+            valor={origen}
+            onChange={setOrigen}
+            opciones={ORIGENES.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta }))}
+          />
+        </View>
+
+        <Campo
+          etiqueta="Código de quien te invitó"
+          value={codigo}
+          onChangeText={setCodigo}
+          autoCapitalize="characters"
+          maxLength={6}
+          placeholder="Opcional"
+          ayuda="Si alguien te recomendó Encárgalo, los dos reciben un descuento en su primer pedido"
+        />
+
+        <Pressable
+          onPress={() => setAcepto((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: acepto }}
+          style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: E.lg }}>
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              borderWidth: 2,
+              borderColor: acepto ? C.verde : C.borde,
+              backgroundColor: acepto ? C.verde : C.blanco,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: E.sm,
+              marginTop: 1,
+            }}>
+            {acepto && <Text style={{ color: C.blanco, fontWeight: '800' }}>✓</Text>}
+          </View>
+          <Text style={{ flex: 1, color: C.texto, fontSize: 14, lineHeight: 21 }}>
+            Acepto los{' '}
+            <Link href="/legal" style={{ color: C.azul, fontWeight: '700' }}>
+              términos y condiciones y la política de privacidad
+            </Link>
+            , incluido que Encárgalo retiene mi pago hasta que confirme la recepción y
+            que trata mi DNI solo para verificar mi identidad.
+          </Text>
+        </Pressable>
 
         <Boton titulo="Crear cuenta" onPress={enviar} cargando={cargando} />
       </ScrollView>

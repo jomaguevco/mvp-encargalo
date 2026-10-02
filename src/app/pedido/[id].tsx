@@ -73,6 +73,7 @@ export default function DetallePedido() {
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [limite, setLimite] = useState<string | null>(null);
+  const [motivoCancelar, setMotivoCancelar] = useState('');
 
   const soyCliente = !!pedido && pedido.cliente_id === perfil?.id;
   const soyComprador = !!pago && pago.comprador_id === perfil?.id;
@@ -424,11 +425,23 @@ export default function DetallePedido() {
               quedan descartadas y quien ofertó recibe un aviso. Si ya pagaste, el caso
               se cierra por disputa para que el equipo te devuelva el dinero.
             </Parrafo>
+            <Campo
+              etiqueta="¿Por qué lo cancelas?"
+              value={motivoCancelar}
+              onChangeText={setMotivoCancelar}
+              placeholder="Ej.: ya lo conseguí en una tienda local"
+              ayuda="Quien te ofertó recibe este motivo en su aviso"
+              maxLength={200}
+            />
             <Boton
               titulo="Cancelar el pedido"
               variante="peligro"
               cargando={ocupado === 'cancelar'}
               onPress={async () => {
+                if (motivoCancelar.trim().length < 5) {
+                  avisar('Falta el motivo', 'Cuéntale en pocas palabras a quien te ofertó por qué cancelas.');
+                  return;
+                }
                 const seguro = await confirmar(
                   'Cancelar el pedido',
                   'Se descartarán las ofertas recibidas y el pedido dejará de estar visible. No se puede deshacer.',
@@ -436,7 +449,9 @@ export default function DetallePedido() {
                   true,
                 );
                 if (!seguro) return;
-                accion('cancelar', () => api.cancelarPedido(pedido.id, ''));
+                accion('cancelar', () =>
+                  api.cancelarPedido(pedido.id, motivoCancelar.trim()),
+                );
               }}
             />
           </Tarjeta>
@@ -587,7 +602,7 @@ function FormularioOferta({
             padding: E.md,
             marginBottom: E.lg,
           }}>
-          <Parrafo style={{ fontWeight: '800', color: '#255C38', marginBottom: E.xs }}>
+          <Parrafo style={{ fontWeight: '800', color: C.verde, marginBottom: E.xs }}>
             Tú recibirías {soles(desglose.recibe_comprador)}
           </Parrafo>
           <Micro>
@@ -995,7 +1010,7 @@ function Chat({
           value={texto}
           onChangeText={setTexto}
           placeholder="Escribe un mensaje…"
-          placeholderTextColor="#9AA5B5"
+          placeholderTextColor="#98A6B8"
           style={{
             flex: 1,
             borderWidth: 1.5,

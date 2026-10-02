@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import type {
   Aviso,
@@ -86,16 +87,34 @@ export async function enviarVerificacion(opts: {
 }
 
 // ---------------------------------------------------------------- archivos
+/**
+ * Lee la imagen que devolvió el selector. Cada plataforma necesita su camino:
+ *
+ * - En React Native, `fetch(uri).arrayBuffer()` suele devolver cero bytes y el
+ *   archivo llega vacío. La lectura directa del sistema de archivos es fiable.
+ * - En el navegador no hay sistema de archivos: expo-file-system se sustituye
+ *   por una clase vacía y `new File(uri)` revienta con «this.validatePath is
+ *   not a function». Ahí el selector entrega un `blob:` que fetch sí lee.
+ */
+async function leerImagen(uri: string): Promise<{ bytes: Uint8Array; tipo: string }> {
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(uri)).blob();
+    return {
+      bytes: new Uint8Array(await blob.arrayBuffer()),
+      tipo: blob.type || 'image/jpeg',
+    };
+  }
+  return { bytes: await new File(uri).bytes(), tipo: 'image/jpeg' };
+}
+
 export async function subirArchivo(bucket: string, ruta: string, uri: string) {
-  // En React Native, fetch(uri).arrayBuffer() suele devolver cero bytes y el
-  // archivo llega vacío. La lectura directa del sistema de archivos es fiable.
-  const bytes = await new File(uri).bytes();
+  const { bytes, tipo } = await leerImagen(uri);
   if (bytes.byteLength === 0) {
     throw new Error('La imagen llegó vacía. Vuelve a tomarla.');
   }
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(ruta, bytes, { contentType: 'image/jpeg', upsert: true });
+    .upload(ruta, bytes, { contentType: tipo, upsert: true });
   revienta(error);
   return ruta;
 }
@@ -477,19 +496,6 @@ export async function marcarAvisosLeidos(ids?: number[]) {
     p_ids: ids ?? null,
   });
   revienta(error);
-}
-
-// ---------------------------------------------------------------- config
-/** Tarifas y plazos. La tabla `config` es de solo lectura desde la app. */
-export async function configuracion(): Promise<Record<string, number>> {
-  const { data, error } = await supabase.from('config').select('clave, valor');
-  revienta(error);
-  return Object.fromEntries(
-    ((data ?? []) as { clave: string; valor: number }[]).map((c) => [
-      c.clave,
-      Number(c.valor),
-    ]),
-  );
 }
 
 // ------------------------------------------------- cancelar y retirar
