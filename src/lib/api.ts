@@ -18,6 +18,7 @@ import type {
   PagoPendiente,
   Pedido,
   Perfil,
+  PersonaReniec,
   Reputacion,
   Resena,
   ResultadoDni,
@@ -98,6 +99,37 @@ export async function enviarVerificacion(opts: {
   } catch {
     return null;
   }
+}
+
+/**
+ * Nombre que figura en RENIEC para un DNI, vía la Edge Function `consultar-dni`.
+ * Sirve para completar el nombre solo en el registro y en la verificación.
+ * Funciona sin sesión: la clave anónima basta.
+ *
+ * Devuelve la persona, `null` si RENIEC no tiene ese número, o lanza un error
+ * con un mensaje legible si el servicio no respondió (sin red, cupo agotado,
+ * función sin desplegar). En ese caso la app deja escribir el nombre a mano.
+ */
+export async function consultarDni(dni: string): Promise<PersonaReniec | null> {
+  const { data, error } = await supabase.functions.invoke('consultar-dni', {
+    body: { dni },
+  });
+  if (error) {
+    let mensaje = 'No pudimos consultar RENIEC en este momento';
+    try {
+      const cuerpo = await (error as { context?: Response }).context?.json();
+      if (cuerpo?.error) mensaje = cuerpo.error;
+    } catch {
+      /* la función no existe o no devolvió JSON */
+    }
+    throw new Error(mensaje);
+  }
+  if (!data?.encontrado) return null;
+  return {
+    nombres: data.nombres ?? '',
+    apellidoPaterno: data.apellido_paterno ?? '',
+    apellidoMaterno: data.apellido_materno ?? '',
+  };
 }
 
 // ---------------------------------------------------------------- archivos

@@ -243,3 +243,10 @@ export type ConfirmacionVencida = {
   vence_en: string;
   dias_vencido: number;
 };
+
+/** Lo que devuelve RENIEC (consultar-dni). No se guarda en ninguna tabla. */
+export type PersonaReniec = {
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+};

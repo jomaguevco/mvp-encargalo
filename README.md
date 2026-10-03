@@ -141,7 +141,17 @@ on conflict (perfil_id) do nothing;
 
 La pestaña **Equipo** aparecerá en la app solo para ellos.
 
-### 6. Activar la validación del DNI contra RENIEC
+### 6. Activar la consulta y la validación del DNI contra RENIEC
+
+Son dos Edge Functions que usan el mismo token de Decolecta:
+
+| Función | Cuándo se llama | Qué hace |
+|---|---|---|
+| `consultar-dni` | Al escribir los 8 dígitos en el registro y en la verificación | Devuelve el nombre de RENIEC y la app lo completa sola. No guarda nada. Límite de 8 consultas por IP cada 10 minutos y caché de una hora por DNI, para cuidar el cupo |
+| `validar-dni` | Al enviar la verificación | Contrasta DNI y nombre del perfil, y guarda solo el resultado |
+
+Si `consultar-dni` no está desplegada o RENIEC no responde, la app avisa y deja
+escribir el nombre a mano: nadie queda bloqueado.
 
 Al enviar su verificación, la app llama a la Edge Function `validar-dni`, que consulta
 el DNI en la API RENIEC de [Decolecta](https://decolecta.gitbook.io/docs) y compara el
@@ -155,8 +165,19 @@ siendo humana** (la selfie se compara con el documento). Solo se guarda el resul
 3. Con la [CLI de Supabase](https://supabase.com/docs/guides/cli) vinculada al proyecto:
 
 ```bash
-supabase secrets set DECOLECTA_TOKEN=tu_token
-supabase functions deploy validar-dni
+npx supabase login
+npx supabase link --project-ref TU_REF      # el ref es lo que va antes de .supabase.co en la URL
+npx supabase secrets set DECOLECTA_TOKEN=tu_token
+npx supabase functions deploy consultar-dni
+npx supabase functions deploy validar-dni
+```
+
+Para comprobarlo sin la app (debe devolver `encontrado: true` y el nombre):
+
+```bash
+curl -X POST "https://TU_REF.supabase.co/functions/v1/consultar-dni" \
+  -H "Authorization: Bearer TU_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"dni":"46027897"}'
 ```
 
 Si la consulta falla (cupo agotado, sin red), la solicitud queda en revisión y se
@@ -227,7 +248,7 @@ src/
     negocio.ts            Estados, etiquetas y formato
   ui/                     Componentes y paleta
 supabase/migrations/      Esquema, funciones, RLS y configuración
-supabase/functions/       Edge Functions (validar-dni: consulta a RENIEC vía Decolecta)
+supabase/functions/       Edge Functions: consultar-dni (nombre desde RENIEC) y validar-dni (contraste)
 ```
 
 ## Estado actual y qué falta
