@@ -62,7 +62,7 @@ es lo que pide el indicador IND3 del sílabo. Cuando entre Culqi o Izipay, solo 
 quién llama a `confirmar_retencion`.
 
 **Las tarifas viven en la tabla `config`, no en el código.** Son las mismas del flujo de
-caja proyectado (`Entregables_Unidad2/Encargalo_Flujo_de_Caja_y_OKR.xlsx`, hoja 1):
+caja proyectado (`Entregables_Unidad2/02_Encargalo_Flujo_de_Caja_y_Medicion.xlsx`, hoja «Supuestos»):
 comisión al cliente 10 %, tarifa al comprador externo 3 %, procesamiento 2.9 %. Si
 cambian ahí, cambian aquí.
 
