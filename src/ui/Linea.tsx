@@ -1,8 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ESTADO_PEDIDO, PASOS, fechaHora } from '@/lib/negocio';
 import type { EstadoPedido, EventoPedido } from '@/lib/tipos';
-import { Micro, Parrafo } from './componentes';
+import { ICONO_ESTADO } from './iconos';
 import { C, E } from './tema';
 
 /**
@@ -10,14 +10,11 @@ import { C, E } from './tema';
  *
  * Es la pieza que más se mira de la aplicación, porque es la respuesta a la
  * pregunta por la que alguien abre Encárgalo. Tres estados visuales bien
- * distintos, y no tres círculos del mismo tamaño:
+ * distintos:
  *
  *   hecho     círculo relleno con un visto dentro
- *   actual    círculo hueco con aro, del color del estado
- *   pendiente círculo gris pequeño
- *
- * El visto importa más de lo que parece: un círculo relleno solo se entiende
- * comparándolo con los de al lado, y un visto se entiende solo.
+ *   actual    círculo grande con el icono del estado y un halo
+ *   pendiente círculo gris con el icono apagado
  */
 export function Linea({
   estado,
@@ -31,17 +28,13 @@ export function Linea({
     return (
       <View style={s.corte}>
         <View style={[s.corteAro, { backgroundColor: `${info.color}14` }]}>
-          <Ionicons
-            name={estado === 'cancelado' ? 'close-circle' : 'alert-circle'}
-            size={22}
-            color={info.color}
-          />
+          <Ionicons name={ICONO_ESTADO[estado]} size={24} color={info.color} />
         </View>
         <View style={{ flex: 1 }}>
-          <Parrafo style={{ fontWeight: '800', color: info.color }}>
+          <Text style={[s.etiqueta, { color: info.color, fontWeight: '800' }]}>
             {info.etiqueta}
-          </Parrafo>
-          <Parrafo suave>{info.detalle}</Parrafo>
+          </Text>
+          <Text style={s.detalle}>{info.detalle}</Text>
         </View>
       </View>
     );
@@ -54,53 +47,51 @@ export function Linea({
     <View>
       {PASOS.map((paso, i) => {
         const info = ESTADO_PEDIDO[paso];
-        const hecho = i < actual;
-        const esActual = i === actual;
+        // El último paso hecho es también «hecho» cuando el pedido ya terminó
+        const hecho = i < actual || (paso === 'confirmado' && estado === 'confirmado');
+        const esActual = i === actual && !hecho;
         const ultimo = i === PASOS.length - 1;
-        const color = hecho || esActual ? info.color : C.borde;
 
         return (
           <View key={paso} style={{ flexDirection: 'row' }}>
             <View style={s.columna}>
               {hecho ? (
-                <View style={[s.punto, { backgroundColor: color }]}>
-                  <Ionicons name="checkmark" size={13} color={C.blanco} />
+                <View style={[s.punto, { backgroundColor: C.verde }]}>
+                  <Ionicons name="checkmark" size={15} color={C.blanco} />
                 </View>
               ) : esActual ? (
-                <View
-                  style={[
-                    s.punto,
-                    s.puntoActual,
-                    { borderColor: color, backgroundColor: `${color}1A` },
-                  ]}>
-                  <View style={[s.corazon, { backgroundColor: color }]} />
+                <View style={[s.halo, { backgroundColor: `${info.color}22` }]}>
+                  <View style={[s.punto, { backgroundColor: info.color }]}>
+                    <Ionicons name={ICONO_ESTADO[paso]} size={14} color={C.blanco} />
+                  </View>
                 </View>
               ) : (
-                <View style={s.puntoPendiente} />
+                <View style={[s.punto, s.puntoPendiente]}>
+                  <Ionicons name={ICONO_ESTADO[paso]} size={13} color="#AAB6C5" />
+                </View>
               )}
 
               {!ultimo && (
                 <View
-                  style={[
-                    s.tallo,
-                    { backgroundColor: i < actual ? info.color : C.borde },
-                  ]}
+                  style={[s.tallo, { backgroundColor: i < actual ? C.verde : C.borde }]}
                 />
               )}
             </View>
 
-            <View style={{ flex: 1, paddingBottom: ultimo ? 0 : E.md }}>
-              <Parrafo
-                style={{
-                  fontWeight: esActual ? '800' : hecho ? '700' : '600',
-                  color: hecho || esActual ? C.texto : C.textoSuave,
-                  fontSize: 15,
-                }}>
+            <View style={{ flex: 1, paddingBottom: ultimo ? 0 : E.lg, paddingTop: esActual ? 6 : 3 }}>
+              <Text
+                style={[
+                  s.etiqueta,
+                  {
+                    fontWeight: esActual ? '800' : hecho ? '700' : '600',
+                    color: hecho || esActual ? C.texto : C.textoSuave,
+                  },
+                ]}>
                 {info.etiqueta}
-              </Parrafo>
-              {esActual && <Parrafo suave>{info.detalle}</Parrafo>}
+              </Text>
+              {esActual && <Text style={s.detalle}>{info.detalle}</Text>}
               {cuando.has(paso) && (
-                <Micro style={{ marginTop: 2 }}>{fechaHora(cuando.get(paso))}</Micro>
+                <Text style={s.cuando}>{fechaHora(cuando.get(paso))}</Text>
               )}
             </View>
           </View>
@@ -111,29 +102,29 @@ export function Linea({
 }
 
 const s = StyleSheet.create({
-  columna: { alignItems: 'center', width: 32 },
-
+  columna: { alignItems: 'center', width: 44 },
   punto: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
-  puntoActual: { borderWidth: 2.5 },
-  // El punto central del estado actual: pequeño, para que se lea como «aquí»
-  // y no como «terminado».
-  corazon: { width: 7, height: 7, borderRadius: 4 },
-  puntoPendiente: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: C.borde,
-    marginTop: 7,
+  halo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -6,
+    marginBottom: -6,
   },
+  puntoPendiente: { backgroundColor: C.superficieSuave, borderWidth: 1.5, borderColor: C.borde },
+  tallo: { width: 2.5, flex: 1, minHeight: 20, borderRadius: 2, marginVertical: 3 },
 
-  tallo: { width: 2.5, flex: 1, minHeight: 24, borderRadius: 2, marginTop: 2 },
+  etiqueta: { fontSize: 15, color: C.texto },
+  detalle: { fontSize: 13.5, color: C.textoSuave, lineHeight: 19, marginTop: 2 },
+  cuando: { fontSize: 12, color: C.textoSuave, fontWeight: '600', marginTop: 2 },
 
   corte: {
     flexDirection: 'row',
@@ -142,9 +133,9 @@ const s = StyleSheet.create({
     paddingVertical: E.sm,
   },
   corteAro: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
   },

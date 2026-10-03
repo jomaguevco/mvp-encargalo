@@ -1,12 +1,33 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import { marcarAvisosLeidos, misAvisos } from '@/lib/api';
 import { TIPO_AVISO, hace } from '@/lib/negocio';
 import type { Aviso } from '@/lib/tipos';
-import { Boton, Cargando, Chip, Micro, Parrafo, Tarjeta, Vacio } from '@/ui/componentes';
-import { C, E } from '@/ui/tema';
+import { Cabecera, Cargando, Entrada, Vacio } from '@/ui/componentes';
+import { ICONO_AVISO } from '@/ui/iconos';
+import { C, E, R, sombra } from '@/ui/tema';
+
+/** «Hoy», «Ayer», «Esta semana», «Antes». */
+function grupoDe(iso: string) {
+  const d = new Date(iso);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const dias = Math.floor((hoy.getTime() - new Date(d).setHours(0, 0, 0, 0)) / 86_400_000);
+  if (dias <= 0) return 'Hoy';
+  if (dias === 1) return 'Ayer';
+  if (dias < 7) return 'Esta semana';
+  return 'Antes';
+}
 
 /**
  * Bandeja de avisos. Los crean los triggers de la base de datos sobre los
@@ -53,11 +74,21 @@ export default function Avisos() {
     if (aviso.pedido_id) router.push(`/pedido/${aviso.pedido_id}`);
   }
 
+  const secciones: { title: string; data: Aviso[] }[] = [];
+  for (const a of avisos) {
+    const g = grupoDe(a.creado_en);
+    const ultima = secciones[secciones.length - 1];
+    if (ultima?.title === g) ultima.data.push(a);
+    else secciones.push({ title: g, data: [a] });
+  }
+
   return (
-    <FlatList
-      data={avisos}
+    <SectionList
+      style={{ backgroundColor: C.fondo }}
+      sections={secciones}
       keyExtractor={(a) => String(a.id)}
-      contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
+      contentContainerStyle={{ paddingBottom: E.xxl }}
+      stickySectionHeadersEnabled={false}
       refreshControl={
         <RefreshControl
           refreshing={refrescando}
@@ -69,54 +100,76 @@ export default function Avisos() {
         />
       }
       ListHeaderComponent={
-        sinLeer > 0 ? (
-          <View style={{ marginBottom: E.md }}>
-            <Boton
-              titulo={`Marcar los ${sinLeer} como leídos`}
-              variante="fantasma"
-              onPress={marcarTodo}
-            />
-          </View>
-        ) : null
+        <Cabecera
+          titulo="Avisos"
+          subtitulo={
+            sinLeer > 0
+              ? `Tienes ${sinLeer} aviso${sinLeer === 1 ? '' : 's'} sin leer`
+              : 'Estás al día'
+          }
+          derecha={
+            sinLeer > 0 ? (
+              <Pressable onPress={marcarTodo} style={s.marcar} hitSlop={6}>
+                <Ionicons name="checkmark-done" size={16} color={C.blanco} />
+                <Text style={s.marcarTexto}>Marcar leídos</Text>
+              </Pressable>
+            ) : (
+              <View style={s.campana}>
+                <Ionicons name="notifications" size={24} color={C.blanco} />
+              </View>
+            )
+          }
+        />
       }
-      renderItem={({ item }) => {
+      renderSectionHeader={({ section }) => (
+        <Text style={s.grupo}>{section.title}</Text>
+      )}
+      renderItem={({ item, index }) => {
         const t = TIPO_AVISO[item.tipo] ?? { etiqueta: 'Aviso', color: C.azulMedio };
         return (
-          <Tarjeta
-            onPress={() => abrir(item)}
-            style={
-              item.leido
-                ? undefined
-                : { borderColor: t.color, borderWidth: 1.5, backgroundColor: C.blanco }
-            }>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: E.sm,
-              }}>
-              <Chip texto={t.etiqueta} color={t.color} />
-              <Micro>{hace(item.creado_en)}</Micro>
-            </View>
-            <Parrafo style={{ fontWeight: '700', marginTop: E.sm }}>
-              {item.titulo}
-            </Parrafo>
-            {!!item.cuerpo && (
-              <Parrafo suave style={{ marginTop: E.xs }}>
-                {item.cuerpo}
-              </Parrafo>
-            )}
-            {!!item.pedido_id && (
-              <Micro style={{ color: C.azul, fontWeight: '700', marginTop: E.sm }}>
-                Ver el pedido
-              </Micro>
-            )}
-          </Tarjeta>
+          <Entrada i={index} style={{ paddingHorizontal: E.lg }}>
+            <Pressable
+              onPress={() => abrir(item)}
+              style={({ pressed }) => [
+                s.aviso,
+                !item.leido && s.avisoNuevo,
+                pressed && { opacity: 0.85 },
+              ]}>
+              <View style={[s.icono, { backgroundColor: `${t.color}18` }]}>
+                <Ionicons
+                  name={ICONO_AVISO[item.tipo] ?? 'notifications'}
+                  size={20}
+                  color={t.color}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={s.filaTitulo}>
+                  <Text style={[s.tipo, { color: t.color }]}>{t.etiqueta}</Text>
+                  <Text style={s.hace}>{hace(item.creado_en)}</Text>
+                </View>
+                <Text style={[s.titulo, !item.leido && { fontWeight: '800' }]}>
+                  {item.titulo}
+                </Text>
+                {!!item.cuerpo && (
+                  <Text style={s.cuerpo} numberOfLines={3}>
+                    {item.cuerpo}
+                  </Text>
+                )}
+                {!!item.pedido_id && (
+                  <View style={s.ver}>
+                    <Text style={s.verTexto}>Ver el pedido</Text>
+                    <Ionicons name="chevron-forward" size={14} color={C.naranja} />
+                  </View>
+                )}
+              </View>
+              {!item.leido && <View style={s.punto} />}
+            </Pressable>
+          </Entrada>
         );
       }}
       ListEmptyComponent={
         <Vacio
+          icono="notifications-off-outline"
           titulo="No tienes avisos"
           detalle="Aquí aparecerán las ofertas que recibas, cada movimiento del dinero y los mensajes de tus pedidos."
         />
@@ -124,3 +177,66 @@ export default function Avisos() {
     />
   );
 }
+
+const s = StyleSheet.create({
+  marcar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    paddingHorizontal: E.md,
+    paddingVertical: E.sm,
+    borderRadius: 999,
+  },
+  marcarTexto: { color: C.blanco, fontWeight: '800', fontSize: 13 },
+  campana: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grupo: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: C.textoSuave,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    paddingHorizontal: E.lg,
+    marginTop: E.lg,
+    marginBottom: E.sm,
+  },
+  aviso: {
+    flexDirection: 'row',
+    gap: E.md,
+    backgroundColor: C.blanco,
+    borderRadius: R.lg,
+    padding: E.md + 2,
+    marginBottom: E.sm,
+    borderWidth: 1,
+    borderColor: C.borde,
+  },
+  avisoNuevo: { borderColor: `${C.naranja}55`, ...sombra(2) },
+  icono: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filaTitulo: { flexDirection: 'row', justifyContent: 'space-between', gap: E.sm },
+  tipo: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  hace: { fontSize: 12, color: C.textoSuave },
+  titulo: { fontSize: 15, fontWeight: '700', color: C.texto, marginTop: 3, lineHeight: 20 },
+  cuerpo: { fontSize: 13.5, color: C.textoSuave, marginTop: 3, lineHeight: 19 },
+  ver: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: E.sm },
+  verTexto: { fontSize: 13, fontWeight: '800', color: C.naranja },
+  punto: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: C.naranja,
+    marginTop: 4,
+  },
+});

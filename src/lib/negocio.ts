@@ -258,3 +258,54 @@ export const PROHIBIDOS = [
 
 /** Umbral desde el que un envío paga impuestos de importación (US$). */
 export const UMBRAL_IMPUESTO_USD = 200;
+
+/** «DELGADO HUAMANI» → «Delgado Huamani». RENIEC devuelve todo en mayúsculas. */
+export const tipoTitulo = (t: string) =>
+  t
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p) => (['de', 'del', 'la', 'las', 'los', 'y'].includes(p) ? p : p[0].toUpperCase() + p.slice(1)))
+    .join(' ');
+
+/** Nombre completo como lo escribiría una persona: nombres y luego apellidos. */
+export const nombreDeReniec = (p: {
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+}) => tipoTitulo(`${p.nombres} ${p.apellidoPaterno} ${p.apellidoMaterno}`);
+
+/** Iniciales para el avatar: «Mariano Guevara» → «MG». */
+export const iniciales = (nombre: string | null | undefined) =>
+  (nombre ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('') || '?';
+
+/**
+ * Misma regla que supabase/functions/validar-dni/nombres.ts: coincide si la
+ * persona declaró al menos dos palabras y todas están en el nombre de RENIEC.
+ * Aquí solo sirve para avisar antes de enviar; la que cuenta es la del servidor.
+ */
+export function coincideConReniec(
+  declarado: string,
+  reniec: { nombres: string; apellidoPaterno: string; apellidoMaterno: string },
+) {
+  const particulas = new Set(['DE', 'DEL', 'LA', 'LAS', 'LOS', 'Y', 'SAN', 'SANTA']);
+  const palabras = (t: string) =>
+    t
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z]+/g, ' ')
+      .split(' ')
+      .filter((p) => p.length >= 2 && !particulas.has(p));
+  const mias = palabras(declarado);
+  if (mias.length < 2) return false;
+  const suyas = new Set(
+    palabras(`${reniec.nombres} ${reniec.apellidoPaterno} ${reniec.apellidoMaterno}`),
+  );
+  return mias.every((p) => suyas.has(p));
+}

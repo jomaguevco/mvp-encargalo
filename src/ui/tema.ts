@@ -99,3 +99,32 @@ export const T = {
   micro: { fontSize: 12, fontWeight: '600' as const },
   cifra: { fontSize: 32, fontWeight: '800' as const, letterSpacing: -0.8 },
 };
+
+/**
+ * Degradados.
+ *
+ * Lo que más le faltaba a la interfaz era profundidad de color: todo era navy
+ * plano sobre gris claro. Un degradado diagonal en la cabecera y en el botón
+ * principal es lo que hace que la pantalla se vea «de producto» y no de
+ * formulario. Se usan con moderación: cabeceras, botón principal y las
+ * tarjetas que cuentan dinero.
+ */
+export const G = {
+  marca: ['#0B2A48', '#14457A', '#1F5C9E'] as const,
+  accion: ['#F58A50', '#EE6C34', '#E0521F'] as const,
+  exito: ['#16A06F', '#12805C'] as const,
+  dinero: ['#0F6E52', '#12805C', '#1A9A6E'] as const,
+  alerta: ['#F59E0B', '#D97706'] as const,
+  peligro: ['#D63B2C', '#B42318'] as const,
+  noche: ['#0B1F35', '#123A63'] as const,
+};
+
+/** Colores para avatares: se elige uno por persona, siempre el mismo. */
+export const AVATARES = [
+  ['#2A6BA8', '#0E3255'],
+  ['#EE6C34', '#C2410C'],
+  ['#12805C', '#0B5B41'],
+  ['#7C3AED', '#5B21B6'],
+  ['#DB2777', '#9D174D'],
+  ['#0891B2', '#0E7490'],
+] as const;

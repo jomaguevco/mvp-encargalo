@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
 import { Cargando } from '@/ui/componentes';
 import { C } from '@/ui/tema';
@@ -27,10 +28,20 @@ function Icono({
   globo?: number;
 }) {
   return (
-    <View>
+    <View
+      style={{
+        width: 52,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        // La píldora detrás del icono activo: se lee de un vistazo en qué
+        // pestaña estás, sin depender solo del color.
+        backgroundColor: activo ? C.naranjaClaro : 'transparent',
+      }}>
       <Ionicons
         name={nombre}
-        size={24}
+        size={22}
         color={activo ? C.naranja : C.textoSuave}
       />
 
@@ -38,8 +49,8 @@ function Icono({
         <View
           style={{
             position: 'absolute',
-            top: -5,
-            right: -9,
+            top: -3,
+            right: 4,
             minWidth: 18,
             height: 18,
             paddingHorizontal: 4,
@@ -79,6 +90,9 @@ const ICONOS = {
 
 export default function AppLayout() {
   const { sesion, cargando, esOperador, avisosPendientes } = useAuth();
+  // Con la navegación por gestos de Android la barra del sistema queda encima:
+  // la altura de la barra de pestañas tiene que sumarla.
+  const insets = useSafeAreaInsets();
 
   if (cargando) return <Cargando texto="Cargando…" />;
   if (!sesion) return <Redirect href="/entrar" />;
@@ -86,28 +100,32 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: C.azul },
-        headerTintColor: C.blanco,
-        headerTitleStyle: { fontWeight: '800', fontSize: 18, letterSpacing: -0.3 },
-        // Sin la línea de sombra bajo la cabecera: con el navy a todo ancho,
-        // esa raya solo ensucia el borde.
-        headerShadowVisible: false,
+        // Cada pestaña dibuja su propia cabecera con degradado (ui/componentes
+        // → Cabecera), con cifras y acciones; la barra de navegación plana
+        // quedaba corta para eso.
+        headerShown: false,
         tabBarActiveTintColor: C.naranja,
         tabBarInactiveTintColor: C.textoSuave,
         tabBarStyle: {
           backgroundColor: C.blanco,
           borderTopColor: C.borde,
           borderTopWidth: 1,
-          height: 66,
-          paddingTop: 6,
+          height: 66 + insets.bottom,
+          paddingTop: 8,
+          paddingBottom: insets.bottom,
+          elevation: 12,
+          shadowColor: '#0E3255',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -2 },
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 8 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 2 },
         sceneStyle: { backgroundColor: C.fondo },
       }}>
       <Tabs.Screen
         name="pedidos"
         options={{
-          title: 'Mis pedidos',
+          title: 'Pedidos',
           headerTitle: 'Mis pedidos',
           tabBarIcon: ({ focused }) => (
             <Icono
@@ -133,7 +151,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="entregas"
         options={{
-          title: 'Mis entregas',
+          title: 'Entregas',
           headerTitle: 'Lo que estoy trayendo',
           tabBarIcon: ({ focused }) => (
             <Icono

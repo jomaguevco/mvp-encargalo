@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -9,6 +11,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -24,6 +27,7 @@ import {
   diasHasta,
   fecha,
   fechaHora,
+  hace,
   soles,
 } from '@/lib/negocio';
 import type {
@@ -35,28 +39,169 @@ import type {
   OfertaConReputacion,
   Pago,
   Pedido,
+  Reputacion,
 } from '@/lib/tipos';
 import {
   Aviso,
+  Avatar,
   Boton,
   Campo,
   Cargando,
   Chip,
   Dato,
-  Micro,
+  Entrada,
+  Estrellas,
+  Etiqueta,
   Opciones,
-  Parrafo,
+  Seccion,
   Separador,
-  Subtitulo,
   Tarjeta,
+  TarjetaDegradada,
+  Vacio,
+  type NombreIcono,
 } from '@/ui/componentes';
 import { avisar, confirmar } from '@/ui/dialogos';
+import { ICONO_ESTADO, iconoCategoria } from '@/ui/iconos';
 import { Linea } from '@/ui/Linea';
 import { OfertaItem } from '@/ui/OfertaItem';
-import { C, E, R } from '@/ui/tema';
+import { C, E, G, R, sombra } from '@/ui/tema';
 
 const YAPE_NUMERO = process.env.EXPO_PUBLIC_YAPE_NUMERO ?? '999 999 999';
 const YAPE_TITULAR = process.env.EXPO_PUBLIC_YAPE_TITULAR ?? 'Encárgalo S.A.C.';
+
+type Paso = {
+  icono: NombreIcono;
+  titulo: string;
+  texto: string;
+  colores: readonly [string, string, ...string[]];
+};
+
+/**
+ * Qué le toca hacer a quien está mirando, en una frase. Es lo primero que se
+ * ve al abrir un pedido: en la demostración, las dos cuentas abren el mismo
+ * pedido y cada una ve su propio «siguiente paso».
+ */
+function siguientePaso(opts: {
+  pedido: Pedido;
+  pago: Pago | null;
+  ofertas: number;
+  soyCliente: boolean;
+  soyComprador: boolean;
+  propia: Oferta | null;
+}): Paso | null {
+  const { pedido, pago, ofertas, soyCliente, soyComprador, propia } = opts;
+  const e = pedido.estado;
+
+  if (e === 'cancelado') return null;
+  if (e === 'en_disputa') {
+    return {
+      icono: 'alert-circle',
+      titulo: 'Caso en revisión',
+      texto: 'El dinero sigue retenido mientras el equipo revisa la disputa.',
+      colores: G.peligro,
+    };
+  }
+
+  if (soyCliente) {
+    if (e === 'publicado')
+      return ofertas > 0
+        ? {
+            icono: 'git-compare',
+            titulo: `Tienes ${ofertas} oferta${ofertas === 1 ? '' : 's'}`,
+            texto: 'Compara precio, fecha y reputación, y elige la que prefieras.',
+            colores: G.accion,
+          }
+        : {
+            icono: 'megaphone',
+            titulo: 'Esperando ofertas',
+            texto: 'Los compradores externos verificados ya ven tu pedido. Te avisaremos.',
+            colores: G.marca,
+          };
+    if (e === 'aceptado')
+      return pago?.estado === 'en_revision'
+        ? {
+            icono: 'hourglass',
+            titulo: 'Validando tu pago',
+            texto: 'En cuanto confirmemos que llegó, queda retenido y el comprador puede comprar.',
+            colores: G.alerta,
+          }
+        : {
+            icono: 'wallet',
+            titulo: `Paga ${soles(pago?.total_cobrado)} para asegurarlo`,
+            texto: 'Tu dinero queda retenido por Encárgalo hasta que recibas el producto.',
+            colores: G.accion,
+          };
+    if (e === 'pagado' || e === 'comprado' || e === 'en_viaje')
+      return {
+        icono: 'shield-checkmark',
+        titulo: 'Tu dinero está protegido',
+        texto: 'Nadie lo recibe hasta que confirmes la entrega. Sigue el avance abajo.',
+        colores: G.dinero,
+      };
+    if (e === 'entregado')
+      return {
+        icono: 'cube',
+        titulo: '¿Ya lo tienes en tus manos?',
+        texto: 'Revísalo y confirma la recepción para liberar el pago.',
+        colores: G.accion,
+      };
+    if (e === 'confirmado')
+      return {
+        icono: 'checkmark-done-circle',
+        titulo: 'Pedido completado',
+        texto: 'Califica la experiencia: es lo que hace confiable al próximo cliente.',
+        colores: G.dinero,
+      };
+  }
+
+  if (soyComprador) {
+    if (e === 'aceptado')
+      return {
+        icono: 'time',
+        titulo: 'Te eligieron. Espera el pago',
+        texto: 'No compres todavía: te avisaremos cuando el dinero esté retenido.',
+        colores: G.alerta,
+      };
+    if (SIGUIENTE_PASO_COMPRADOR[e])
+      return {
+        icono: e === 'pagado' ? 'cart' : e === 'comprado' ? 'airplane' : 'cube',
+        titulo: e === 'pagado' ? 'El pago está retenido: ya puedes comprar' : 'Te toca actualizar el avance',
+        texto: 'Marca cada paso: el cliente lo ve al instante y sube tu puntualidad.',
+        colores: G.accion,
+      };
+    if (e === 'entregado')
+      return {
+        icono: 'hourglass',
+        titulo: 'Esperando la confirmación del cliente',
+        texto: `Al confirmar, recibes ${soles(pago?.monto_liberado)}.`,
+        colores: G.marca,
+      };
+    if (e === 'confirmado')
+      return {
+        icono: 'cash',
+        titulo: `Pago liberado: ${soles(pago?.monto_liberado)}`,
+        texto: 'Buen trabajo. Califica al cliente para cerrar el pedido.',
+        colores: G.dinero,
+      };
+  }
+
+  if (e === 'publicado' && !soyCliente) {
+    return propia
+      ? {
+          icono: 'paper-plane',
+          titulo: 'Tu oferta está enviada',
+          texto: 'El cliente está comparando. Te avisaremos si elige la tuya.',
+          colores: G.marca,
+        }
+      : {
+          icono: 'pricetag',
+          titulo: 'Envía tu oferta',
+          texto: 'Pon tu precio final y la fecha en que lo entregas.',
+          colores: G.accion,
+        };
+  }
+  return null;
+}
 
 export default function DetallePedido() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -69,11 +214,13 @@ export default function DetallePedido() {
   const [pago, setPago] = useState<Pago | null>(null);
   const [eventos, setEventos] = useState<EventoPedido[]>([]);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [contraparte, setContraparte] = useState<Reputacion | null>(null);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [limite, setLimite] = useState<string | null>(null);
   const [motivoCancelar, setMotivoCancelar] = useState('');
+  const [verCancelar, setVerCancelar] = useState(false);
 
   const soyCliente = !!pedido && pedido.cliente_id === perfil?.id;
   const soyComprador = !!pago && pago.comprador_id === perfil?.id;
@@ -98,7 +245,18 @@ export default function DetallePedido() {
     // Plazo del cliente para confirmar. Sale de `dias_para_confirmar` en la
     // tabla config, no de un número escrito aquí.
     setLimite(p.estado === 'entregado' ? await api.fechaLimiteConfirmacion(id) : null);
-  }, [id]);
+
+    // La otra parte del pedido, para mostrar con quién estás tratando
+    if (pg) {
+      const uid = perfil?.id;
+      const otro = pg.cliente_id === uid ? pg.comprador_id : pg.comprador_id === uid ? pg.cliente_id : null;
+      setContraparte(otro ? await api.reputacionDe(otro) : null);
+    } else if (p.cliente_id !== perfil?.id) {
+      setContraparte(await api.reputacionDe(p.cliente_id));
+    } else {
+      setContraparte(null);
+    }
+  }, [id, perfil?.id]);
 
   useEffect(() => {
     (async () => {
@@ -145,26 +303,43 @@ export default function DetallePedido() {
   if (cargando) return <Cargando texto="Cargando el pedido…" />;
   if (!pedido) {
     return (
-      <View style={{ padding: E.xl }}>
-        <Aviso tono="error" titulo="No encontramos este pedido">
-          Puede que haya sido cancelado o que no tengas acceso a él.
-        </Aviso>
+      <View style={{ flex: 1, backgroundColor: C.fondo }}>
+        <Vacio
+          icono="search-outline"
+          titulo="No encontramos este pedido"
+          detalle="Puede que haya sido cancelado o que no tengas acceso a él."
+          accion="Volver"
+          onAccion={() => router.back()}
+        />
       </View>
     );
   }
 
   const info = ESTADO_PEDIDO[pedido.estado];
-  const masBarata = ofertas.length
-    ? Math.min(...ofertas.map((o) => o.precio_final))
+  const masBarata = ofertas.length ? Math.min(...ofertas.map((o) => o.precio_final)) : null;
+  const masRapida = ofertas.length
+    ? ofertas.map((o) => o.fecha_entrega).sort()[0]
     : null;
+  const foto = pedido.imagen_path ? api.urlPublica('productos', pedido.imagen_path) : null;
+  const dias = diasHasta(pedido.fecha_limite);
+  const paso = siguientePaso({
+    pedido,
+    pago,
+    ofertas: ofertas.length,
+    soyCliente,
+    soyComprador,
+    propia,
+  });
+  const participo = soyCliente || soyComprador;
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: C.fondo }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}>
       <ScrollView
         contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refrescando}
@@ -175,118 +350,157 @@ export default function DetallePedido() {
             }}
           />
         }>
-        {/* ---------------------------------------------------- resumen */}
-        <Tarjeta>
-          <Chip texto={info.etiqueta} color={info.color} />
-          <Parrafo style={{ fontSize: 18, fontWeight: '800', marginTop: E.sm }}>
-            {pedido.titulo}
-          </Parrafo>
-          {!!pedido.descripcion && (
-            <Parrafo suave style={{ marginTop: E.xs }}>
-              {pedido.descripcion}
-            </Parrafo>
-          )}
-          {!!pedido.url_producto && (
-            <Pressable onPress={() => Linking.openURL(pedido.url_producto!)}>
-              <Parrafo
-                style={{ color: C.naranja, fontWeight: '700', marginTop: E.sm }}
-                numberOfLines={1}>
-                Ver el producto original ↗
-              </Parrafo>
-            </Pressable>
-          )}
-          {!!pedido.imagen_path && (
-            <Image
-              source={{
-                uri: api.urlPublica('productos', pedido.imagen_path) ?? undefined,
-              }}
-              style={{
-                width: '100%',
-                height: 190,
-                borderRadius: R.md,
-                marginTop: E.md,
-                backgroundColor: C.borde,
-              }}
-              resizeMode="cover"
-            />
-          )}
-          <Separador />
-          <Dato etiqueta="Categoría" valor={pedido.categoria} />
-          <Dato etiqueta="Cantidad" valor={String(pedido.cantidad)} />
-          <Dato etiqueta="Entrega en" valor={pedido.ciudad_entrega} />
-          <Dato etiqueta="Fecha límite" valor={fecha(pedido.fecha_limite)} />
-          {pedido.valor_referencial != null && (
-            <Dato
-              etiqueta="Valor referencial"
-              valor={soles(pedido.valor_referencial)}
-            />
-          )}
-        </Tarjeta>
+        {/* ---------------------------------------------------- portada */}
+        <Entrada>
+          <View style={[s.portada, sombra(2)]}>
+            {foto ? (
+              <Image source={{ uri: foto }} style={s.portadaImagen} resizeMode="cover" />
+            ) : (
+              <LinearGradient
+                colors={G.marca}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[s.portadaImagen, s.portadaIcono]}>
+                <View style={s.portadaBurbuja} />
+                <Ionicons name={iconoCategoria(pedido.categoria)} size={56} color="rgba(255,255,255,0.9)" />
+              </LinearGradient>
+            )}
+            <View style={s.portadaCuerpo}>
+              <Chip texto={info.etiqueta} color={info.color} icono={ICONO_ESTADO[pedido.estado]} />
+              <Text style={s.titulo}>{pedido.titulo}</Text>
+              {!!pedido.descripcion && <Text style={s.descripcion}>{pedido.descripcion}</Text>}
+              {!!pedido.url_producto && (
+                <Pressable
+                  onPress={() => Linking.openURL(pedido.url_producto!)}
+                  style={({ pressed }) => [s.enlace, pressed && { opacity: 0.8 }]}>
+                  <Ionicons name="open-outline" size={16} color={C.naranja} />
+                  <Text style={s.enlaceTexto} numberOfLines={1}>
+                    Ver el producto original
+                  </Text>
+                </Pressable>
+              )}
 
-        {/* ---------------------------------------------------- seguimiento */}
-        <Subtitulo style={{ marginTop: E.md }}>Seguimiento</Subtitulo>
-        <Tarjeta>
-          <Linea estado={pedido.estado} eventos={eventos} />
-        </Tarjeta>
+              <View style={s.datos}>
+                <DatoCaja icono={iconoCategoria(pedido.categoria)} etiqueta="Categoría" valor={pedido.categoria} />
+                <DatoCaja icono="layers-outline" etiqueta="Cantidad" valor={String(pedido.cantidad)} />
+                <DatoCaja icono="location-outline" etiqueta="Entrega en" valor={pedido.ciudad_entrega} />
+                <DatoCaja
+                  icono="calendar-outline"
+                  etiqueta="Fecha límite"
+                  valor={fecha(pedido.fecha_limite)}
+                  alerta={pedido.estado === 'publicado' && dias <= 3}
+                />
+                {pedido.valor_referencial != null && (
+                  <DatoCaja
+                    icono="cash-outline"
+                    etiqueta="Valor referencial"
+                    valor={soles(pedido.valor_referencial)}
+                  />
+                )}
+                <DatoCaja icono="time-outline" etiqueta="Publicado" valor={hace(pedido.creado_en)} />
+              </View>
+            </View>
+          </View>
+        </Entrada>
 
-        {pago && (soyCliente || soyComprador) && (
-          <Boton
-            titulo={
-              soyCliente
-                ? 'Ver la reputación del comprador externo'
-                : 'Ver la reputación del cliente'
-            }
-            variante="fantasma"
-            onPress={() =>
-              router.push(
-                `/reputacion/${soyCliente ? pago.comprador_id : pago.cliente_id}`,
-              )
-            }
-          />
+        {/* ---------------------------------------------------- siguiente paso */}
+        {paso && (
+          <Entrada i={1}>
+            <TarjetaDegradada colores={paso.colores} style={{ padding: E.lg }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.md }}>
+                <View style={s.pasoIcono}>
+                  <Ionicons name={paso.icono} size={24} color={C.blanco} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.pasoAnte}>Siguiente paso</Text>
+                  <Text style={s.pasoTitulo}>{paso.titulo}</Text>
+                  <Text style={s.pasoTexto}>{paso.texto}</Text>
+                </View>
+              </View>
+            </TarjetaDegradada>
+          </Entrada>
+        )}
+
+        {/* ---------------------------------------------------- contraparte */}
+        {contraparte && (
+          <Entrada i={2}>
+            <Tarjeta onPress={() => router.push(`/reputacion/${contraparte.perfil_id}`)}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.md }}>
+                <Avatar
+                  nombre={contraparte.nombre_completo}
+                  tamano={48}
+                  verificado={contraparte.verificacion === 'verificado'}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.contraparteRol}>
+                    {soyCliente
+                      ? 'Te lo trae'
+                      : participo
+                        ? 'Tu cliente'
+                        : 'Lo pide'}
+                  </Text>
+                  <Text style={s.contraparteNombre} numberOfLines={1}>
+                    {contraparte.nombre_completo}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <Estrellas valor={Number(contraparte.calificacion ?? 0)} tamano={12} />
+                    <Text style={s.contraparteMeta}>
+                      {contraparte.pedidos_cumplidos} cumplido
+                      {contraparte.pedidos_cumplidos === 1 ? '' : 's'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={C.textoSuave} />
+              </View>
+            </Tarjeta>
+          </Entrada>
         )}
 
         {/* ---------------------------------------------------- ofertas */}
         {pedido.estado === 'publicado' && soyCliente && (
           <>
-            <Subtitulo style={{ marginTop: E.md }}>
-              {ofertas.length === 0
-                ? 'Aún no hay ofertas'
-                : `${ofertas.length} oferta${ofertas.length === 1 ? '' : 's'} recibida${
-                    ofertas.length === 1 ? '' : 's'
-                  }`}
-            </Subtitulo>
+            <Seccion
+              titulo={ofertas.length === 0 ? 'Ofertas' : 'Ofertas recibidas'}
+              icono="pricetags-outline"
+              conteo={ofertas.length}
+              style={{ marginTop: E.md }}
+            />
             {ofertas.length === 0 ? (
-              <Aviso tono="info">
-                Los compradores externos verificados ya pueden ver tu pedido. En cuanto
-                alguien oferte te avisaremos. No pagas nada hasta elegir.
-              </Aviso>
+              <Tarjeta style={{ alignItems: 'center', paddingVertical: E.xl }}>
+                <View style={s.esperaIcono}>
+                  <Ionicons name="hourglass-outline" size={28} color={C.azulMedio} />
+                </View>
+                <Text style={s.esperaTitulo}>Aún no hay ofertas</Text>
+                <Text style={s.esperaTexto}>
+                  En cuanto alguien oferte te avisaremos. No pagas nada hasta elegir.
+                </Text>
+              </Tarjeta>
             ) : (
-              <Parrafo suave style={{ marginBottom: E.md }}>
-                Compara precio, fecha y reputación. La más barata no siempre es la mejor
-                decisión.
-              </Parrafo>
+              <Text style={s.nota}>
+                La más barata no siempre es la mejor decisión: mira también la reputación.
+              </Text>
             )}
-            {ofertas.map((o) => (
-              <OfertaItem
-                key={o.id}
-                oferta={o}
-                masBarata={o.precio_final === masBarata}
-                puedeAceptar
-                aceptando={ocupado === `aceptar-${o.id}`}
-                onAceptar={async () => {
-                  const seguro = await confirmar(
-                    'Elegir esta oferta',
-                    `Vas a aceptar la oferta de ${soles(
-                      o.precio_final,
-                    )} con entrega el ${fecha(
-                      o.fecha_entrega,
-                    )}.\n\nLas demás ofertas quedarán descartadas y se generará tu orden de pago.`,
-                    'Aceptar oferta',
-                  );
-                  if (!seguro) return;
-                  accion(`aceptar-${o.id}`, () => api.aceptarOferta(o.id));
-                }}
-              />
+            {ofertas.map((o, i) => (
+              <Entrada key={o.id} i={i}>
+                <OfertaItem
+                  oferta={o}
+                  masBarata={ofertas.length > 1 && o.precio_final === masBarata}
+                  masRapida={ofertas.length > 1 && o.fecha_entrega === masRapida}
+                  puedeAceptar
+                  aceptando={ocupado === `aceptar-${o.id}`}
+                  onAceptar={async () => {
+                    const seguro = await confirmar(
+                      'Elegir esta oferta',
+                      `Vas a aceptar la oferta de ${soles(o.precio_final)} con entrega el ${fecha(
+                        o.fecha_entrega,
+                      )}.\n\nLas demás ofertas quedarán descartadas y se generará tu orden de pago.`,
+                      'Aceptar oferta',
+                    );
+                    if (!seguro) return;
+                    accion(`aceptar-${o.id}`, () => api.aceptarOferta(o.id));
+                  }}
+                />
+              </Entrada>
             ))}
           </>
         )}
@@ -299,9 +513,7 @@ export default function DetallePedido() {
             ocupado={ocupado === 'ofertar'}
             retirando={ocupado === 'retirar'}
             onOfertar={(precio, fechaEntrega, nota) =>
-              accion('ofertar', () =>
-                api.ofertar(pedido.id, precio, fechaEntrega, nota),
-              )
+              accion('ofertar', () => api.ofertar(pedido.id, precio, fechaEntrega, nota))
             }
             onRetirar={async () => {
               const seguro = await confirmar(
@@ -333,30 +545,25 @@ export default function DetallePedido() {
                 }),
               )
             }
-            onConfirmarRetencion={() =>
-              accion('retener', () => api.confirmarRetencion(pedido.id))
-            }
+            onConfirmarRetencion={() => accion('retener', () => api.confirmarRetencion(pedido.id))}
           />
         )}
 
         {/* ------------------------------------ acciones del comprador */}
         {soyComprador && SIGUIENTE_PASO_COMPRADOR[pedido.estado] && (
-          <Tarjeta>
-            <Subtitulo>Tu turno</Subtitulo>
-            <Parrafo suave style={{ marginBottom: E.md }}>
+          <Tarjeta style={{ borderColor: `${C.naranja}66`, borderWidth: 1.5 }}>
+            <Seccion titulo="Tu turno" icono="flash-outline" style={{ marginTop: 0 }} />
+            <Text style={s.nota}>
               El cliente ve cada paso que marcas. Mantenerlo informado es lo que sube tu
               puntualidad y tu reputación.
-            </Parrafo>
+            </Text>
             <Boton
               titulo={SIGUIENTE_PASO_COMPRADOR[pedido.estado]!.accion}
-              variante="secundario"
+              icono={ICONO_ESTADO[SIGUIENTE_PASO_COMPRADOR[pedido.estado]!.siguiente]}
               cargando={ocupado === 'avanzar'}
               onPress={() =>
                 accion('avanzar', () =>
-                  api.avanzarPedido(
-                    pedido.id,
-                    SIGUIENTE_PASO_COMPRADOR[pedido.estado]!.siguiente,
-                  ),
+                  api.avanzarPedido(pedido.id, SIGUIENTE_PASO_COMPRADOR[pedido.estado]!.siguiente),
                 )
               }
             />
@@ -366,12 +573,11 @@ export default function DetallePedido() {
         {/* ------------------------------------ confirmación del cliente */}
         {soyCliente && pedido.estado === 'entregado' && (
           <Tarjeta style={{ borderColor: C.verde, borderWidth: 2 }}>
-            <Subtitulo>¿Recibiste tu pedido?</Subtitulo>
-            <Parrafo suave style={{ marginBottom: E.md }}>
+            <Seccion titulo="¿Recibiste tu pedido?" icono="cube-outline" style={{ marginTop: 0 }} />
+            <Text style={s.nota}>
               Revisa que sea lo que pediste antes de confirmar. Al confirmar, liberamos{' '}
-              {soles(pago?.monto_liberado)} al comprador externo y ya no podremos
-              retenerlo.
-            </Parrafo>
+              {soles(pago?.monto_liberado)} al comprador externo y ya no podremos retenerlo.
+            </Text>
 
             {!!limite && (
               <Aviso
@@ -385,6 +591,8 @@ export default function DetallePedido() {
 
             <Boton
               titulo="Sí, lo recibí conforme"
+              icono="checkmark-done"
+              variante="exito"
               cargando={ocupado === 'confirmar'}
               onPress={async () => {
                 const seguro = await confirmar(
@@ -399,8 +607,36 @@ export default function DetallePedido() {
           </Tarjeta>
         )}
 
+        {/* ---------------------------------------------------- calificar */}
+        {pedido.estado === 'confirmado' && participo && (
+          <PanelCalificacion
+            pedidoId={pedido.id}
+            ocupado={ocupado === 'calificar'}
+            onCalificar={(puntaje, comentario) =>
+              accion('calificar', () => api.calificar(pedido.id, puntaje, comentario))
+            }
+          />
+        )}
+
+        {/* ---------------------------------------------------- seguimiento */}
+        <Seccion titulo="Seguimiento" icono="git-network-outline" style={{ marginTop: E.md }} />
+        <Tarjeta>
+          <Linea estado={pedido.estado} eventos={eventos} />
+        </Tarjeta>
+
+        {/* ---------------------------------------------------- chat */}
+        {participo && pedido.estado !== 'publicado' && (
+          <Chat
+            mensajes={mensajes}
+            yo={perfil?.id ?? ''}
+            otro={contraparte?.nombre_completo ?? ''}
+            onEnviar={(texto) => accion('mensaje', () => api.enviarMensaje(pedido.id, texto))}
+            enviando={ocupado === 'mensaje'}
+          />
+        )}
+
         {/* ------------------------------------ disputa */}
-        {(soyCliente || soyComprador) && DISPUTABLES.includes(pedido.estado) && (
+        {participo && DISPUTABLES.includes(pedido.estado) && (
           <PanelDisputa
             soyCliente={soyCliente}
             ocupado={ocupado === 'disputa'}
@@ -417,72 +653,88 @@ export default function DetallePedido() {
         )}
 
         {/* ------------------------------------ cancelar */}
-        {soyCliente && CANCELABLES.includes(pedido.estado) && (
+        {soyCliente && CANCELABLES.includes(pedido.estado) && pago?.estado !== 'en_revision' && (
           <Tarjeta>
-            <Subtitulo>¿Ya no lo necesitas?</Subtitulo>
-            <Parrafo suave style={{ marginBottom: E.md }}>
-              Puedes cancelar mientras no hayas reportado el pago. Las ofertas recibidas
-              quedan descartadas y quien ofertó recibe un aviso. Si ya pagaste, el caso
-              se cierra por disputa para que el equipo te devuelva el dinero.
-            </Parrafo>
-            <Campo
-              etiqueta="¿Por qué lo cancelas?"
-              value={motivoCancelar}
-              onChangeText={setMotivoCancelar}
-              placeholder="Ej.: ya lo conseguí en una tienda local"
-              ayuda="Quien te ofertó recibe este motivo en su aviso"
-              maxLength={200}
-            />
-            <Boton
-              titulo="Cancelar el pedido"
-              variante="peligro"
-              cargando={ocupado === 'cancelar'}
-              onPress={async () => {
-                if (motivoCancelar.trim().length < 5) {
-                  avisar('Falta el motivo', 'Cuéntale en pocas palabras a quien te ofertó por qué cancelas.');
-                  return;
-                }
-                const seguro = await confirmar(
-                  'Cancelar el pedido',
-                  'Se descartarán las ofertas recibidas y el pedido dejará de estar visible. No se puede deshacer.',
-                  'Cancelar el pedido',
-                  true,
-                );
-                if (!seguro) return;
-                accion('cancelar', () =>
-                  api.cancelarPedido(pedido.id, motivoCancelar.trim()),
-                );
-              }}
-            />
+            {!verCancelar ? (
+              <Pressable onPress={() => setVerCancelar(true)} style={s.plegado}>
+                <Ionicons name="close-circle-outline" size={20} color={C.rojo} />
+                <Text style={[s.plegadoTexto, { color: C.rojo }]}>Ya no lo necesito</Text>
+                <Ionicons name="chevron-down" size={18} color={C.textoSuave} />
+              </Pressable>
+            ) : (
+              <>
+                <Seccion titulo="Cancelar el pedido" icono="close-circle-outline" style={{ marginTop: 0 }} />
+                <Text style={s.nota}>
+                  Puedes cancelar mientras no hayas reportado el pago. Las ofertas recibidas
+                  quedan descartadas y quien ofertó recibe un aviso.
+                </Text>
+                <Campo
+                  etiqueta="¿Por qué lo cancelas?"
+                  value={motivoCancelar}
+                  onChangeText={setMotivoCancelar}
+                  placeholder="Ej.: ya lo conseguí en una tienda local"
+                  ayuda="Quien te ofertó recibe este motivo en su aviso"
+                  maxLength={200}
+                />
+                <Boton
+                  titulo="Cancelar el pedido"
+                  variante="peligro"
+                  cargando={ocupado === 'cancelar'}
+                  onPress={async () => {
+                    if (motivoCancelar.trim().length < 5) {
+                      avisar(
+                        'Falta el motivo',
+                        'Cuéntale en pocas palabras a quien te ofertó por qué cancelas.',
+                      );
+                      return;
+                    }
+                    const seguro = await confirmar(
+                      'Cancelar el pedido',
+                      'Se descartarán las ofertas recibidas y el pedido dejará de estar visible. No se puede deshacer.',
+                      'Cancelar el pedido',
+                      true,
+                    );
+                    if (!seguro) return;
+                    accion('cancelar', () => api.cancelarPedido(pedido.id, motivoCancelar.trim()));
+                  }}
+                />
+                <Boton
+                  titulo="Mejor no"
+                  variante="fantasma"
+                  onPress={() => setVerCancelar(false)}
+                  style={{ marginTop: E.sm }}
+                />
+              </>
+            )}
           </Tarjeta>
-        )}
-
-        {/* ---------------------------------------------------- calificar */}
-        {pedido.estado === 'confirmado' && (soyCliente || soyComprador) && (
-          <PanelCalificacion
-            pedidoId={pedido.id}
-            ocupado={ocupado === 'calificar'}
-            onCalificar={(puntaje, comentario) =>
-              accion('calificar', () =>
-                api.calificar(pedido.id, puntaje, comentario),
-              )
-            }
-          />
-        )}
-
-        {/* ---------------------------------------------------- chat */}
-        {(soyCliente || soyComprador) && pedido.estado !== 'publicado' && (
-          <Chat
-            mensajes={mensajes}
-            yo={perfil?.id ?? ''}
-            onEnviar={(texto) =>
-              accion('mensaje', () => api.enviarMensaje(pedido.id, texto))
-            }
-            enviando={ocupado === 'mensaje'}
-          />
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+/** Caja de dato del pedido: icono, etiqueta y valor, en rejilla de dos. */
+function DatoCaja({
+  icono,
+  etiqueta,
+  valor,
+  alerta,
+}: {
+  icono: NombreIcono;
+  etiqueta: string;
+  valor: string;
+  alerta?: boolean;
+}) {
+  return (
+    <View style={[s.datoCaja, alerta && { backgroundColor: C.naranjaClaro }]}>
+      <Ionicons name={icono} size={16} color={alerta ? C.naranja : C.azulMedio} />
+      <View style={{ flex: 1 }}>
+        <Text style={s.datoEtiqueta}>{etiqueta}</Text>
+        <Text style={[s.datoValor, alerta && { color: C.naranja }]} numberOfLines={1}>
+          {valor}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -516,32 +768,38 @@ function FormularioOferta({
       return;
     }
     let vivo = true;
-    api
-      .desglosePrecio(n)
-      .then((d) => vivo && setDesglose(d))
-      .catch(() => vivo && setDesglose(null));
+    // Un respiro para no pedir el desglose en cada tecla
+    const reloj = setTimeout(() => {
+      api
+        .desglosePrecio(n)
+        .then((d) => vivo && setDesglose(d))
+        .catch(() => vivo && setDesglose(null));
+    }, 300);
     return () => {
       vivo = false;
+      clearTimeout(reloj);
     };
   }, [precio]);
 
   if (propia) {
     return (
-      <Tarjeta>
-        <Subtitulo>Tu oferta está enviada</Subtitulo>
-        <Dato etiqueta="Precio ofertado" valor={soles(propia.precio_final)} fuerte />
-        <Dato etiqueta="Fecha de entrega" valor={fecha(propia.fecha_entrega)} />
-        <Separador />
-        <Parrafo suave style={{ marginBottom: E.md }}>
+      <Tarjeta style={{ borderColor: `${C.azulMedio}55`, borderWidth: 1.5 }}>
+        <Seccion titulo="Tu oferta está enviada" icono="paper-plane-outline" style={{ marginTop: 0 }} />
+        <View style={s.ofertaPropia}>
+          <View>
+            <Text style={s.datoEtiqueta}>Precio ofertado</Text>
+            <Text style={s.ofertaPropiaPrecio}>{soles(propia.precio_final)}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={s.datoEtiqueta}>Entrega</Text>
+            <Text style={s.datoValor}>{fecha(propia.fecha_entrega)}</Text>
+          </View>
+        </View>
+        <Text style={[s.nota, { marginTop: E.md }]}>
           El cliente está comparando las ofertas. Te avisaremos si elige la tuya.
-        </Parrafo>
+        </Text>
         {propia.estado === 'enviada' && (
-          <Boton
-            titulo="Retirar mi oferta"
-            variante="fantasma"
-            cargando={retirando}
-            onPress={onRetirar}
-          />
+          <Boton titulo="Retirar mi oferta" variante="fantasma" cargando={retirando} onPress={onRetirar} />
         )}
       </Tarjeta>
     );
@@ -555,24 +813,23 @@ function FormularioOferta({
 
   return (
     <Tarjeta>
-      <Subtitulo>Enviar mi oferta</Subtitulo>
-      <Parrafo suave style={{ marginBottom: E.md }}>
-        Indica el precio final que le cobrarías al cliente, ya con tu recompensa
-        incluida. La fecha límite del cliente es {fecha(pedido.fecha_limite)}.
-      </Parrafo>
+      <Seccion titulo="Enviar mi oferta" icono="pricetag-outline" style={{ marginTop: 0 }} />
+      <Text style={s.nota}>
+        Indica el precio final que le cobrarías al cliente, ya con tu recompensa incluida. La
+        fecha límite del cliente es el {fecha(pedido.fecha_limite)}.
+      </Text>
 
       <Campo
         etiqueta="Precio final para el cliente (S/)"
+        icono="cash-outline"
         value={precio}
         onChangeText={setPrecio}
         keyboardType="decimal-pad"
-        placeholder="491.40"
+        placeholder={pedido.valor_referencial ? String(Math.round(pedido.valor_referencial * 1.15)) : '491.40'}
       />
 
+      <Etiqueta>¿En cuánto tiempo lo entregas?</Etiqueta>
       <View style={{ marginBottom: E.lg }}>
-        <Parrafo style={{ fontWeight: '700', fontSize: 13, marginBottom: E.sm }}>
-          ¿En cuánto tiempo lo entregas?
-        </Parrafo>
         <Opciones
           valor={dias}
           onChange={setDias}
@@ -583,6 +840,9 @@ function FormularioOferta({
             { valor: '35', etiqueta: '5 semanas' },
           ]}
         />
+        <Text style={[s.datoEtiqueta, { marginTop: E.sm }]}>
+          Entregarías el {fecha(enDias(Number(dias)))}
+        </Text>
       </View>
 
       <Campo
@@ -595,25 +855,27 @@ function FormularioOferta({
       />
 
       {desglose && (
-        <View
-          style={{
-            backgroundColor: C.verdeClaro,
-            borderRadius: R.md,
-            padding: E.md,
-            marginBottom: E.lg,
-          }}>
-          <Parrafo style={{ fontWeight: '800', color: C.verde, marginBottom: E.xs }}>
-            Tú recibirías {soles(desglose.recibe_comprador)}
-          </Parrafo>
-          <Micro>
-            Encárgalo descuenta {soles(desglose.tarifa_comprador)} de tarifa de servicio
-            al liberar el pago. El cliente pagará {soles(desglose.total)} en total.
-          </Micro>
+        <View style={s.desglose}>
+          <View style={s.desgloseFila}>
+            <Text style={s.desgloseEtiqueta}>El cliente paga</Text>
+            <Text style={s.desgloseValor}>{soles(desglose.total)}</Text>
+          </View>
+          <View style={s.desgloseFila}>
+            <Text style={s.desgloseEtiqueta}>Tarifa de servicio</Text>
+            <Text style={s.desgloseValor}>− {soles(desglose.tarifa_comprador)}</Text>
+          </View>
+          <View style={[s.desgloseFila, s.desgloseTotal]}>
+            <Text style={[s.desgloseEtiqueta, { color: C.verde, fontWeight: '800' }]}>
+              Tú recibes al entregar
+            </Text>
+            <Text style={s.desgloseRecibe}>{soles(desglose.recibe_comprador)}</Text>
+          </View>
         </View>
       )}
 
       <Boton
         titulo="Enviar oferta"
+        icono="paper-plane"
         cargando={ocupado}
         deshabilitado={!precio || Number(precio) <= 0}
         onPress={() => onOfertar(Number(precio), enDias(Number(dias)), nota.trim())}
@@ -644,6 +906,7 @@ function PanelPago({
   const [codigo, setCodigo] = useState('');
   const [comprobante, setComprobante] = useState<string | null>(null);
   const info = ESTADO_PAGO[pago.estado];
+  const protegido = pago.estado === 'retenido' || pago.estado === 'liberado';
 
   async function elegirComprobante() {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -654,118 +917,143 @@ function PanelPago({
   }
 
   return (
-    <Tarjeta style={{ borderColor: info.color, borderWidth: 1.5 }}>
-      <Chip texto={info.etiqueta} color={info.color} />
-      <Parrafo suave style={{ marginTop: E.sm }}>
-        {info.detalle}
-      </Parrafo>
+    <>
+      <Seccion titulo="Pago protegido" icono="shield-checkmark-outline" style={{ marginTop: E.md }} />
+      <TarjetaDegradada colores={protegido ? G.dinero : pago.estado === 'reembolsado' ? G.marca : G.noche}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Chip
+            texto={info.etiqueta}
+            color={C.blanco}
+            fondo="rgba(255,255,255,0.18)"
+            icono={protegido ? 'lock-closed' : 'time'}
+          />
+          <Ionicons name="shield-checkmark" size={26} color="rgba(255,255,255,0.5)" />
+        </View>
+        <Text style={s.dineroEtiqueta}>{soyCliente ? 'Total a pagar' : 'Recibirás al entregar'}</Text>
+        <Text style={s.dineroMonto}>
+          {soles(soyCliente ? pago.total_cobrado : pago.monto_liberado)}
+        </Text>
+        <Text style={s.dineroDetalle}>{info.detalle}</Text>
+      </TarjetaDegradada>
 
-      <Separador />
+      <Tarjeta>
+        <Dato icono="pricetag-outline" etiqueta="Producto y recompensa" valor={soles(pago.monto_encargo)} />
+        <Dato icono="briefcase-outline" etiqueta="Comisión de servicio" valor={soles(pago.comision_cliente)} />
+        <Dato icono="card-outline" etiqueta="Procesamiento del pago" valor={soles(pago.cargo_procesamiento)} />
+        <Separador />
+        <Dato etiqueta="Total que paga el cliente" valor={soles(pago.total_cobrado)} fuerte />
+        {!soyCliente && (
+          <>
+            <Dato
+              icono="remove-circle-outline"
+              etiqueta="Tarifa al comprador externo"
+              valor={`− ${soles(pago.tarifa_comprador)}`}
+            />
+            <Dato etiqueta="Recibe el comprador externo" valor={soles(pago.monto_liberado)} fuerte />
+          </>
+        )}
 
-      <Dato etiqueta="Producto y recompensa" valor={soles(pago.monto_encargo)} />
-      <Dato
-        etiqueta="Comisión de servicio Encárgalo"
-        valor={soles(pago.comision_cliente)}
-      />
-      <Dato etiqueta="Procesamiento del pago" valor={soles(pago.cargo_procesamiento)} />
-      <Separador />
-      <Dato etiqueta="Total a pagar" valor={soles(pago.total_cobrado)} fuerte />
+        {soyCliente && pago.estado === 'pendiente' && (
+          <View style={{ marginTop: E.lg }}>
+            <View style={s.yape}>
+              <View style={s.yapeIcono}>
+                <Ionicons name="phone-portrait" size={22} color={C.blanco} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.yapeEtiqueta}>Yapea {soles(pago.total_cobrado)} al</Text>
+                <Text selectable style={s.yapeNumero}>
+                  {YAPE_NUMERO}
+                </Text>
+                <Text style={s.yapeTitular}>{YAPE_TITULAR}</Text>
+              </View>
+            </View>
+            <Text style={[s.nota, { marginTop: E.md }]}>
+              Después sube la captura. El comprador externo no recibe tu dinero hasta que
+              confirmes que llegó tu producto.
+            </Text>
 
-      {!soyCliente && (
-        <>
-          <Separador />
-          <Dato etiqueta="Recibirás al entregar" valor={soles(pago.monto_liberado)} fuerte />
-        </>
-      )}
+            <Etiqueta>Método de pago</Etiqueta>
+            <View style={{ marginBottom: E.lg }}>
+              <Opciones
+                valor={metodo}
+                onChange={setMetodo}
+                opciones={[
+                  { valor: 'yape' as MetodoPago, etiqueta: 'Yape', icono: 'phone-portrait-outline' },
+                  { valor: 'plin' as MetodoPago, etiqueta: 'Plin', icono: 'phone-portrait-outline' },
+                  { valor: 'transferencia' as MetodoPago, etiqueta: 'Transferencia', icono: 'business-outline' },
+                ]}
+              />
+            </View>
 
-      {soyCliente && pago.estado === 'pendiente' && (
-        <View style={{ marginTop: E.lg }}>
-          <Aviso tono="info" titulo="Cómo pagar">
-            Yapea {soles(pago.total_cobrado)} al {YAPE_NUMERO} ({YAPE_TITULAR}) y sube
-            la captura. Tu dinero queda retenido por Encárgalo: el comprador externo no
-            lo recibe hasta que tú confirmes que llegó tu producto.
-          </Aviso>
+            <Campo
+              etiqueta="Código de operación"
+              icono="barcode-outline"
+              value={codigo}
+              onChangeText={setCodigo}
+              placeholder="El número que aparece en tu constancia"
+            />
 
-          <Parrafo style={{ fontWeight: '700', fontSize: 13, marginBottom: E.sm }}>
-            Método de pago
-          </Parrafo>
-          <View style={{ marginBottom: E.lg }}>
-            <Opciones
-              valor={metodo}
-              onChange={setMetodo}
-              opciones={[
-                { valor: 'yape' as MetodoPago, etiqueta: 'Yape' },
-                { valor: 'plin' as MetodoPago, etiqueta: 'Plin' },
-                { valor: 'transferencia' as MetodoPago, etiqueta: 'Transferencia' },
-              ]}
+            <Pressable
+              onPress={elegirComprobante}
+              style={({ pressed }) => [
+                s.comprobante,
+                comprobante && s.comprobanteListo,
+                pressed && { opacity: 0.85 },
+              ]}>
+              {comprobante ? (
+                <>
+                  <Image source={{ uri: comprobante }} style={s.comprobanteImagen} resizeMode="cover" />
+                  <View style={s.comprobantePie}>
+                    <Ionicons name="checkmark-circle" size={16} color={C.verde} />
+                    <Text style={s.comprobantePieTexto}>Comprobante listo · tocar para cambiar</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={{ alignItems: 'center', gap: E.xs }}>
+                  <Ionicons name="cloud-upload-outline" size={28} color={C.azulMedio} />
+                  <Text style={s.comprobanteTexto}>Subir captura del pago</Text>
+                </View>
+              )}
+            </Pressable>
+
+            <Boton
+              titulo="Ya pagué"
+              icono="checkmark-circle"
+              cargando={ocupado === 'reportar'}
+              deshabilitado={!codigo.trim() || !comprobante}
+              onPress={() => onReportar(metodo, codigo.trim(), comprobante!)}
             />
           </View>
+        )}
 
-          <Campo
-            etiqueta="Código de operación"
-            value={codigo}
-            onChangeText={setCodigo}
-            placeholder="El número que aparece en tu constancia"
-          />
+        {pago.estado === 'en_revision' && (
+          <View style={{ marginTop: E.md }}>
+            <Aviso tono="alerta" titulo="Validando el pago">
+              Recibimos el comprobante ({pago.codigo_operacion}). En cuanto el equipo confirme
+              que el dinero llegó, el pedido pasa a «pago retenido».
+            </Aviso>
+            {/* Durante el piloto la retención la confirma a mano el equipo.
+                El botón solo aparece para quien figura en la tabla operadores. */}
+            {esOperador && (
+              <Boton
+                titulo="Equipo: el dinero llegó, retener"
+                icono="lock-closed"
+                variante="secundario"
+                cargando={ocupado === 'retener'}
+                onPress={onConfirmarRetencion}
+              />
+            )}
+          </View>
+        )}
 
-          <Pressable
-            onPress={elegirComprobante}
-            style={{
-              borderWidth: 2,
-              borderStyle: comprobante ? 'solid' : 'dashed',
-              borderColor: comprobante ? C.verde : C.borde,
-              borderRadius: R.md,
-              padding: E.lg,
-              alignItems: 'center',
-              marginBottom: E.lg,
-            }}>
-            <Text style={{ color: comprobante ? C.verde : C.azul, fontWeight: '700' }}>
-              {comprobante ? 'Comprobante listo · tocar para cambiar' : 'Subir captura del pago'}
-            </Text>
-          </Pressable>
-
-          <Boton
-            titulo="Ya pagué"
-            cargando={ocupado === 'reportar'}
-            deshabilitado={!codigo.trim() || !comprobante}
-            onPress={() => onReportar(metodo, codigo.trim(), comprobante!)}
-          />
-        </View>
-      )}
-
-      {pago.estado === 'en_revision' && (
-        <View style={{ marginTop: E.md }}>
-          <Aviso tono="alerta" titulo="Validando tu pago">
-            Recibimos tu comprobante ({pago.codigo_operacion}). En cuanto confirmemos que
-            el dinero llegó, el pedido pasa a «pago retenido».
-          </Aviso>
-          {/* Durante el piloto la retención la confirma a mano el equipo.
-              El botón solo aparece para quien figura en la tabla operadores. */}
-          {esOperador && (
-            <Boton
-              titulo="Equipo: el dinero llegó, retener"
-              variante="secundario"
-              cargando={ocupado === 'retener'}
-              onPress={onConfirmarRetencion}
-            />
-          )}
-        </View>
-      )}
-
-      {pago.estado === 'retenido' && (
-        <Aviso tono="exito" titulo="Tu dinero está protegido">
-          Encárgalo retiene {soles(pago.total_cobrado)}. No se transfiere a nadie hasta
-          que confirmes que recibiste tu pedido conforme.
-        </Aviso>
-      )}
-
-      {pago.estado === 'liberado' && (
-        <>
-          <Separador />
-          <Dato etiqueta="Liberado el" valor={fechaHora(pago.liberado_en)} />
-        </>
-      )}
-    </Tarjeta>
+        {pago.estado === 'liberado' && (
+          <>
+            <Separador />
+            <Dato icono="lock-open-outline" etiqueta="Liberado el" valor={fechaHora(pago.liberado_en)} />
+          </>
+        )}
+      </Tarjeta>
+    </>
   );
 }
 
@@ -799,23 +1087,23 @@ function PanelDisputa({
   if (!abierto) {
     return (
       <Tarjeta>
-        <Boton
-          titulo="Tengo un problema con este pedido"
-          variante="fantasma"
-          onPress={() => setAbierto(true)}
-        />
+        <Pressable onPress={() => setAbierto(true)} style={s.plegado}>
+          <Ionicons name="flag-outline" size={20} color={C.ambar} />
+          <Text style={[s.plegadoTexto, { color: C.ambar }]}>Tengo un problema con este pedido</Text>
+          <Ionicons name="chevron-down" size={18} color={C.textoSuave} />
+        </Pressable>
       </Tarjeta>
     );
   }
 
   return (
     <Tarjeta style={{ borderColor: C.rojo, borderWidth: 1.5 }}>
-      <Subtitulo>Abrir una disputa</Subtitulo>
-      <Parrafo suave style={{ marginBottom: E.md }}>
+      <Seccion titulo="Abrir una disputa" icono="flag-outline" style={{ marginTop: 0 }} />
+      <Text style={s.nota}>
         {soyCliente
           ? 'El pedido queda congelado y tu dinero sigue retenido mientras el equipo revisa el caso. Nadie recibe el pago hasta que se resuelva.'
           : 'Úsalo si no vas a poder entregar o si el cliente no responde. El equipo revisa el caso y decide qué pasa con el dinero retenido.'}
-      </Parrafo>
+      </Text>
 
       <Campo
         etiqueta="¿Qué pasó?"
@@ -829,24 +1117,22 @@ function PanelDisputa({
 
       <Pressable
         onPress={elegirEvidencia}
-        style={{
-          borderWidth: 2,
-          borderStyle: evidencia ? 'solid' : 'dashed',
-          borderColor: evidencia ? C.verde : C.borde,
-          borderRadius: R.md,
-          padding: E.md,
-          alignItems: 'center',
-          marginBottom: E.lg,
-        }}>
-        <Text style={{ color: evidencia ? C.verde : C.azul, fontWeight: '700' }}>
-          {evidencia
-            ? 'Evidencia lista · tocar para cambiar'
-            : 'Adjuntar una foto (opcional)'}
-        </Text>
+        style={[s.comprobante, evidencia && s.comprobanteListo, { padding: E.md }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.sm }}>
+          <Ionicons
+            name={evidencia ? 'checkmark-circle' : 'attach'}
+            size={20}
+            color={evidencia ? C.verde : C.azulMedio}
+          />
+          <Text style={[s.comprobanteTexto, evidencia && { color: C.verde }]}>
+            {evidencia ? 'Evidencia lista · tocar para cambiar' : 'Adjuntar una foto (opcional)'}
+          </Text>
+        </View>
       </Pressable>
 
       <Boton
         titulo="Abrir disputa"
+        icono="flag"
         variante="peligro"
         cargando={ocupado}
         deshabilitado={motivo.trim().length < 10}
@@ -864,8 +1150,12 @@ function PanelDisputa({
           setEvidencia(null);
         }}
       />
-      <View style={{ height: E.sm }} />
-      <Boton titulo="Cancelar" variante="fantasma" onPress={() => setAbierto(false)} />
+      <Boton
+        titulo="Cancelar"
+        variante="fantasma"
+        onPress={() => setAbierto(false)}
+        style={{ marginTop: E.sm }}
+      />
     </Tarjeta>
   );
 }
@@ -873,6 +1163,8 @@ function PanelDisputa({
 // =====================================================================
 //  Calificación
 // =====================================================================
+const PALABRAS = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', '¡Excelente!'];
+
 function PanelCalificacion({
   pedidoId,
   ocupado,
@@ -899,44 +1191,30 @@ function PanelCalificacion({
   if (yaCalifique === null) return null;
 
   return (
-    <Tarjeta>
-      <Subtitulo>{yaCalifique ? 'Tu calificación' : 'Califica esta experiencia'}</Subtitulo>
-      <Parrafo suave style={{ marginBottom: E.md }}>
+    <Tarjeta style={{ alignItems: 'center' }}>
+      <View style={s.calificarIcono}>
+        <Ionicons name={yaCalifique ? 'heart' : 'star'} size={28} color="#F5A524" />
+      </View>
+      <Text style={s.calificarTitulo}>
+        {yaCalifique ? 'Tu calificación' : 'Califica esta experiencia'}
+      </Text>
+      <Text style={[s.nota, { textAlign: 'center' }]}>
         {yaCalifique
           ? 'Gracias. Tu calificación ya forma parte de la reputación pública.'
           : 'Tu calificación es lo que hará que el próximo cliente pueda confiar.'}
-      </Parrafo>
+      </Text>
 
-      <View style={{ flexDirection: 'row', gap: E.sm, marginBottom: E.lg }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable
-            key={n}
-            disabled={yaCalifique}
-            onPress={() => setPuntaje(n)}
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: n <= puntaje ? C.naranja : C.blanco,
-              borderWidth: 1.5,
-              borderColor: n <= puntaje ? C.naranja : C.borde,
-            }}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '800',
-                color: n <= puntaje ? C.blanco : C.textoSuave,
-              }}>
-              {n}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <Estrellas
+        valor={puntaje}
+        tamano={38}
+        onCambiar={yaCalifique ? undefined : setPuntaje}
+      />
+      <Text style={s.calificarPalabra}>{PALABRAS[puntaje] || 'Toca una estrella'}</Text>
 
-      {!yaCalifique && (
-        <>
+      {yaCalifique ? (
+        !!comentario && <Text style={s.calificarComentario}>“{comentario}”</Text>
+      ) : (
+        <View style={{ alignSelf: 'stretch', marginTop: E.lg }}>
           <Campo
             etiqueta="Comentario"
             value={comentario}
@@ -947,11 +1225,12 @@ function PanelCalificacion({
           />
           <Boton
             titulo="Enviar calificación"
+            icono="send"
             cargando={ocupado}
             deshabilitado={puntaje === 0}
             onPress={() => onCalificar(puntaje, comentario.trim())}
           />
-        </>
+        </View>
       )}
     </Tarjeta>
   );
@@ -963,76 +1242,311 @@ function PanelCalificacion({
 function Chat({
   mensajes,
   yo,
+  otro,
   onEnviar,
   enviando,
 }: {
   mensajes: Mensaje[];
   yo: string;
+  otro: string;
   onEnviar: (texto: string) => void;
   enviando: boolean;
 }) {
   const [texto, setTexto] = useState('');
 
   return (
-    <Tarjeta>
-      <Subtitulo>Conversación</Subtitulo>
-      <Parrafo suave style={{ marginBottom: E.md }}>
-        Todo queda dentro de la app. No hace falta intercambiar números de teléfono.
-      </Parrafo>
+    <>
+      <Seccion titulo="Conversación" icono="chatbubbles-outline" conteo={mensajes.length} style={{ marginTop: E.md }} />
+      <Tarjeta style={{ padding: E.md }}>
+        <View style={s.chatAviso}>
+          <Ionicons name="lock-closed" size={12} color={C.textoSuave} />
+          <Text style={s.chatAvisoTexto}>
+            Todo queda dentro de la app. No hace falta intercambiar números.
+          </Text>
+        </View>
 
-      {mensajes.length === 0 ? (
-        <Micro style={{ textAlign: 'center', paddingVertical: E.md }}>
-          Todavía no hay mensajes.
-        </Micro>
-      ) : (
-        mensajes.map((m) => {
-          const mio = m.emisor_id === yo;
-          return (
-            <View
-              key={m.id}
-              style={{
-                alignSelf: mio ? 'flex-end' : 'flex-start',
-                backgroundColor: mio ? C.azulClaro : C.fondo,
-                borderRadius: R.md,
-                padding: E.sm + 2,
-                marginBottom: E.sm,
-                maxWidth: '85%',
-              }}>
-              <Parrafo style={{ fontSize: 14 }}>{m.cuerpo}</Parrafo>
-              <Micro style={{ marginTop: 2 }}>{fechaHora(m.creado_en)}</Micro>
-            </View>
-          );
-        })
-      )}
+        {mensajes.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: E.lg }}>
+            <Ionicons name="chatbubble-ellipses-outline" size={30} color={C.bordeFuerte} />
+            <Text style={[s.nota, { marginTop: E.sm, marginBottom: 0 }]}>
+              Todavía no hay mensajes. Saluda para coordinar la entrega.
+            </Text>
+          </View>
+        ) : (
+          mensajes.map((m) => {
+            const mio = m.emisor_id === yo;
+            return (
+              <View key={m.id} style={[s.burbujaFila, mio && { justifyContent: 'flex-end' }]}>
+                {!mio && <Avatar nombre={otro} tamano={28} />}
+                <View style={[s.burbuja, mio ? s.burbujaMia : s.burbujaSuya]}>
+                  <Text style={[s.burbujaTexto, mio && { color: C.blanco }]}>{m.cuerpo}</Text>
+                  <Text style={[s.burbujaHora, mio && { color: 'rgba(255,255,255,0.7)' }]}>
+                    {hace(m.creado_en)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        )}
 
-      <View style={{ flexDirection: 'row', gap: E.sm, marginTop: E.sm }}>
-        <TextInput
-          value={texto}
-          onChangeText={setTexto}
-          placeholder="Escribe un mensaje…"
-          placeholderTextColor="#98A6B8"
-          style={{
-            flex: 1,
-            borderWidth: 1.5,
-            borderColor: C.borde,
-            borderRadius: R.md,
-            paddingHorizontal: E.md,
-            paddingVertical: 11,
-            backgroundColor: C.blanco,
-            color: C.texto,
-          }}
-        />
-        <Boton
-          titulo="Enviar"
-          cargando={enviando}
-          deshabilitado={!texto.trim()}
-          style={{ height: 46, paddingHorizontal: E.lg }}
-          onPress={() => {
-            onEnviar(texto.trim());
-            setTexto('');
-          }}
-        />
-      </View>
-    </Tarjeta>
+        <View style={s.chatEntrada}>
+          <TextInput
+            value={texto}
+            onChangeText={setTexto}
+            placeholder="Escribe un mensaje…"
+            placeholderTextColor="#98A6B8"
+            multiline
+            style={s.chatCampo}
+          />
+          <Pressable
+            disabled={!texto.trim() || enviando}
+            onPress={() => {
+              onEnviar(texto.trim());
+              setTexto('');
+            }}
+            accessibilityLabel="Enviar mensaje"
+            style={({ pressed }) => [
+              s.chatEnviar,
+              (!texto.trim() || enviando) && { opacity: 0.4 },
+              pressed && { transform: [{ scale: 0.94 }] },
+            ]}>
+            <LinearGradient colors={G.accion} style={StyleSheet.absoluteFill} />
+            <Ionicons name="send" size={18} color={C.blanco} />
+          </Pressable>
+        </View>
+      </Tarjeta>
+    </>
   );
 }
+
+const s = StyleSheet.create({
+  portada: {
+    backgroundColor: C.blanco,
+    borderRadius: R.xl,
+    overflow: 'hidden',
+    marginBottom: E.md,
+    borderWidth: 1,
+    borderColor: C.borde,
+  },
+  portadaImagen: { width: '100%', height: 200, backgroundColor: C.superficieSuave },
+  portadaIcono: { alignItems: 'center', justifyContent: 'center', height: 150, overflow: 'hidden' },
+  portadaBurbuja: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    top: -90,
+    right: -60,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  portadaCuerpo: { padding: E.lg + 2 },
+  titulo: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: C.texto,
+    letterSpacing: -0.4,
+    marginTop: E.sm,
+  },
+  descripcion: { fontSize: 14.5, color: C.textoSuave, lineHeight: 21, marginTop: E.xs },
+  enlace: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: C.naranjaClaro,
+    paddingHorizontal: E.md,
+    paddingVertical: E.sm,
+    borderRadius: 999,
+    marginTop: E.md,
+  },
+  enlaceTexto: { color: C.naranja, fontWeight: '800', fontSize: 13.5 },
+  datos: { flexDirection: 'row', flexWrap: 'wrap', gap: E.sm, marginTop: E.lg },
+  datoCaja: {
+    width: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: E.sm,
+    backgroundColor: C.superficieSuave,
+    borderRadius: R.md,
+    padding: E.sm + 2,
+  },
+  datoEtiqueta: { fontSize: 11.5, color: C.textoSuave, fontWeight: '600' },
+  datoValor: { fontSize: 14, color: C.texto, fontWeight: '800' },
+
+  pasoIcono: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pasoAnte: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  pasoTitulo: { color: C.blanco, fontSize: 17, fontWeight: '800', marginTop: 2, letterSpacing: -0.3 },
+  pasoTexto: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 2 },
+
+  contraparteRol: { fontSize: 12, color: C.textoSuave, fontWeight: '700' },
+  contraparteNombre: { fontSize: 16, color: C.texto, fontWeight: '800' },
+  contraparteMeta: { fontSize: 12, color: C.textoSuave },
+
+  nota: { fontSize: 14, color: C.textoSuave, lineHeight: 21, marginBottom: E.md },
+
+  esperaIcono: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: C.azulClaro,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: E.md,
+  },
+  esperaTitulo: { fontSize: 16.5, fontWeight: '800', color: C.azul },
+  esperaTexto: { fontSize: 14, color: C.textoSuave, textAlign: 'center', marginTop: 4, lineHeight: 20 },
+
+  ofertaPropia: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    backgroundColor: C.azulFondo,
+    borderRadius: R.md,
+    padding: E.md,
+  },
+  ofertaPropiaPrecio: { fontSize: 24, fontWeight: '800', color: C.azul, letterSpacing: -0.6 },
+
+  desglose: {
+    backgroundColor: C.verdeClaro,
+    borderRadius: R.md,
+    padding: E.md,
+    marginBottom: E.lg,
+    gap: 6,
+  },
+  desgloseFila: { flexDirection: 'row', justifyContent: 'space-between' },
+  desgloseEtiqueta: { fontSize: 13.5, color: '#0B5B41' },
+  desgloseValor: { fontSize: 13.5, color: '#0B5B41', fontWeight: '700' },
+  desgloseTotal: {
+    borderTopWidth: 1,
+    borderTopColor: `${C.verde}40`,
+    paddingTop: 8,
+    marginTop: 2,
+    alignItems: 'center',
+  },
+  desgloseRecibe: { fontSize: 20, color: C.verde, fontWeight: '800' },
+
+  dineroEtiqueta: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: E.lg,
+  },
+  dineroMonto: { color: C.blanco, fontSize: 36, fontWeight: '800', letterSpacing: -1 },
+  dineroDetalle: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 4 },
+
+  yape: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: E.md,
+    backgroundColor: '#F3EBFF',
+    borderRadius: R.md,
+    padding: E.md,
+    borderWidth: 1,
+    borderColor: '#DCC8FB',
+  },
+  yapeIcono: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#742284',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yapeEtiqueta: { fontSize: 12.5, color: '#5B1A69', fontWeight: '700' },
+  yapeNumero: { fontSize: 22, color: '#4A1356', fontWeight: '800', letterSpacing: 1 },
+  yapeTitular: { fontSize: 12.5, color: '#5B1A69' },
+
+  comprobante: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: C.bordeFuerte,
+    borderRadius: R.md,
+    padding: E.lg,
+    marginBottom: E.lg,
+    backgroundColor: C.azulFondo,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  comprobanteListo: { borderStyle: 'solid', borderColor: C.verde, padding: 0 },
+  comprobanteTexto: { color: C.azul, fontWeight: '800', fontSize: 14.5 },
+  comprobanteImagen: { width: '100%', height: 160 },
+  comprobantePie: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: E.sm },
+  comprobantePieTexto: { color: C.verde, fontWeight: '800', fontSize: 13 },
+
+  plegado: { flexDirection: 'row', alignItems: 'center', gap: E.sm },
+  plegadoTexto: { flex: 1, fontSize: 15, fontWeight: '800' },
+
+  calificarIcono: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: E.md,
+  },
+  calificarTitulo: { fontSize: 18, fontWeight: '800', color: C.azul, marginBottom: E.xs },
+  calificarPalabra: { fontSize: 14, fontWeight: '800', color: '#B7791F', marginTop: E.sm },
+  calificarComentario: {
+    fontSize: 15,
+    color: C.texto,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: E.md,
+  },
+
+  chatAviso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    backgroundColor: C.superficieSuave,
+    paddingHorizontal: E.md,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: E.md,
+  },
+  chatAvisoTexto: { fontSize: 11.5, color: C.textoSuave, fontWeight: '600' },
+  burbujaFila: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: E.sm },
+  burbuja: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: E.md, paddingVertical: E.sm + 1 },
+  burbujaMia: { backgroundColor: C.azul, borderBottomRightRadius: 5 },
+  burbujaSuya: { backgroundColor: C.superficieSuave, borderBottomLeftRadius: 5 },
+  burbujaTexto: { fontSize: 14.5, color: C.texto, lineHeight: 20 },
+  burbujaHora: { fontSize: 10.5, color: C.textoSuave, marginTop: 2, alignSelf: 'flex-end' },
+  chatEntrada: { flexDirection: 'row', alignItems: 'flex-end', gap: E.sm, marginTop: E.sm },
+  chatCampo: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: C.borde,
+    borderRadius: 22,
+    paddingHorizontal: E.lg,
+    paddingTop: 11,
+    paddingBottom: 11,
+    maxHeight: 110,
+    backgroundColor: C.blanco,
+    color: C.texto,
+    fontSize: 15,
+  },
+  chatEnviar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+});
