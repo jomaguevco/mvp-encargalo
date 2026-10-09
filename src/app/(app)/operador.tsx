@@ -109,12 +109,21 @@ export default function Operador() {
   const [cola, setCola] = useState<Cola | null>(null);
 
   const cargar = useCallback(async () => {
-    const [v, p, d, c] = await Promise.all([
+    // Si una cola falla, las demás igual se muestran, y se avisa: una consola
+    // vacía por error diría «Todo al día» cuando no lo está.
+    const r = await Promise.allSettled([
       api.pendientesVerificacion(),
       api.pendientesPago(),
       api.disputasAbiertas(),
       api.confirmacionesVencidas(),
     ]);
+    const valor = <T,>(x: PromiseSettledResult<T[]>) => (x.status === 'fulfilled' ? x.value : []);
+    const v = valor(r[0]);
+    const p = valor(r[1]);
+    const d = valor(r[2]);
+    const c = valor(r[3]);
+    const fallo = r.find((x): x is PromiseRejectedResult => x.status === 'rejected');
+    if (fallo) avisar('No se cargaron todas las colas', (fallo.reason as Error)?.message ?? '');
     setVerificaciones(v);
     setPagos(p);
     setDisputas(d);
@@ -331,13 +340,19 @@ export default function Operador() {
                         true,
                       );
                       if (!seguro) return;
-                      accion(`no-${v.perfil_id}`, () =>
-                        api.resolverVerificacion(
+                      accion(`no-${v.perfil_id}`, async () => {
+                        await api.resolverVerificacion(
                           v.perfil_id,
                           false,
                           'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz y sin reflejos.',
-                        ),
-                      );
+                        );
+                        // Retención mínima también al rechazar (Ley N° 29733)
+                        try {
+                          await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
+                        } catch (e) {
+                          avisar('Verificación rechazada', (e as Error).message);
+                        }
+                      });
                     }}
                   />
                 </Tarjeta>
@@ -401,6 +416,28 @@ export default function Operador() {
                       if (!seguro) return;
                       accion(`pago-${p.pedido_id}`, () =>
                         api.confirmarRetencion(p.pedido_id),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="No llegó · devolver al cliente"
+                    icono="arrow-undo"
+                    variante="fantasma"
+                    cargando={ocupado === `nopago-${p.pedido_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'El pago no llegó',
+                        `El pago vuelve a «pendiente» y ${p.cliente} recibe un aviso para reportarlo de nuevo con el código correcto o cancelar el pedido.`,
+                        'Devolver',
+                        true,
+                      );
+                      if (!seguro) return;
+                      accion(`nopago-${p.pedido_id}`, () =>
+                        api.rechazarPago(
+                          p.pedido_id,
+                          `No encontramos un pago de ${soles(p.total_cobrado)} con el código ${p.codigo_operacion ?? '—'}`,
+                        ),
                       );
                     }}
                   />
@@ -584,7 +621,7 @@ export default function Operador() {
 
         {verificaciones.length > 0 && (
           <Micro style={{ marginTop: E.lg, lineHeight: 18 }}>
-            Al aprobar una verificación, la app descarta las rutas y borra las imágenes del
+            Al resolver una verificación, la app descarta las rutas y borra las imágenes del
             bucket «documentos» en la misma operación. Queda solo el número de DNI, que es
             la retención mínima que exige la Ley N° 29733.
           </Micro>

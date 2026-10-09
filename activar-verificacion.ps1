@@ -42,12 +42,10 @@ if ($LASTEXITCODE) { throw 'No se pudieron guardar los secretos' }
 Remove-Variable decolecta, awsId, awsClave, pares
 
 Write-Host "`n4/4  Desplegar las tres funciones" -ForegroundColor Cyan
-# consultar-dni se llama en el registro, antes de tener sesión: va sin verificar
-# JWT. Se protege sola (límite por IP y caché por DNI).
-npx -y supabase functions deploy consultar-dni --no-verify-jwt --project-ref $ref
-if ($LASTEXITCODE) { throw 'Falló el despliegue de consultar-dni' }
-foreach ($f in 'validar-dni', 'verificar-identidad') {
-  npx -y supabase functions deploy $f --project-ref $ref
+# Las tres van sin verificación de JWT en la pasarela (ver supabase/config.toml):
+# consultar-dni se llama sin sesión, y las otras dos comprueban al usuario dentro.
+foreach ($f in 'consultar-dni', 'validar-dni', 'verificar-identidad') {
+  npx -y supabase functions deploy $f --no-verify-jwt --project-ref $ref
   if ($LASTEXITCODE) { throw "Falló el despliegue de $f" }
 }
 

@@ -19,7 +19,7 @@
 // JWT válido y deja fuera a quien no tenga la app.
 //
 //   supabase secrets set DECOLECTA_TOKEN=...
-//   supabase functions deploy consultar-dni
+//   supabase functions deploy consultar-dni --no-verify-jwt   (ver supabase/config.toml)
 
 const CABECERAS = {
   'Access-Control-Allow-Origin': '*',

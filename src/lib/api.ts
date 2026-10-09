@@ -30,6 +30,11 @@ import type {
 function revienta(error: { message: string } | null): never | void {
   if (!error) return;
   const m = error.message ?? 'Ocurrió un error';
+  // Restricciones únicas: el mensaje crudo de Postgres no le dice nada a nadie
+  if (m.includes('profiles_dni_unico')) {
+    throw new Error('Ese DNI ya está registrado en otra cuenta de Encárgalo.');
+  }
+  if (m.includes('duplicate key')) throw new Error('Ese dato ya está registrado.');
   // Los raise exception de Postgres llegan con este prefijo
   throw new Error(m.replace(/^.*?(?:ERROR:\s*)?/, '').trim() || m);
 }
@@ -80,6 +85,9 @@ export async function enviarVerificacion(opts: {
   if (!/^[0-9]{8}$/.test(opts.dni)) {
     throw new Error('El DNI debe tener exactamente 8 dígitos');
   }
+
+  // El DNI primero: si ya lo usa otra cuenta, falla aquí y no se suben fotos.
+  await actualizarPerfil({ dni: opts.dni });
 
   const dniPath = `${uid}/dni-${Date.now()}.jpg`;
   const selfiePath = `${uid}/selfie-${Date.now()}.jpg`;
@@ -177,7 +185,9 @@ export async function subirArchivo(bucket: string, ruta: string, uri: string) {
   }
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(ruta, bytes, { contentType: tipo, upsert: true });
+    // Las rutas llevan marca de tiempo: nunca se sobrescribe un archivo, y
+    // storage no tiene política de UPDATE.
+    .upload(ruta, bytes, { contentType: tipo, upsert: false });
   revienta(error);
   return ruta;
 }
@@ -375,6 +385,16 @@ export async function reportarPago(opts: {
 export async function confirmarRetencion(pedidoId: string) {
   const { data, error } = await supabase.rpc('confirmar_retencion', {
     p_pedido_id: pedidoId,
+  });
+  revienta(error);
+  return data as Pago;
+}
+
+/** El equipo no encontró el dinero: el pago vuelve a «pendiente» y se avisa al cliente. */
+export async function rechazarPago(pedidoId: string, motivo: string) {
+  const { data, error } = await supabase.rpc('rechazar_pago', {
+    p_pedido_id: pedidoId,
+    p_motivo: motivo,
   });
   revienta(error);
   return data as Pago;

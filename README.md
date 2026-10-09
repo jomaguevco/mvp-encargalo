@@ -96,6 +96,9 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0006_modulos.sql` | Cancelación, retiro de ofertas, reseñas, plazo de confirmación |
 | `0007_avisos.sql` | Bandeja de avisos y sus *triggers* |
 | `0008_validacion_dni.sql` | Resultado de la validación del DNI contra RENIEC |
+| `0009_aviso_cancelacion.sql` | Aviso con motivo a quienes ofertaron cuando el cliente cancela |
+| `0010_biometria.sql` | Resultado de la verificación biométrica y umbrales (ver 6b) |
+| `0011_correcciones_flujo.sql` | Aviso al comprador ganador, `rechazar_pago`, lectura para el equipo, RENIEC al cambiar el nombre |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -169,8 +172,8 @@ rostro y la aprobación automática están en el paso 6b. Solo se guarda el resu
 npx supabase login
 npx supabase link --project-ref TU_REF      # el ref es lo que va antes de .supabase.co en la URL
 npx supabase secrets set DECOLECTA_TOKEN=tu_token
-npx supabase functions deploy consultar-dni
-npx supabase functions deploy validar-dni
+npx supabase functions deploy consultar-dni --no-verify-jwt
+npx supabase functions deploy validar-dni --no-verify-jwt
 ```
 
 Para comprobarlo sin la app (debe devolver `encontrado: true` y el nombre):
@@ -233,7 +236,7 @@ gratuita los primeros 12 meses.
 
 ```bash
 npx supabase secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1
-npx supabase functions deploy verificar-identidad
+npx supabase functions deploy verificar-identidad --no-verify-jwt
 ```
 
 Si los secretos no están, la función no marca nada y todo sigue como antes: revisión

@@ -20,7 +20,7 @@
 // Secretos (la cuenta IAM solo necesita rekognition:CompareFaces y
 // textract:DetectDocumentText):
 //   supabase secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1
-//   supabase functions deploy verificar-identidad
+//   supabase functions deploy verificar-identidad --no-verify-jwt   (ver supabase/config.toml)
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';

@@ -288,16 +288,20 @@ export default function DetallePedido() {
     return () => clearInterval(reloj);
   }, [id, soyCliente, soyComprador]);
 
-  async function accion(clave: string, fn: () => Promise<unknown>) {
+  /** Ejecuta la acción y recarga. Devuelve true si la acción salió bien. */
+  async function accion(clave: string, fn: () => Promise<unknown>): Promise<boolean> {
     setOcupado(clave);
     try {
       await fn();
-      await cargar();
     } catch (e) {
       avisar('No se pudo completar', (e as Error).message);
-    } finally {
       setOcupado(null);
+      return false;
     }
+    // Si la recarga falla, la acción igual ya quedó hecha: no se reporta como error
+    await cargar().catch(() => undefined);
+    setOcupado(null);
+    return true;
   }
 
   if (cargando) return <Cargando texto="Cargando el pedido…" />;
@@ -345,7 +349,7 @@ export default function DetallePedido() {
             refreshing={refrescando}
             onRefresh={async () => {
               setRefrescando(true);
-              await cargar();
+              await cargar().catch(() => undefined);
               setRefrescando(false);
             }}
           />
@@ -757,12 +761,31 @@ function FormularioOferta({
   retirando: boolean;
 }) {
   const [precio, setPrecio] = useState('');
-  const [dias, setDias] = useState('21');
+  // Solo plazos que caben en la fecha límite del cliente; si ninguno cabe,
+  // se ofrece justo los días que quedan.
+  const diasHastaLimite = Math.max(
+    1,
+    Math.floor(
+      (new Date(`${pedido.fecha_limite}T12:00:00`).getTime() - new Date().setHours(12, 0, 0, 0)) /
+        86_400_000,
+    ),
+  );
+  const plazos = [
+    { valor: '7', etiqueta: '1 semana' },
+    { valor: '14', etiqueta: '2 semanas' },
+    { valor: '21', etiqueta: '3 semanas' },
+    { valor: '35', etiqueta: '5 semanas' },
+  ].filter((o) => Number(o.valor) <= diasHastaLimite);
+  if (plazos.length === 0) {
+    plazos.push({ valor: String(diasHastaLimite), etiqueta: `${diasHastaLimite} día${diasHastaLimite === 1 ? '' : 's'}` });
+  }
+  const [dias, setDias] = useState(plazos[Math.min(2, plazos.length - 1)].valor);
+  const precioNum = Number(precio.replace(',', '.'));
   const [nota, setNota] = useState('');
   const [desglose, setDesglose] = useState<DesglosePrecio | null>(null);
 
   useEffect(() => {
-    const n = Number(precio);
+    const n = Number(precio.replace(',', '.'));
     if (!precio || Number.isNaN(n) || n <= 0) {
       setDesglose(null);
       return;
@@ -805,10 +828,12 @@ function FormularioOferta({
     );
   }
 
+  // Fecha local (no UTC): de noche en Perú, toISOString ya daría el día siguiente
   function enDias(n: number) {
     const d = new Date();
     d.setDate(d.getDate() + n);
-    return d.toISOString().slice(0, 10);
+    const p = (x: number) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
   return (
@@ -833,12 +858,7 @@ function FormularioOferta({
         <Opciones
           valor={dias}
           onChange={setDias}
-          opciones={[
-            { valor: '7', etiqueta: '1 semana' },
-            { valor: '14', etiqueta: '2 semanas' },
-            { valor: '21', etiqueta: '3 semanas' },
-            { valor: '35', etiqueta: '5 semanas' },
-          ]}
+          opciones={plazos}
         />
         <Text style={[s.datoEtiqueta, { marginTop: E.sm }]}>
           Entregarías el {fecha(enDias(Number(dias)))}
@@ -877,8 +897,8 @@ function FormularioOferta({
         titulo="Enviar oferta"
         icono="paper-plane"
         cargando={ocupado}
-        deshabilitado={!precio || Number(precio) <= 0}
-        onPress={() => onOfertar(Number(precio), enDias(Number(dias)), nota.trim())}
+        deshabilitado={!precio || Number.isNaN(precioNum) || precioNum <= 0}
+        onPress={() => onOfertar(precioNum, enDias(Number(dias)), nota.trim())}
       />
     </Tarjeta>
   );
@@ -1070,7 +1090,7 @@ function PanelDisputa({
 }: {
   soyCliente: boolean;
   ocupado: boolean;
-  onAbrir: (motivo: string, evidencia: string | null) => void;
+  onAbrir: (motivo: string, evidencia: string | null) => Promise<boolean>;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState('');
@@ -1144,7 +1164,8 @@ function PanelDisputa({
             true,
           );
           if (!seguro) return;
-          onAbrir(motivo.trim(), evidencia);
+          // Si falla, lo escrito se conserva para reintentar
+          if (!(await onAbrir(motivo.trim(), evidencia))) return;
           setAbierto(false);
           setMotivo('');
           setEvidencia(null);
@@ -1172,7 +1193,7 @@ function PanelCalificacion({
 }: {
   pedidoId: string;
   ocupado: boolean;
-  onCalificar: (puntaje: number, comentario: string) => void;
+  onCalificar: (puntaje: number, comentario: string) => Promise<boolean>;
 }) {
   const [puntaje, setPuntaje] = useState(0);
   const [comentario, setComentario] = useState('');
@@ -1228,7 +1249,9 @@ function PanelCalificacion({
             icono="send"
             cargando={ocupado}
             deshabilitado={puntaje === 0}
-            onPress={() => onCalificar(puntaje, comentario.trim())}
+            onPress={async () => {
+              if (await onCalificar(puntaje, comentario.trim())) setYaCalifique(true);
+            }}
           />
         </View>
       )}
