@@ -14,8 +14,12 @@
     "",
     "Importante: las variables EXPO_PUBLIC_* del archivo .env NO viajan solas a",
     "la compilación en la nube. Hay que declararlas en el perfil, y por eso van",
-    "abajo como 'env' con la URL y la clave anónima de Supabase, que son",
-    "públicas por diseño. Nunca poner aquí la service_role key."
+    "abajo como 'env' con la URL y la clave publicable de Supabase, que son",
+    "públicas por diseño. Nunca poner aquí la service_role key.",
+    "",
+    "Los datos de Yape (número y titular) no van aquí porque el repositorio es",
+    "público: viajan en .env, que .easignore sí sube a la compilación de EAS",
+    "pero .gitignore deja fuera de GitHub."
   ],
 
   "cli": {
@@ -38,8 +42,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ozwccisxfhawzsbrifyl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_t2KUlUrQo4Ho1a69obFqMA_rPhtzN0b"
       }
     },
 
@@ -49,8 +53,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ozwccisxfhawzsbrifyl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_t2KUlUrQo4Ho1a69obFqMA_rPhtzN0b"
       }
     }
   },
