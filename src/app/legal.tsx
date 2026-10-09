@@ -22,7 +22,9 @@ const TERMINOS: [string, string][] = [
    'verifica la identidad de las partes y custodia el pago hasta la entrega.'],
   ['2. Verificación de identidad',
    'Para publicar pedidos u ofertar es obligatorio verificar la identidad con el DNI y ' +
-   'una selfie. Un operador de Encárgalo revisa ambos documentos. Encárgalo puede ' +
+   'una selfie. Un sistema automático compara el rostro de la selfie con la foto del ' +
+   'DNI y lee el número y el nombre impresos; si algo no es concluyente, lo revisa un ' +
+   'operador de Encárgalo. Encárgalo puede ' +
    'rechazar una verificación o suspender una cuenta si detecta datos falsos.'],
   ['3. Custodia del pago',
    'Cuando el cliente acepta una oferta, paga el total que se muestra en el desglose: ' +
@@ -65,10 +67,14 @@ const PRIVACIDAD: [string, string][] = [
    'conociste y, si lo indicas, el código de quien te invitó.'],
   ['Para qué',
    'Para verificar tu identidad, operar tus pedidos y pagos, resolver disputas y medir ' +
-   'qué canales nos traen usuarios. No vendemos ni cedemos tus datos a terceros.'],
+   'qué canales nos traen usuarios. No vendemos ni cedemos tus datos a terceros. Para ' +
+   'comparar tu rostro con tu DNI usamos el servicio de reconocimiento de Amazon Web ' +
+   'Services, que procesa las imágenes por encargo nuestro, fuera del Perú, sin ' +
+   'conservarlas para sí.'],
   ['Cuánto tiempo',
-   'Las fotos del DNI y la selfie se borran en el momento en que se aprueba tu ' +
-   'verificación: solo conservamos el número de DNI. El resto se guarda mientras tu ' +
+   'Las fotos del DNI y la selfie se borran en el momento en que se resuelve tu ' +
+   'verificación: solo conservamos el número de DNI y el resultado de la ' +
+   'comparación, nunca datos de tu rostro. El resto se guarda mientras tu ' +
    'cuenta esté activa.'],
   ['Tus derechos',
    'Puedes pedir acceder a tus datos, corregirlos, cancelarlos u oponerte a su ' +

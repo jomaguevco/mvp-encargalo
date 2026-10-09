@@ -13,7 +13,9 @@ puesta en marcha.
 - **Las tarifas viven en la tabla `config`**, nunca como número en el código. Deben
   coincidir con `Entregables_Unidad2/02_Encargalo_Flujo_de_Caja_y_Medicion.xlsx`, hoja «Supuestos».
 - **Datos personales: retención mínima.** Solo se guarda el número de DNI. Las imágenes
-  van a buckets privados y se descartan al aprobar la verificación (Ley N° 29733).
+  van a buckets privados y se descartan al resolver la verificación (Ley N° 29733).
+- **La verificación automática nunca rechaza por una foto mala**, solo por otra cara.
+  Lo dudoso va al operador. Ver `supabase/functions/verificar-identidad/decidir.ts`.
 - El código y la interfaz están **en español**, incluidos nombres de funciones, tablas y
   variables. Mantén ese criterio.
 - Ninguna funcionalidad entra si no refuerza **verificación, pago protegido o

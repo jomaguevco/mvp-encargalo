@@ -9,6 +9,9 @@ export type EstadoVerificacion =
 /** Qué dijo RENIEC al contrastar el DNI y el nombre. null = no se pudo validar. */
 export type ResultadoDni = 'coincide' | 'no_coincide' | 'no_existe';
 
+/** Decisión de la verificación automática (rostro + lectura del DNI). */
+export type ResultadoIa = 'aprobado' | 'revisar' | 'rechazado';
+
 export type EstadoPedido =
   | 'publicado'
   | 'aceptado'
@@ -41,6 +44,7 @@ export type Perfil = {
   dni: string | null;
   verificacion: EstadoVerificacion;
   dni_validacion: ResultadoDni | null;
+  ia_resultado: ResultadoIa | null;
   dni_frente_path: string | null;
   selfie_path: string | null;
   verificado_en: string | null;
@@ -163,6 +167,11 @@ export type VerificacionPendiente = {
   selfie_path: string | null;
   solicitado_en: string;
   dni_validacion: ResultadoDni | null;
+  ia_resultado: ResultadoIa | null;
+  ia_similitud: number | null;
+  ia_numero_coincide: boolean | null;
+  ia_nombre_coincide: boolean | null;
+  ia_detalle: string | null;
 };
 
 export type PagoPendiente = {

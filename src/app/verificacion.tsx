@@ -168,7 +168,10 @@ export default function Verificacion() {
         selfieUri: selfie.uri,
       });
       await refrescarPerfil();
-      if (resultado === 'no_existe') {
+      // Aprobada o rechazada en el acto: el perfil refrescado ya muestra la
+      // pantalla que corresponde (éxito, o el formulario con el motivo).
+      if (resultado.identidad === 'aprobado' || resultado.identidad === 'rechazado') return;
+      if (resultado.dni === 'no_existe') {
         // Si el rechazo automático está activo, el perfil ya figura como rechazado
         // y se vuelve a mostrar este formulario. Si no, queda en revisión.
         setError('RENIEC no reconoce ese número de DNI. Revísalo antes de continuar.');
@@ -181,9 +184,33 @@ export default function Verificacion() {
     }
   }
 
+  // ------------------------------------------------ aprobada
+  if (perfil?.verificacion === 'verificado') {
+    return (
+      <ScrollView
+        style={{ backgroundColor: C.fondo }}
+        contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}>
+        <Entrada>
+          <TarjetaDegradada colores={G.marca} style={{ alignItems: 'center' }}>
+            <View style={s.esperaIcono}>
+              <Ionicons name="shield-checkmark" size={34} color={C.blanco} />
+            </View>
+            <Text style={s.esperaTitulo}>Tu identidad quedó verificada</Text>
+            <Text style={s.esperaTexto}>
+              Ya puedes publicar pedidos y ofertar. Tus fotos se borraron: solo guardamos
+              tu número de DNI.
+            </Text>
+          </TarjetaDegradada>
+        </Entrada>
+        <Boton titulo="Continuar" icono="arrow-forward" onPress={() => router.back()} />
+      </ScrollView>
+    );
+  }
+
   // ------------------------------------------------ ya enviada
   if (perfil?.verificacion === 'en_revision') {
     const validado = perfil.dni_validacion === 'coincide';
+    const evaluado = perfil.ia_resultado !== null;
     return (
       <ScrollView
         style={{ backgroundColor: C.fondo }}
@@ -211,7 +238,18 @@ export default function Verificacion() {
                   : 'Validación con RENIEC a cargo del equipo',
                 icono: 'shield-checkmark' as const,
               },
-              { ok: false, texto: 'Un operador compara tu selfie con el DNI', icono: 'eye' as const },
+              {
+                ok: evaluado,
+                texto: evaluado
+                  ? 'Rostro y documento comparados automáticamente'
+                  : 'Comparación de tu rostro con el DNI',
+                icono: 'scan' as const,
+              },
+              {
+                ok: false,
+                texto: 'Un operador revisa lo que quedó pendiente',
+                icono: 'eye' as const,
+              },
             ].map((p) => (
               <View key={p.texto} style={s.esperaPaso}>
                 <View style={[s.esperaPasoIcono, p.ok && { backgroundColor: C.verdeClaro }]}>
@@ -311,9 +349,10 @@ export default function Verificacion() {
       </Entrada>
 
       <Aviso tono="info" titulo="Tus datos están protegidos">
-        Las imágenes se guardan en un espacio privado al que solo tú y el equipo de
-        verificación tienen acceso, y se eliminan al aprobarse tu identidad. Guardamos
-        únicamente el número de DNI, según la Ley N° 29733.
+        Al enviar autorizas que comparemos tu rostro con la foto de tu DNI y leamos los
+        datos impresos, con el servicio de reconocimiento de Amazon Web Services. Las
+        imágenes se guardan en un espacio privado y se eliminan apenas se resuelve tu
+        verificación. Guardamos únicamente el número de DNI, según la Ley N° 29733.
       </Aviso>
 
       <Boton

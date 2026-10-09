@@ -149,14 +149,15 @@ Son dos Edge Functions que usan el mismo token de Decolecta:
 |---|---|---|
 | `consultar-dni` | Al escribir los 8 dígitos en el registro y en la verificación | Devuelve el nombre de RENIEC y la app lo completa sola. No guarda nada. Límite de 8 consultas por IP cada 10 minutos y caché de una hora por DNI, para cuidar el cupo |
 | `validar-dni` | Al enviar la verificación | Contrasta DNI y nombre del perfil, y guarda solo el resultado |
+| `verificar-identidad` | Justo después | Compara selfie y foto del DNI, y lee lo impreso (ver 6b) |
 
 Si `consultar-dni` no está desplegada o RENIEC no responde, la app avisa y deja
 escribir el nombre a mano: nadie queda bloqueado.
 
 Al enviar su verificación, la app llama a la Edge Function `validar-dni`, que consulta
 el DNI en la API RENIEC de [Decolecta](https://decolecta.gitbook.io/docs) y compara el
-nombre con el del perfil. El equipo ve el resultado en la consola; la **aprobación sigue
-siendo humana** (la selfie se compara con el documento). Solo se guarda el resultado
+nombre con el del perfil. El equipo ve el resultado en la consola; la comparación del
+rostro y la aprobación automática están en el paso 6b. Solo se guarda el resultado
 (`coincide`, `no_coincide`, `no_existe`), nunca los datos que devuelve RENIEC.
 
 1. Genera un token en [decolecta.com/profile](https://decolecta.com/profile). El plan
@@ -184,6 +185,60 @@ Si la consulta falla (cupo agotado, sin red), la solicitud queda en revisión y 
 resuelve a mano como antes. Opcionalmente, `supabase secrets set RECHAZO_AUTOMATICO=1`
 rechaza los DNI que RENIEC no reconoce; actívalo solo después de comprobar cómo responde
 Decolecta ante un DNI inexistente.
+
+### 6b. Activar la verificación biométrica (AWS)
+
+La Edge Function `verificar-identidad` se llama justo después de `validar-dni`:
+
+| Paso | Servicio | Qué comprueba |
+|---|---|---|
+| Rostro | AWS Rekognition `CompareFaces` | Que la selfie sea la misma persona de la foto impresa en el DNI |
+| Documento | AWS Textract `DetectDocumentText` | Que el número impreso sea el declarado y el nombre impreso el del perfil |
+
+RENIEC (Decolecta) solo devuelve nombres, no la foto: por eso el rostro se compara con
+la foto del documento. La cadena queda cerrada así: nombre impreso = nombre del perfil
+= nombre en RENIEC (`validar-dni`).
+
+Decisión (umbrales en la tabla `config`):
+
+- **Aprobado**: similitud ≥ `umbral_rostro_aprobar` (95), número y nombre leídos
+  coinciden y RENIEC dijo `coincide`. Se verifica al instante y las fotos se borran.
+- **Rechazado**: similitud < `umbral_rostro_rechazar` (50), es otra persona. Se
+  rechaza y las fotos se borran.
+- **Revisar**: cualquier otro caso, incluido un fallo de AWS. Queda en la consola del
+  equipo con la similitud, lo que se leyó y el motivo.
+
+Costo aproximado: US$ 0.001 por comparación y US$ 0.0015 por lectura, con capa
+gratuita los primeros 12 meses.
+
+1. Crea una cuenta en AWS y un usuario IAM con solo esta política:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["rekognition:CompareFaces", "textract:DetectDocumentText"],
+    "Resource": "*"
+  }]
+}
+```
+
+2. Genera una clave de acceso para ese usuario.
+3. **Antes de usar fotos reales**, activa la exclusión de uso de datos de AWS («AI
+   services opt-out policy» en AWS Organizations) para que AWS no use las imágenes
+   para entrenar. Los términos de privacidad de la app lo prometen.
+4. Ejecuta `0010_biometria.sql` en el SQL Editor.
+5. Configura y despliega:
+
+```bash
+npx supabase secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1
+npx supabase functions deploy verificar-identidad
+```
+
+Si los secretos no están, la función no marca nada y todo sigue como antes: revisión
+humana. Las reglas de decisión tienen pruebas:
+`deno test supabase/functions/verificar-identidad`.
 
 ### 7. Generar el APK para repartir
 
@@ -248,7 +303,7 @@ src/
     negocio.ts            Estados, etiquetas y formato
   ui/                     Componentes y paleta
 supabase/migrations/      Esquema, funciones, RLS y configuración
-supabase/functions/       Edge Functions: consultar-dni (nombre desde RENIEC) y validar-dni (contraste)
+supabase/functions/       Edge Functions: consultar-dni (nombre desde RENIEC), validar-dni (contraste) y verificar-identidad (rostro + lectura del DNI)
 ```
 
 ## Estado actual y qué falta

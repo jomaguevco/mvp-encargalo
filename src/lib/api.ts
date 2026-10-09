@@ -22,6 +22,7 @@ import type {
   Reputacion,
   Resena,
   ResultadoDni,
+  ResultadoIa,
   VerificacionPendiente,
 } from './tipos';
 
@@ -62,14 +63,16 @@ export async function actualizarPerfil(cambios: Partial<Perfil>) {
  * usuario: las políticas de storage impiden que alguien lea la de otro.
  *
  * Después pide a la Edge Function `validar-dni` que contraste el DNI y el nombre
- * con RENIEC. Devuelve lo que dijo RENIEC, o null si no se pudo consultar: en
- * ese caso la solicitud sigue en revisión y la resuelve el equipo igual que antes.
+ * con RENIEC, y a `verificar-identidad` que compare la selfie con la foto del DNI
+ * y lea lo impreso. Esta última puede aprobar o rechazar en el acto; si algo
+ * queda dudoso o un servicio no responde (null), la solicitud sigue en revisión
+ * y la resuelve el equipo igual que antes.
  */
 export async function enviarVerificacion(opts: {
   dni: string;
   dniFrenteUri: string;
   selfieUri: string;
-}): Promise<ResultadoDni | null> {
+}): Promise<{ dni: ResultadoDni | null; identidad: ResultadoIa | null }> {
   const { data: sesion } = await supabase.auth.getUser();
   const uid = sesion.user?.id;
   if (!uid) throw new Error('No hay sesión activa');
@@ -91,14 +94,28 @@ export async function enviarVerificacion(opts: {
     motivo_rechazo: null,
   });
 
-  // Si la consulta falla (sin red, cupo agotado, etc.) no se bloquea a la persona
+  // Si una consulta falla (sin red, cupo agotado, etc.) no se bloquea a la
+  // persona: la solicitud queda en revisión y la resuelve un operador.
+  // El orden importa: verificar-identidad usa el resultado de validar-dni.
+  let dni: ResultadoDni | null = null;
   try {
     const { data } = await supabase.functions.invoke('validar-dni');
     const r = data?.resultado as string | undefined;
-    return r === 'coincide' || r === 'no_coincide' || r === 'no_existe' ? r : null;
+    if (r === 'coincide' || r === 'no_coincide' || r === 'no_existe') dni = r;
   } catch {
-    return null;
+    /* sigue sin validar */
   }
+
+  let identidad: ResultadoIa | null = null;
+  try {
+    const { data } = await supabase.functions.invoke('verificar-identidad');
+    const r = data?.resultado as string | undefined;
+    if (r === 'aprobado' || r === 'revisar' || r === 'rechazado') identidad = r;
+  } catch {
+    /* queda para el operador */
+  }
+
+  return { dni, identidad };
 }
 
 /**

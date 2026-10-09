@@ -46,6 +46,49 @@ function InsigniaReniec({ r }: { r: ResultadoDni | null }) {
   return <Chip texto={conf.texto} color={conf.color} icono={conf.icono} />;
 }
 
+/** Lo que vio verificar-identidad: rostro, número y nombre impresos. */
+function InsigniasIa({ v }: { v: VerificacionPendiente }) {
+  if (!v.ia_resultado) {
+    return <Chip texto="Sin comparación automática" color={C.grisTexto} icono="help-circle" />;
+  }
+  const sim = v.ia_similitud;
+  const chips = [
+    {
+      texto: sim === null ? 'Rostro: no se pudo comparar' : `Rostro: ${sim.toFixed(1)} % de similitud`,
+      color: sim === null ? C.grisTexto : sim >= 95 ? C.verde : C.naranja,
+      icono: 'scan' as const,
+    },
+    {
+      texto:
+        v.ia_numero_coincide === null
+          ? 'Número: no se leyó'
+          : v.ia_numero_coincide
+            ? 'Número impreso coincide'
+            : 'Número impreso distinto',
+      color: v.ia_numero_coincide ? C.verde : v.ia_numero_coincide === null ? C.grisTexto : C.rojo,
+      icono: 'keypad' as const,
+    },
+    {
+      texto:
+        v.ia_nombre_coincide === null
+          ? 'Nombre: no se leyó'
+          : v.ia_nombre_coincide
+            ? 'Nombre impreso coincide'
+            : 'Nombre impreso distinto',
+      color: v.ia_nombre_coincide ? C.verde : v.ia_nombre_coincide === null ? C.grisTexto : C.rojo,
+      icono: 'text' as const,
+    },
+  ];
+  return (
+    <View style={{ gap: E.xs, alignItems: 'flex-start' }}>
+      {chips.map((c) => (
+        <Chip key={c.texto} texto={c.texto} color={c.color} icono={c.icono} />
+      ))}
+      {!!v.ia_detalle && <Micro>Pendiente: {v.ia_detalle}</Micro>}
+    </View>
+  );
+}
+
 /**
  * Consola del equipo. Existe porque durante el piloto el pago retenido se
  * opera a mano: alguien tiene que mirar el comprobante de Yape y confirmar
@@ -221,8 +264,9 @@ export default function Operador() {
                       <Text style={s.meta}>Solicitó {hace(v.solicitado_en)}</Text>
                     </View>
                   </View>
-                  <View style={{ marginVertical: E.md }}>
+                  <View style={{ marginVertical: E.md, gap: E.xs, alignItems: 'flex-start' }}>
                     <InsigniaReniec r={v.dni_validacion} />
+                    <InsigniasIa v={v} />
                   </View>
                   <Dato icono="card-outline" etiqueta="DNI declarado" valor={v.dni ?? '—'} />
                   <Dato icono="call-outline" etiqueta="Celular" valor={v.telefono ?? '—'} />
