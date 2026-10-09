@@ -46,3 +46,6 @@ example
 
 # Variables de entorno
 .env.local
+
+# Temporales de la CLI de Supabase
+supabase/.temp/
