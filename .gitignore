@@ -54,3 +54,6 @@ publico/
 dist-web/
 .vercel
 .vercel-publico
+
+# Fotos descargadas para los datos de prueba (pruebas/descargar_imagenes.py)
+pruebas/imagenes/
