@@ -1040,3 +1040,41 @@ const s = StyleSheet.create({
   },
   casillaMarcada: { borderColor: C.azul, backgroundColor: C.azul },
 });
+
+// ------------------------------------------------------------------ cuadrícula
+/** Separación entre tarjetas de una cuadrícula de productos. */
+export const HUECO = E.md;
+
+/**
+ * Cuadrícula de productos para pantallas con ScrollView (las que usan
+ * FlatList pasan `numColumns`). Las tarjetas de una misma fila quedan de la
+ * misma altura, como en una tienda.
+ */
+export function Cuadricula<T>({
+  datos,
+  columnas,
+  clave,
+  render,
+}: {
+  datos: T[];
+  columnas: number;
+  clave: (d: T) => string;
+  render: (d: T, i: number) => ReactNode;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -HUECO / 2 }}>
+      {datos.map((d, i) => (
+        <Entrada key={clave(d)} i={i} style={celda(columnas)}>
+          {render(d, i)}
+        </Entrada>
+      ))}
+    </View>
+  );
+}
+
+/** Estilo de cada celda de la cuadrícula; también lo usan las FlatList. */
+export const celda = (columnas: number): ViewStyle => ({
+  width: `${100 / columnas}%`,
+  paddingHorizontal: HUECO / 2,
+  marginBottom: HUECO,
+});

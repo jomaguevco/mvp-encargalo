@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Image, RefreshControl, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { Text, TextInput } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { pedidosAbiertos } from '@/lib/api';
@@ -17,6 +17,8 @@ import {
   Opciones,
   Tarjeta,
   Vacio,
+  celda,
+  HUECO,
 } from '@/ui/componentes';
 import { iconoCategoria } from '@/ui/iconos';
 import { PedidoCard } from '@/ui/PedidoCard';
@@ -36,7 +38,9 @@ function Bloqueo({
   accion,
   onAccion,
   puntos,
+  foto,
 }: {
+  foto: ImageSourcePropType;
   icono: keyof typeof Ionicons.glyphMap;
   titulo: string;
   texto: string;
@@ -49,7 +53,9 @@ function Bloqueo({
       <Cabecera titulo="Gana con tus viajes" subtitulo="Pedidos abiertos para traer al Perú" />
       <View style={{ padding: E.lg, marginTop: -E.md }}>
         <Entrada>
-          <Tarjeta style={{ alignItems: 'center', padding: E.xl }}>
+          <Tarjeta style={{ alignItems: 'center', padding: 0, overflow: 'hidden', maxWidth: 640, alignSelf: 'center', width: '100%' }}>
+            <Image source={foto} style={s.bloqueoFoto} resizeMode="cover" />
+            <View style={{ alignItems: 'center', padding: E.xl, paddingTop: 0, alignSelf: 'stretch' }}>
             <View style={s.bloqueoIcono}>
               <Ionicons name={icono} size={34} color={C.naranja} />
             </View>
@@ -64,6 +70,7 @@ function Bloqueo({
               ))}
             </View>
             <Boton titulo={accion} onPress={onAccion} style={{ alignSelf: 'stretch' }} />
+            </View>
           </Tarjeta>
         </Entrada>
       </View>
@@ -124,6 +131,7 @@ export default function Explorar() {
   if (!verificado) {
     return (
       <Bloqueo
+        foto={require('../../../assets/fotos/embalar.jpg')}
         icono="shield-checkmark-outline"
         titulo="Verifica tu identidad"
         texto="Para ver los pedidos abiertos y enviar ofertas necesitas validar tu DNI. Es la garantía que le damos al cliente de que sabe quién le va a traer su producto."
@@ -141,6 +149,7 @@ export default function Explorar() {
   if (!perfil?.es_comprador) {
     return (
       <Bloqueo
+        foto={require('../../../assets/fotos/maleta-lista.jpg')}
         icono="airplane-outline"
         titulo="Activa tu cuenta de comprador externo"
         texto="Si viajas al extranjero o traes productos con frecuencia, puedes ganar dinero con el espacio de tu maleta."
@@ -163,9 +172,11 @@ export default function Explorar() {
       style={{ backgroundColor: C.fondo }}
       data={visibles}
       keyExtractor={(p) => p.id}
-      // En escritorio, dos o tres columnas (ui/escritorio). `key` rehace la lista al cambiar.
+      // Cuadrícula de productos: dos columnas en el teléfono, más en escritorio
+      // (ui/escritorio). `key` rehace la lista al cambiar.
       key={`columnas-${columnas}`}
       numColumns={columnas}
+      columnWrapperStyle={{ paddingHorizontal: escritorio ? E.sm - HUECO / 2 : E.lg - HUECO / 2 }}
       contentContainerStyle={{ paddingBottom: E.xxl }}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -252,13 +263,7 @@ export default function Explorar() {
         </>
       }
       renderItem={({ item, index }) => (
-        <Entrada
-          i={index}
-          style={
-            escritorio
-              ? { paddingHorizontal: E.sm, width: `${100 / columnas}%` as `${number}%` }
-              : { paddingHorizontal: E.lg }
-          }>
+        <Entrada i={index} style={celda(columnas)}>
           <PedidoCard pedido={item} pie="Ver y ofertar" />
         </Entrada>
       )}
@@ -322,7 +327,11 @@ const s = StyleSheet.create({
   },
   ordenActivo: { backgroundColor: C.naranjaClaro, color: C.naranja },
 
+  bloqueoFoto: { width: '100%', height: 170 },
   bloqueoIcono: {
+    marginTop: -38,
+    borderWidth: 4,
+    borderColor: C.blanco,
     width: 76,
     height: 76,
     borderRadius: 24,

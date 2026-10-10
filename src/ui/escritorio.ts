@@ -16,23 +16,38 @@ export const ANCHO_LATERAL = 248;
  * tope bajo quedaban franjas vacías a los lados en cualquier monitor.
  */
 export const ANCHO_CONTENIDO = 1440;
-/** Ancho máximo de los formularios y el detalle del pedido. */
+/** Ancho máximo de los formularios. */
 export const ANCHO_FORMULARIO = 900;
-/** Ancho útil a partir del cual las listas pasan a tres columnas. */
-const ANCHO_TRES_COLUMNAS = 1180;
+/** Ancho máximo del detalle del pedido: dos columnas, como una página de producto. */
+export const ANCHO_DETALLE = 1200;
+/**
+ * Ancho mínimo de una tarjeta de producto en la cuadrícula. Las columnas salen
+ * de cuántas caben: dos en el teléfono, de tres a cinco en un monitor.
+ */
+const ANCHO_TARJETA = 270;
 
 export function useEscritorio() {
   const { width } = useWindowDimensions();
   const es = Platform.OS === 'web' && width >= ANCHO_ESCRITORIO;
   const disponible = width - ANCHO_LATERAL;
   const margenPestana = es ? Math.max(E.xl, (disponible - ANCHO_CONTENIDO) / 2) : 0;
+  const util = disponible - 2 * margenPestana;
   return {
     es,
     /** Margen lateral del contenido de una pestaña, junto a la barra lateral. */
     margenPestana,
     /** Margen lateral que centra un formulario a pantalla completa. */
     margenFormulario: es ? Math.max(E.xl, (width - ANCHO_FORMULARIO) / 2) : 0,
-    /** Columnas de las listas de pedidos. */
-    columnas: !es ? 1 : disponible - 2 * margenPestana >= ANCHO_TRES_COLUMNAS ? 3 : 2,
+    /** Margen lateral que centra el detalle del pedido. */
+    margenDetalle: es ? Math.max(E.xl, (width - ANCHO_DETALLE) / 2) : 0,
+    /**
+     * Columnas de la cuadrícula de productos. En el teléfono dos, como una
+     * tienda: se ven cuatro pedidos sin desplazar en vez de uno y medio.
+     */
+    columnas: !es
+      ? width >= 600
+        ? 3
+        : 2
+      : Math.max(2, Math.min(5, Math.floor(util / ANCHO_TARJETA))),
   };
 }

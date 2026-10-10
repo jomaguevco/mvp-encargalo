@@ -374,8 +374,10 @@ const s = StyleSheet.create({
     marginBottom: E.lg,
   },
   categoria: {
-    width: '23%',
-    flexGrow: 1,
+    // Tres por fila en el teléfono: con cuatro, «Coleccionables» y
+    // «Suplementos» no entraban y se partían a mitad de palabra.
+    width: '31.5%',
+    flexGrow: 0,
     alignItems: 'center',
     gap: 6,
     paddingVertical: E.md,

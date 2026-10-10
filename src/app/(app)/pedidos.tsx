@@ -18,11 +18,11 @@ import {
   Boton,
   Cabecera,
   Cargando,
-  Cifra,
   Entrada,
-  FilaCifras,
   Opciones,
   Vacio,
+  celda,
+  HUECO,
 } from '@/ui/componentes';
 import { PedidoCard } from '@/ui/PedidoCard';
 import { Banners } from '@/ui/Banners';
@@ -34,6 +34,24 @@ const TERMINADOS: EstadoPedido[] = ['confirmado', 'cancelado'];
 const ME_TOCA: EstadoPedido[] = ['aceptado', 'entregado'];
 
 type Filtro = 'activos' | 'terminados' | 'todos';
+
+/** Una cifra de la cabecera de escritorio: número grande y su etiqueta. */
+function Resumen({
+  valor,
+  etiqueta,
+  destacado,
+}: {
+  valor: number;
+  etiqueta: string;
+  destacado?: boolean;
+}) {
+  return (
+    <View style={s.resumenItem}>
+      <Text style={[s.resumenValor, destacado && valor > 0 && { color: C.trigo }]}>{valor}</Text>
+      <Text style={s.resumenEtiqueta}>{etiqueta}</Text>
+    </View>
+  );
+}
 
 function saludo() {
   const h = new Date().getHours();
@@ -89,9 +107,11 @@ export default function MisPedidos() {
       <FlatList
         data={visibles}
         keyExtractor={(p) => p.id}
-        // En escritorio, dos o tres columnas (ui/escritorio). `key` rehace la lista al cambiar.
+        // Cuadrícula de productos: dos columnas en el teléfono, más en escritorio
+        // (ui/escritorio). `key` rehace la lista al cambiar.
         key={`columnas-${columnas}`}
         numColumns={columnas}
+        columnWrapperStyle={{ paddingHorizontal: escritorio ? E.sm - HUECO / 2 : E.lg - HUECO / 2 }}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}
         ListHeaderComponent={
@@ -101,20 +121,35 @@ export default function MisPedidos() {
               titulo={`Hola, ${primerNombre}`}
               subtitulo="¿Qué quieres que te traigan del extranjero?"
               derecha={
-                <Pressable onPress={() => router.push('/(app)/perfil')}>
-                  <Avatar nombre={perfil?.nombre_completo} tamano={50} verificado={verificado} />
-                </Pressable>
+                <View style={s.derecha}>
+                  {/* En escritorio las cifras van en la misma línea del saludo:
+                      la cabecera queda baja y los productos se ven antes. */}
+                  {escritorio && (
+                    <View style={s.resumen}>
+                      <Resumen valor={activos.length} etiqueta="En curso" />
+                      <Resumen valor={conOfertas} etiqueta="Recibiendo ofertas" />
+                      <Resumen valor={meToca} etiqueta="Te toca actuar" destacado />
+                    </View>
+                  )}
+                  <Pressable onPress={() => router.push('/(app)/perfil')}>
+                    <Avatar nombre={perfil?.nombre_completo} tamano={50} verificado={verificado} />
+                  </Pressable>
+                </View>
               }>
-              <FilaCifras>
-                <Cifra claro icono="cube" valor={String(activos.length)} etiqueta="En curso" />
-                <Cifra
-                  claro
-                  icono="megaphone"
-                  valor={String(conOfertas)}
-                  etiqueta="Recibiendo ofertas"
-                />
-                <Cifra claro icono="hand-left" valor={String(meToca)} etiqueta="Te toca actuar" />
-              </FilaCifras>
+              {/* En el teléfono las cifras ocupaban media pantalla y repetían lo
+                  que ya dicen los filtros: ahí solo queda lo que pide acción. */}
+              {!escritorio && meToca > 0 ? (
+                <Pressable
+                  onPress={() => setFiltro('activos')}
+                  style={s.turno}>
+                  <Ionicons name="hand-left" size={16} color={C.trigo} />
+                  <Text style={s.turnoTexto}>
+                    {meToca === 1
+                      ? 'Un pedido espera algo de ti'
+                      : `${meToca} pedidos esperan algo de ti`}
+                  </Text>
+                </Pressable>
+              ) : null}
             </Cabecera>
 
             <View
@@ -188,13 +223,7 @@ export default function MisPedidos() {
           </>
         }
         renderItem={({ item, index }) => (
-          <Entrada
-            i={index}
-            style={
-              escritorio
-                ? { paddingHorizontal: E.sm, width: `${100 / columnas}%` as `${number}%` }
-                : { paddingHorizontal: E.lg }
-            }>
+          <Entrada i={index} style={celda(columnas)}>
             <PedidoCard
               pedido={item}
               pie={
@@ -269,4 +298,27 @@ const s = StyleSheet.create({
     lineHeight: 19,
   },
   flotante: { position: 'absolute', left: E.lg, right: E.lg, bottom: E.lg },
+  derecha: { flexDirection: 'row', alignItems: 'center', gap: E.xl },
+  resumen: { flexDirection: 'row', gap: E.xs },
+  resumenItem: {
+    minWidth: 110,
+    paddingHorizontal: E.lg,
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(242,235,225,0.16)',
+  },
+  resumenValor: { color: C.sobreOscuro, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
+  resumenEtiqueta: { color: C.sobreOscuroSuave, fontSize: 12.5, fontWeight: '500' },
+  turno: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: E.sm,
+    backgroundColor: 'rgba(217,180,90,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,90,0.35)',
+    paddingHorizontal: E.md,
+    paddingVertical: E.sm,
+    borderRadius: 999,
+  },
+  turnoTexto: { color: C.sobreOscuro, fontSize: 13.5, fontWeight: '600' },
 });

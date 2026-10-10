@@ -41,7 +41,7 @@ export default function RootLayout() {
 
   // En un navegador ancho, los formularios y el detalle del pedido se centran
   // con un ancho de lectura cómodo (ui/escritorio). En el teléfono, margen 0.
-  const { es: escritorio, margenFormulario } = useEscritorio();
+  const { es: escritorio, margenFormulario, margenDetalle } = useEscritorio();
   const contenido = escritorio
     ? { backgroundColor: C.fondo, paddingHorizontal: margenFormulario, paddingTop: E.lg }
     : { backgroundColor: C.fondo };
@@ -68,7 +68,16 @@ export default function RootLayout() {
         <Stack.Screen name="(app)" options={{ headerShown: false, ...sinMargen }} />
         <Stack.Screen name="verificacion" options={{ title: 'Verificar identidad' }} />
         <Stack.Screen name="publicar" options={{ title: 'Nuevo pedido' }} />
-        <Stack.Screen name="pedido/[id]" options={{ title: 'Pedido' }} />
+        <Stack.Screen
+          name="pedido/[id]"
+          options={{
+            title: 'Pedido',
+            // Más ancho que un formulario: en escritorio va en dos columnas.
+            contentStyle: escritorio
+              ? { backgroundColor: C.fondo, paddingHorizontal: margenDetalle, paddingTop: E.lg }
+              : { backgroundColor: C.fondo },
+          }}
+        />
         <Stack.Screen name="reputacion/[id]" options={{ title: 'Reputación' }} />
       </Stack>
     </AuthProvider>

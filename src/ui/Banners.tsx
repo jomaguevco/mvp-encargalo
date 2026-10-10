@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
 import type { NombreIcono } from './componentes';
@@ -11,7 +11,9 @@ type Banner = {
   titulo: string;
   texto: string;
   icono: NombreIcono;
-  /** Fondo plano y color del ícono y la etiqueta sobre él. */
+  /** Foto de ambiente (assets/fotos, ver FUENTES.md). */
+  foto: ImageSourcePropType;
+  /** Fondo plano del panel de texto y color del ícono y la etiqueta. */
   fondo: string;
   acento: string;
   destino: Href;
@@ -21,6 +23,9 @@ type Banner = {
  * Banners del inicio. Solo dicen lo que la aplicación hace hoy: un descuento
  * o una promoción con plata de por medio se agrega cuando el equipo la apruebe
  * y la aplicación la aplique, no antes (misma regla que web/main.js).
+ *
+ * La foto va arriba y el texto abajo, sobre su color: el texto nunca queda
+ * encima de la foto, así se lee igual en cualquier pantalla.
  */
 const BANNERS: Banner[] = [
   {
@@ -28,6 +33,7 @@ const BANNERS: Banner[] = [
     titulo: 'Tu plata no se mueve hasta que recibes',
     texto: 'Pagas a Encárgalo, no al viajero. Se libera cuando confirmas la entrega.',
     icono: 'lock-closed',
+    foto: require('../../assets/fotos/desempacar.jpg'),
     fondo: C.azul,
     acento: C.trigo,
     destino: '/legal',
@@ -37,6 +43,7 @@ const BANNERS: Banner[] = [
     titulo: '¿Viajas pronto? Gana trayendo encargos',
     texto: 'Oferta por pedidos abiertos, pon tu precio y cobra al entregar.',
     icono: 'airplane',
+    foto: require('../../assets/fotos/maleta-lista.jpg'),
     fondo: C.naranja,
     acento: C.sobreOscuro,
     destino: '/(app)/explorar',
@@ -47,6 +54,7 @@ const BANNERS: Banner[] = [
     texto:
       'Comparte tu código desde tu perfil: los primeros pedidos los acompaña el equipo fundador.',
     icono: 'people',
+    foto: require('../../assets/fotos/entrega.jpg'),
     fondo: C.verdeOscuro,
     acento: C.trigo,
     destino: '/(app)/perfil',
@@ -58,16 +66,20 @@ function Tarjeta({ b, ancho }: { b: Banner; ancho?: number }) {
     <Pressable
       onPress={() => router.push(b.destino)}
       style={({ pressed }) => [
-        { width: ancho, flex: ancho ? undefined : 1 },
-        pressed && { opacity: 0.9 },
+        s.tarjeta,
+        { width: ancho, flex: ancho ? undefined : 1, backgroundColor: b.fondo },
+        pressed && { opacity: 0.92 },
       ]}>
-      <View style={[s.tarjeta, { backgroundColor: b.fondo }]}>
-        <View style={s.icono}>
-          <Ionicons name={b.icono} size={22} color={b.acento} />
+      <Image source={b.foto} style={s.foto} resizeMode="cover" />
+      <View style={s.panel}>
+        <View style={s.etiquetaFila}>
+          <Ionicons name={b.icono} size={13} color={b.acento} />
+          <Text style={[s.etiqueta, { color: b.acento }]}>{b.etiqueta.toUpperCase()}</Text>
         </View>
-        <Text style={[s.etiqueta, { color: b.acento }]}>{b.etiqueta.toUpperCase()}</Text>
         <Text style={s.titulo}>{b.titulo}</Text>
-        <Text style={s.texto}>{b.texto}</Text>
+        <Text style={s.texto} numberOfLines={2}>
+          {b.texto}
+        </Text>
         <View style={s.mas}>
           <Text style={s.masTexto}>Ver más</Text>
           <Ionicons name="arrow-forward" size={14} color={C.sobreOscuro} />
@@ -95,12 +107,12 @@ export function Banners() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      snapToInterval={280 + E.md}
+      snapToInterval={272 + E.md}
       decelerationRate="fast"
       contentContainerStyle={s.carrusel}
       style={{ marginHorizontal: -E.lg }}>
       {BANNERS.map((b) => (
-        <Tarjeta key={b.etiqueta} b={b} ancho={280} />
+        <Tarjeta key={b.etiqueta} b={b} ancho={272} />
       ))}
     </ScrollView>
   );
@@ -109,34 +121,19 @@ export function Banners() {
 const s = StyleSheet.create({
   fila: { flexDirection: 'row', gap: E.md, marginTop: E.lg },
   carrusel: { gap: E.md, paddingHorizontal: E.lg, paddingVertical: E.sm, marginTop: E.sm },
-  tarjeta: {
-    borderRadius: R.lg,
-    padding: E.lg,
-    minHeight: 178,
-    overflow: 'hidden',
-  },
-  icono: {
-    width: 42,
-    height: 42,
-    borderRadius: R.sm,
-    backgroundColor: 'rgba(242,235,225,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: E.md,
-  },
-  etiqueta: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
+  tarjeta: { borderRadius: R.lg, overflow: 'hidden' },
+  foto: { width: '100%', height: 104 },
+  panel: { padding: E.md + 2, flex: 1 },
+  etiquetaFila: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  etiqueta: { fontSize: 11, fontWeight: '600', letterSpacing: 1 },
   titulo: {
     color: C.sobreOscuro,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.3,
     marginTop: 4,
   },
-  texto: { color: 'rgba(242,235,225,0.85)', fontSize: 13, lineHeight: 18, marginTop: 6 },
-  mas: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: E.md },
+  texto: { color: 'rgba(242,235,225,0.82)', fontSize: 13, lineHeight: 18, marginTop: 4 },
+  mas: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: E.sm },
   masTexto: { color: C.sobreOscuro, fontWeight: '600', fontSize: 13 },
 });

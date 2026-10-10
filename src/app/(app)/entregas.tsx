@@ -20,14 +20,17 @@ import {
   Entrada,
   FilaCifras,
   Seccion,
+  Cuadricula,
   Tarjeta,
   Vacio,
 } from '@/ui/componentes';
+import { useEscritorio } from '@/ui/escritorio';
 import { iconoCategoria } from '@/ui/iconos';
 import { PedidoCard } from '@/ui/PedidoCard';
 import { C, E, R } from '@/ui/tema';
 
 export default function Entregas() {
+  const { es: escritorio, columnas } = useEscritorio();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [ofertas, setOfertas] = useState<OfertaEnviada[]>([]);
   const [refrescando, setRefrescando] = useState(false);
@@ -91,7 +94,7 @@ export default function Entregas() {
         </FilaCifras>
       </Cabecera>
 
-      <View style={{ padding: E.lg }}>
+      <View style={{ padding: escritorio ? E.sm : E.lg }}>
         {meToca > 0 && (
           <Entrada>
             <View style={s.turno}>
@@ -108,14 +111,17 @@ export default function Entregas() {
         {enCurso.length > 0 && (
           <>
             <Seccion titulo="En curso" icono="navigate-outline" conteo={enCurso.length} />
-            {enCurso.map((p, i) => (
-              <Entrada key={p.id} i={i}>
+            <Cuadricula
+              datos={enCurso}
+              columnas={columnas}
+              clave={(p) => p.id}
+              render={(p) => (
                 <PedidoCard
                   pedido={p}
                   pie={SIGUIENTE_PASO_COMPRADOR[p.estado]?.accion ?? undefined}
                 />
-              </Entrada>
-            ))}
+              )}
+            />
           </>
         )}
 
@@ -175,11 +181,12 @@ export default function Entregas() {
               conteo={cumplidos.length}
               style={{ marginTop: E.lg }}
             />
-            {cumplidos.map((p, i) => (
-              <Entrada key={p.id} i={i}>
-                <PedidoCard pedido={p} />
-              </Entrada>
-            ))}
+            <Cuadricula
+              datos={cumplidos}
+              columnas={columnas}
+              clave={(p) => p.id}
+              render={(p) => <PedidoCard pedido={p} />}
+            />
           </>
         )}
 

@@ -62,7 +62,8 @@ import { avisar, confirmar } from '@/ui/dialogos';
 import { ICONO_ESTADO, estiloCategoria, iconoCategoria } from '@/ui/iconos';
 import { Linea } from '@/ui/Linea';
 import { OfertaItem } from '@/ui/OfertaItem';
-import { C, E, G, R, sombra } from '@/ui/tema';
+import { useEscritorio } from '@/ui/escritorio';
+import { C, E, G, R } from '@/ui/tema';
 
 const YAPE_NUMERO = process.env.EXPO_PUBLIC_YAPE_NUMERO ?? '999 999 999';
 const YAPE_TITULAR = process.env.EXPO_PUBLIC_YAPE_TITULAR ?? 'Encárgalo S.A.C.';
@@ -208,6 +209,7 @@ export default function DetallePedido() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacion = useNavigation();
   const { perfil, esOperador } = useAuth();
+  const { es: escritorio } = useEscritorio();
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [ofertas, setOfertas] = useState<OfertaConReputacion[]>([]);
@@ -336,33 +338,22 @@ export default function DetallePedido() {
   });
   const participo = soyCliente || soyComprador;
 
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: C.fondo }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}>
-      <ScrollView
-        contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refrescando}
-            onRefresh={async () => {
-              setRefrescando(true);
-              await cargar().catch(() => undefined);
-              setRefrescando(false);
-            }}
-          />
-        }>
+  const bloquePortada = (
+    <>
         {/* ---------------------------------------------------- portada */}
         <Entrada>
-          <View style={[s.portada, sombra(2)]}>
+          <View style={s.portada}>
             {foto ? (
-              <Image source={{ uri: foto }} style={s.portadaImagen} resizeMode="cover" />
+              // contain y no cover: es la foto del producto que se pide, tiene
+              // que verse entera, como en una tienda.
+              <View style={[s.portadaMarco, escritorio && s.portadaMarcoGrande]}>
+                <Image source={{ uri: foto }} style={s.portadaFoto} resizeMode="contain" />
+              </View>
             ) : (
               <View
                 style={[
-                  s.portadaImagen,
+                  s.portadaMarco,
+                  escritorio && s.portadaMarcoGrande,
                   s.portadaIcono,
                   { backgroundColor: estiloCategoria(pedido.categoria).fondo },
                 ]}>
@@ -375,7 +366,13 @@ export default function DetallePedido() {
             )}
             <View style={s.portadaCuerpo}>
               <Chip texto={info.etiqueta} color={info.color} icono={ICONO_ESTADO[pedido.estado]} />
-              <Text style={s.titulo}>{pedido.titulo}</Text>
+              <Text style={[s.titulo, escritorio && { fontSize: 26 }]}>{pedido.titulo}</Text>
+              {pedido.valor_referencial != null && (
+                <View style={s.precioFila}>
+                  <Text style={s.precio}>{soles(pedido.valor_referencial)}</Text>
+                  <Text style={s.precioEtiqueta}>valor referencial del producto</Text>
+                </View>
+              )}
               {!!pedido.descripcion && <Text style={s.descripcion}>{pedido.descripcion}</Text>}
               {!!pedido.url_producto && (
                 <Pressable
@@ -387,7 +384,7 @@ export default function DetallePedido() {
                   </Text>
                 </Pressable>
               )}
-
+  
               <View style={s.datos}>
                 <DatoCaja
                   icono={iconoCategoria(pedido.categoria)}
@@ -410,13 +407,6 @@ export default function DetallePedido() {
                   valor={fecha(pedido.fecha_limite)}
                   alerta={pedido.estado === 'publicado' && dias <= 3}
                 />
-                {pedido.valor_referencial != null && (
-                  <DatoCaja
-                    icono="cash-outline"
-                    etiqueta="Valor referencial"
-                    valor={soles(pedido.valor_referencial)}
-                  />
-                )}
                 <DatoCaja
                   icono="time-outline"
                   etiqueta="Publicado"
@@ -426,7 +416,11 @@ export default function DetallePedido() {
             </View>
           </View>
         </Entrada>
+    </>
+  );
 
+  const bloqueAcciones = (
+    <>
         {/* ---------------------------------------------------- siguiente paso */}
         {paso && (
           <Entrada i={1}>
@@ -444,7 +438,7 @@ export default function DetallePedido() {
             </TarjetaDegradada>
           </Entrada>
         )}
-
+  
         {/* ---------------------------------------------------- contraparte */}
         {contraparte && (
           <Entrada i={2}>
@@ -476,7 +470,7 @@ export default function DetallePedido() {
             </Tarjeta>
           </Entrada>
         )}
-
+  
         {/* ---------------------------------------------------- ofertas */}
         {pedido.estado === 'publicado' && soyCliente && (
           <>
@@ -525,7 +519,7 @@ export default function DetallePedido() {
             ))}
           </>
         )}
-
+  
         {/* ---------------------------------------------------- ofertar */}
         {pedido.estado === 'publicado' && !soyCliente && (
           <FormularioOferta
@@ -548,7 +542,7 @@ export default function DetallePedido() {
             }}
           />
         )}
-
+  
         {/* ---------------------------------------------------- pago */}
         {pago && (
           <PanelPago
@@ -569,7 +563,7 @@ export default function DetallePedido() {
             onConfirmarRetencion={() => accion('retener', () => api.confirmarRetencion(pedido.id))}
           />
         )}
-
+  
         {/* ------------------------------------ acciones del comprador */}
         {soyComprador && SIGUIENTE_PASO_COMPRADOR[pedido.estado] && (
           <Tarjeta style={{ borderColor: `${C.naranja}66`, borderWidth: 1.5 }}>
@@ -590,7 +584,7 @@ export default function DetallePedido() {
             />
           </Tarjeta>
         )}
-
+  
         {/* ------------------------------------ confirmación del cliente */}
         {soyCliente && pedido.estado === 'entregado' && (
           <Tarjeta style={{ borderColor: C.verde, borderWidth: 2 }}>
@@ -599,7 +593,7 @@ export default function DetallePedido() {
               Revisa que sea lo que pediste antes de confirmar. Al confirmar, liberamos{' '}
               {soles(pago?.monto_liberado)} al comprador externo y ya no podremos retenerlo.
             </Text>
-
+  
             {!!limite && (
               <Aviso
                 tono={diasHasta(limite.slice(0, 10)) < 0 ? 'alerta' : 'info'}
@@ -609,7 +603,7 @@ export default function DetallePedido() {
                   : `Tienes hasta el ${fecha(limite)} para confirmar o abrir una disputa. Después de esa fecha el equipo revisa el caso.`}
               </Aviso>
             )}
-
+  
             <Boton
               titulo="Sí, lo recibí conforme"
               icono="checkmark-done"
@@ -627,7 +621,7 @@ export default function DetallePedido() {
             />
           </Tarjeta>
         )}
-
+  
         {/* ---------------------------------------------------- calificar */}
         {pedido.estado === 'confirmado' && participo && (
           <PanelCalificacion
@@ -638,13 +632,21 @@ export default function DetallePedido() {
             }
           />
         )}
+    </>
+  );
 
+  const bloqueSeguimiento = (
+    <>
         {/* ---------------------------------------------------- seguimiento */}
         <Seccion titulo="Seguimiento" icono="git-network-outline" style={{ marginTop: E.md }} />
         <Tarjeta>
           <Linea estado={pedido.estado} eventos={eventos} />
         </Tarjeta>
+    </>
+  );
 
+  const bloqueFinal = (
+    <>
         {/* ---------------------------------------------------- chat */}
         {participo && pedido.estado !== 'publicado' && (
           <Chat
@@ -655,7 +657,7 @@ export default function DetallePedido() {
             enviando={ocupado === 'mensaje'}
           />
         )}
-
+  
         {/* ------------------------------------ disputa */}
         {participo && DISPUTABLES.includes(pedido.estado) && (
           <PanelDisputa
@@ -672,7 +674,7 @@ export default function DetallePedido() {
             }
           />
         )}
-
+  
         {/* ------------------------------------ cancelar */}
         {soyCliente && CANCELABLES.includes(pedido.estado) && pago?.estado !== 'en_revision' && (
           <Tarjeta>
@@ -732,6 +734,49 @@ export default function DetallePedido() {
               </>
             )}
           </Tarjeta>
+        )}
+    </>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: C.fondo }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={90}>
+      <ScrollView
+        contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={async () => {
+              setRefrescando(true);
+              await cargar().catch(() => undefined);
+              setRefrescando(false);
+            }}
+          />
+        }>
+        {escritorio ? (
+          // En escritorio, como la página de un producto: a la izquierda lo
+          // que se pide (foto, datos, avance) y a la derecha lo que hay que
+          // hacer (siguiente paso, ofertas, pago, chat).
+          <View style={s.columnas}>
+            <View style={s.columnaProducto}>
+              {bloquePortada}
+              {bloqueSeguimiento}
+            </View>
+            <View style={s.columnaAcciones}>
+              {bloqueAcciones}
+              {bloqueFinal}
+            </View>
+          </View>
+        ) : (
+          <>
+            {bloquePortada}
+            {bloqueAcciones}
+            {bloqueSeguimiento}
+            {bloqueFinal}
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -1430,8 +1475,23 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.borde,
   },
-  portadaImagen: { width: '100%', height: 200, backgroundColor: C.superficieSuave },
-  portadaIcono: { alignItems: 'center', justifyContent: 'center', height: 150, overflow: 'hidden' },
+  portadaMarco: {
+    width: '100%',
+    height: 260,
+    backgroundColor: C.blanco,
+    borderBottomWidth: 1,
+    borderBottomColor: C.borde,
+    padding: E.md,
+  },
+  portadaMarcoGrande: { height: 420, padding: E.xl },
+  portadaFoto: { width: '100%', height: '100%' },
+  portadaIcono: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  precioFila: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: E.sm, marginTop: E.sm },
+  precio: { fontSize: 26, fontWeight: '800', color: C.azul, letterSpacing: -0.6 },
+  precioEtiqueta: { fontSize: 13, color: C.textoSuave },
+  columnas: { flexDirection: 'row', alignItems: 'flex-start', gap: E.xl },
+  columnaProducto: { flex: 1.15, minWidth: 0 },
+  columnaAcciones: { flex: 1, minWidth: 0 },
   portadaCuerpo: { padding: E.lg + 2 },
   titulo: {
     fontSize: 21,
