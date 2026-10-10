@@ -18,6 +18,7 @@ import {
   Vacio,
 } from '@/ui/componentes';
 import { PedidoCard } from '@/ui/PedidoCard';
+import { useEscritorio } from '@/ui/escritorio';
 import { C, E, R, sombra } from '@/ui/tema';
 
 const TERMINADOS: EstadoPedido[] = ['confirmado', 'cancelado'];
@@ -32,6 +33,7 @@ function saludo() {
 }
 
 export default function MisPedidos() {
+  const { es: escritorio } = useEscritorio();
   const { perfil, verificado, refrescarPerfil } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
@@ -79,6 +81,9 @@ export default function MisPedidos() {
       <FlatList
         data={visibles}
         keyExtractor={(p) => p.id}
+        // En escritorio, dos columnas (ui/escritorio). `key` rehace la lista al cambiar.
+        key={escritorio ? 'dos' : 'una'}
+        numColumns={escritorio ? 2 : 1}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}
         ListHeaderComponent={
@@ -113,13 +118,11 @@ export default function MisPedidos() {
                     }
                     style={[
                       s.verificar,
-                      perfil?.verificacion === 'rechazado' && { borderColor: C.rojo },
+                      perfil?.verificacion === 'rechazado' && {
+                        borderColor: C.rojo,
+                      },
                     ]}>
-                    <View
-                      style={[
-                        s.verificarIcono,
-                        { backgroundColor: `${v.color}18` },
-                      ]}>
+                    <View style={[s.verificarIcono, { backgroundColor: `${v.color}18` }]}>
                       <Ionicons
                         name={
                           perfil?.verificacion === 'en_revision'
@@ -154,7 +157,10 @@ export default function MisPedidos() {
                     valor={filtro}
                     onChange={setFiltro}
                     opciones={[
-                      { valor: 'activos', etiqueta: `En curso · ${activos.length}` },
+                      {
+                        valor: 'activos',
+                        etiqueta: `En curso · ${activos.length}`,
+                      },
                       {
                         valor: 'terminados',
                         etiqueta: `Terminados · ${lista.length - activos.length}`,
@@ -168,7 +174,7 @@ export default function MisPedidos() {
           </>
         }
         renderItem={({ item, index }) => (
-          <Entrada i={index} style={{ paddingHorizontal: E.lg }}>
+          <Entrada i={index} style={escritorio ? s.celda : { paddingHorizontal: E.lg }}>
             <PedidoCard
               pedido={item}
               pie={
@@ -200,20 +206,24 @@ export default function MisPedidos() {
         }
       />
 
-      <View style={s.flotante}>
-        <Boton
-          icono={verificado ? 'add-circle' : 'shield-checkmark'}
-          titulo={verificado ? 'Publicar un pedido' : 'Verifica tu identidad para publicar'}
-          onPress={() => router.push(verificado ? '/publicar' : '/verificacion')}
-          deshabilitado={perfil?.verificacion === 'en_revision'}
-          style={sombra(3)}
-        />
-      </View>
+      {/* En escritorio publicar está en la barra lateral. */}
+      {!escritorio && (
+        <View style={s.flotante}>
+          <Boton
+            icono={verificado ? 'add-circle' : 'shield-checkmark'}
+            titulo={verificado ? 'Publicar un pedido' : 'Verifica tu identidad para publicar'}
+            onPress={() => router.push(verificado ? '/publicar' : '/verificacion')}
+            deshabilitado={perfil?.verificacion === 'en_revision'}
+            style={sombra(3)}
+          />
+        </View>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  celda: { width: '50%', paddingHorizontal: E.sm },
   verificar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,6 +243,11 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   verificarTitulo: { fontSize: 15.5, fontWeight: '800', color: C.azul },
-  verificarTexto: { fontSize: 13.5, color: C.textoSuave, marginTop: 2, lineHeight: 19 },
+  verificarTexto: {
+    fontSize: 13.5,
+    color: C.textoSuave,
+    marginTop: 2,
+    lineHeight: 19,
+  },
   flotante: { position: 'absolute', left: E.lg, right: E.lg, bottom: E.lg },
 });

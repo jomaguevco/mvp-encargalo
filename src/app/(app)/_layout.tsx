@@ -3,8 +3,10 @@ import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
+import { BarraLateral } from '@/ui/BarraLateral';
 import { Cargando } from '@/ui/componentes';
-import { C } from '@/ui/tema';
+import { useEscritorio } from '@/ui/escritorio';
+import { C, E } from '@/ui/tema';
 
 /**
  * Icono de una pestaña.
@@ -39,11 +41,7 @@ function Icono({
         // pestaña estás, sin depender solo del color.
         backgroundColor: activo ? C.naranjaClaro : 'transparent',
       }}>
-      <Ionicons
-        name={nombre}
-        size={22}
-        color={activo ? C.naranja : C.textoSuave}
-      />
+      <Ionicons name={nombre} size={22} color={activo ? C.naranja : C.textoSuave} />
 
       {!!globo && globo > 0 && (
         <View
@@ -77,7 +75,10 @@ const par = (base: string) =>
   ({
     apagado: `${base}-outline`,
     encendido: base,
-  }) as { apagado: keyof typeof Ionicons.glyphMap; encendido: keyof typeof Ionicons.glyphMap };
+  }) as {
+    apagado: keyof typeof Ionicons.glyphMap;
+    encendido: keyof typeof Ionicons.glyphMap;
+  };
 
 const ICONOS = {
   pedidos: par('cube'),
@@ -93,13 +94,17 @@ export default function AppLayout() {
   // Con la navegación por gestos de Android la barra del sistema queda encima:
   // la altura de la barra de pestañas tiene que sumarla.
   const insets = useSafeAreaInsets();
+  // En un navegador ancho: barra lateral y contenido centrado (ui/escritorio).
+  const { es: escritorio, margenPestana } = useEscritorio();
 
   if (cargando) return <Cargando texto="Cargando…" />;
   if (!sesion) return <Redirect href="/entrar" />;
 
   return (
     <Tabs
+      tabBar={escritorio ? (props) => <BarraLateral {...props} iconos={ICONOS} /> : undefined}
       screenOptions={{
+        tabBarPosition: escritorio ? 'left' : 'bottom',
         // Cada pestaña dibuja su propia cabecera con degradado (ui/componentes
         // → Cabecera), con cifras y acciones; la barra de navegación plana
         // quedaba corta para eso.
@@ -119,8 +124,19 @@ export default function AppLayout() {
           shadowRadius: 12,
           shadowOffset: { width: 0, height: -2 },
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 2 },
-        sceneStyle: { backgroundColor: C.fondo },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginBottom: 6,
+          marginTop: 2,
+        },
+        sceneStyle: escritorio
+          ? {
+              backgroundColor: C.fondo,
+              paddingHorizontal: margenPestana,
+              paddingTop: E.xl,
+            }
+          : { backgroundColor: C.fondo },
       }}>
       <Tabs.Screen
         name="pedidos"

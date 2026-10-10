@@ -18,6 +18,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { iniciales } from '@/lib/negocio';
 import { AVATARES, C, E, G, R, T, sombra } from './tema';
+import { useEscritorio } from './escritorio';
 
 /**
  * Piezas de interfaz de Encárgalo.
@@ -349,8 +350,9 @@ export function Cabecera({
   colores?: readonly [string, string, ...string[]];
 }) {
   const insets = useSafeAreaInsets();
+  const { es: escritorio } = useEscritorio();
   return (
-    <View style={s.cabecera}>
+    <View style={[s.cabecera, escritorio && s.cabeceraEscritorio]}>
       <LinearGradient
         colors={colores}
         start={{ x: 0, y: 0 }}
@@ -889,6 +891,8 @@ const s = StyleSheet.create({
     borderBottomLeftRadius: R.xl + 4,
     borderBottomRightRadius: R.xl + 4,
   },
+  // En escritorio la cabecera es una tarjeta: el contenido ya está centrado.
+  cabeceraEscritorio: { borderRadius: R.xl + 4, marginBottom: E.lg },
   cabeceraFila: { flexDirection: 'row', alignItems: 'center', gap: E.md },
   cabeceraAnte: {
     color: 'rgba(255,255,255,0.72)',

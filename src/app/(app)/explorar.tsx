@@ -19,14 +19,11 @@ import {
 } from '@/ui/componentes';
 import { iconoCategoria } from '@/ui/iconos';
 import { PedidoCard } from '@/ui/PedidoCard';
+import { useEscritorio } from '@/ui/escritorio';
 import { C, E, R } from '@/ui/tema';
 
 /** Quita tildes y pasa a minúsculas, para que «tecnologia» encuentre «Tecnología». */
-const normaliza = (t: string) =>
-  t
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+const normaliza = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 type Orden = 'recientes' | 'urgentes' | 'valor';
 
@@ -74,6 +71,7 @@ function Bloqueo({
 }
 
 export default function Explorar() {
+  const { es: escritorio } = useEscritorio();
   const { perfil, verificado } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
@@ -115,9 +113,7 @@ export default function Explorar() {
       return [...filtrados].sort((a, b) => a.fecha_limite.localeCompare(b.fecha_limite));
     }
     if (orden === 'valor') {
-      return [...filtrados].sort(
-        (a, b) => (b.valor_referencial ?? 0) - (a.valor_referencial ?? 0),
-      );
+      return [...filtrados].sort((a, b) => (b.valor_referencial ?? 0) - (a.valor_referencial ?? 0));
     }
     return filtrados;
   }, [pedidos, busqueda, categoria, orden]);
@@ -166,6 +162,9 @@ export default function Explorar() {
       style={{ backgroundColor: C.fondo }}
       data={visibles}
       keyExtractor={(p) => p.id}
+      // En escritorio, dos columnas (ui/escritorio). `key` rehace la lista al cambiar.
+      key={escritorio ? 'dos' : 'una'}
+      numColumns={escritorio ? 2 : 1}
       contentContainerStyle={{ paddingBottom: E.xxl }}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -217,7 +216,11 @@ export default function Explorar() {
               onChange={setCategoria}
               opciones={[
                 { valor: 'todas', etiqueta: 'Todas', icono: 'apps-outline' },
-                ...CATEGORIAS.map((c) => ({ valor: c, etiqueta: c, icono: iconoCategoria(c) })),
+                ...CATEGORIAS.map((c) => ({
+                  valor: c,
+                  etiqueta: c,
+                  icono: iconoCategoria(c),
+                })),
               ]}
             />
           </View>
@@ -248,7 +251,7 @@ export default function Explorar() {
         </>
       }
       renderItem={({ item, index }) => (
-        <Entrada i={index} style={{ paddingHorizontal: E.lg }}>
+        <Entrada i={index} style={escritorio ? s.celda : { paddingHorizontal: E.lg }}>
           <PedidoCard pedido={item} pie="Ver y ofertar" />
         </Entrada>
       )}
@@ -277,6 +280,7 @@ export default function Explorar() {
 }
 
 const s = StyleSheet.create({
+  celda: { width: '50%', paddingHorizontal: E.sm },
   buscador: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,7 +290,12 @@ const s = StyleSheet.create({
     paddingHorizontal: E.md,
     marginTop: E.md,
   },
-  buscadorCampo: { flex: 1, paddingVertical: 13, fontSize: 15.5, color: C.texto },
+  buscadorCampo: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 15.5,
+    color: C.texto,
+  },
   ordenFila: {
     flexDirection: 'row',
     justifyContent: 'space-between',
