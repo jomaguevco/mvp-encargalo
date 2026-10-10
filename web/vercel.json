@@ -1,0 +1,27 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/descargar",
+      "destination": "https://expo.dev/artifacts/eas/w9KEH50QxuvXe9Ka6xC9oXA1S3ZHQNjRKIo7gIMkNWA.apk",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    { "source": "/app/:ruta*", "destination": "/app/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/app/_expo/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}

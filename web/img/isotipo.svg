@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Isotipo de Encárgalo: el encargo (caja con cinta) y el sello de que va
+       protegido. Azul = seguridad, coral = la acción. Mismos colores que
+       src/ui/tema.ts. -->
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1A5288"/>
+      <stop offset="1" stop-color="#0E3255"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#fondo)"/>
+  <g transform="translate(-14 4)">
+    <!-- caras de la caja -->
+    <path d="M256 104 L 392 182 L 256 260 L 120 182 Z" fill="#DCE9F7"/>
+    <path d="M120 182 L 256 260 L 256 416 L 120 338 Z" fill="#FFFFFF"/>
+    <path d="M256 260 L 392 182 L 392 338 L 256 416 Z" fill="#B7CCE4"/>
+    <!-- cinta -->
+    <path d="M177 149 L 199 136 L 335 214 L 313 227 Z" fill="#EE6C34"/>
+    <path d="M313 227 L 335 214 L 335 371 L 313 384 Z" fill="#C9541F"/>
+  </g>
+  <!-- sello: va protegido -->
+  <circle cx="372" cy="372" r="74" fill="#EE6C34" stroke="#0E3255" stroke-width="18"/>
+  <path d="M338 374 L 362 398 L 408 348" fill="none" stroke="#FFFFFF"
+        stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -8,7 +8,7 @@
     "scheme": "encargalo",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "pe.encargalo.app"
     },
     "android": {
@@ -26,7 +26,10 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Encárgalo",
+      "description": "Encargos del extranjero con identidad verificada y pago retenido.",
+      "themeColor": "#0E3255"
     },
     "plugins": [
       "expo-router",
@@ -49,7 +52,8 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "baseUrl": "/app"
     },
     "primaryColor": "#0E3255",
     "extra": {

@@ -48,3 +48,8 @@ example
 
 # Temporales de la CLI de Supabase
 supabase/.temp/
+
+# Sitio armado para Vercel (scripts/construir-web.mjs)
+publico/
+dist-web/
+.vercel

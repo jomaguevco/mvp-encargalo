@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/ctx/auth';
 import { Aviso, Boton, Campo, Entrada } from '@/ui/componentes';
@@ -87,13 +88,11 @@ export default function Entrar() {
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Entrada>
           <View style={s.marca}>
-            <LinearGradient
-              colors={G.accion}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={s.logoAro}>
-              <Ionicons name="airplane" size={30} color={C.blanco} />
-            </LinearGradient>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={s.logoAro}
+              accessibilityLabel="Logo de Encárgalo"
+            />
             <Text style={s.logo}>Encárgalo</Text>
             <Text style={s.lema}>Lo que quieres del extranjero, sin miedo a perder tu plata</Text>
           </View>
@@ -191,13 +190,10 @@ const s = StyleSheet.create({
 
   marca: { alignItems: 'center', marginBottom: E.xl + E.sm, marginTop: E.xl },
   logoAro: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 76,
+    height: 76,
+    borderRadius: 20,
     marginBottom: E.md,
-    transform: [{ rotate: '-8deg' }],
     ...sombra(3),
   },
   logo: { fontSize: 42, fontWeight: '800', color: C.blanco, letterSpacing: -1.4 },

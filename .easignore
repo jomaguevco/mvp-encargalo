@@ -49,3 +49,7 @@ example
 
 # Temporales de la CLI de Supabase
 supabase/.temp/
+
+publico/
+dist-web/
+.vercel
