@@ -254,6 +254,13 @@ eas build -p android --profile preview
 Devuelve un enlace de descarga del `.apk`, que se puede instalar directamente sin pasar
 por Google Play. Es lo que conviene usar para el piloto.
 
+Las variables `EXPO_PUBLIC_*` del `.env` no viajan solas a la compilación en la nube:
+la URL y la clave publicable de Supabase (públicas por diseño) están declaradas en el
+perfil de `eas.json`. Nunca poner ahí la `service_role`. Los datos de Yape no van en
+`eas.json` porque el repositorio es público: viajan en `.env`, que `.easignore` sí sube
+a EAS y `.gitignore` deja fuera de GitHub. `eas.json` no admite comentarios: EAS rechaza
+cualquier campo que no conozca.
+
 ---
 
 ## Cómo probar el flujo completo
