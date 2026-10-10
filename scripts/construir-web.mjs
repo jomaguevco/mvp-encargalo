@@ -70,16 +70,10 @@ html = html
   .replace(
     '<link rel="icon" href="/app/favicon.ico"/>',
     '<link rel="icon" type="image/svg+xml" href="/img/isotipo.svg"/>' +
-      '<link rel="apple-touch-icon" href="/img/apple-touch-icon.png"/>' +
-      // La tipografía de la marca, la misma de la página pública. `ionicons`
-      // va justo detrás: la fuente de la marca no tiene los glifos de los
-      // íconos (están en el área de uso privado de Unicode), así que el
-      // navegador los dibuja con la siguiente de la lista y los íconos no se
-      // rompen aunque la regla los alcance.
-      '<link rel="preconnect" href="https://fonts.googleapis.com"/>' +
-      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>' +
-      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"/>' +
-      "<style>#root,#root *{font-family:'Plus Jakarta Sans',ionicons,-apple-system,'Segoe UI',Roboto,sans-serif!important}</style>",
+      // La tipografía de la marca no se inyecta aquí: viaja en el bundle
+      // (expo-font, app/_layout) y ui/Texto la aplica a cada texto. Una regla
+      // font-family global la taparía.
+      '<link rel="apple-touch-icon" href="/img/apple-touch-icon.png"/>',
   );
 writeFileSync(indice, html);
 
