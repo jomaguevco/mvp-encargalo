@@ -12,7 +12,15 @@
  * Vercel solo recibe archivos estáticos ya armados.
  */
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 const raiz = join(import.meta.dirname, '..');
@@ -36,6 +44,23 @@ if (existsSync(enlace)) {
 cpSync(exportado, join(publico, 'app'), { recursive: true });
 rmSync(exportado, { recursive: true, force: true });
 
+// Vercel nunca sube carpetas llamadas node_modules, y Expo deja ahí las
+// fuentes de los íconos (app/assets/node_modules/@expo/vector-icons/...).
+// Sin este cambio, en producción la fuente devolvía el HTML de la app y todos
+// los íconos salían vacíos. Se renombra la carpeta y se corrigen las rutas.
+const activos = join(publico, 'app', 'assets');
+if (existsSync(join(activos, 'node_modules'))) {
+  renameSync(join(activos, 'node_modules'), join(activos, 'paquetes'));
+  const js = join(publico, 'app', '_expo', 'static', 'js', 'web');
+  for (const archivo of readdirSync(js).filter((a) => a.endsWith('.js'))) {
+    const ruta = join(js, archivo);
+    writeFileSync(
+      ruta,
+      readFileSync(ruta, 'utf8').replaceAll('/assets/node_modules/', '/assets/paquetes/'),
+    );
+  }
+}
+
 console.log('3/3 Ajustando el HTML de la aplicación…');
 const indice = join(publico, 'app', 'index.html');
 let html = readFileSync(indice, 'utf8');
@@ -45,7 +70,16 @@ html = html
   .replace(
     '<link rel="icon" href="/app/favicon.ico"/>',
     '<link rel="icon" type="image/svg+xml" href="/img/isotipo.svg"/>' +
-      '<link rel="apple-touch-icon" href="/img/apple-touch-icon.png"/>',
+      '<link rel="apple-touch-icon" href="/img/apple-touch-icon.png"/>' +
+      // La tipografía de la marca, la misma de la página pública. `ionicons`
+      // va justo detrás: la fuente de la marca no tiene los glifos de los
+      // íconos (están en el área de uso privado de Unicode), así que el
+      // navegador los dibuja con la siguiente de la lista y los íconos no se
+      // rompen aunque la regla los alcance.
+      '<link rel="preconnect" href="https://fonts.googleapis.com"/>' +
+      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"/>' +
+      "<style>#root,#root *{font-family:'Plus Jakarta Sans',ionicons,-apple-system,'Segoe UI',Roboto,sans-serif!important}</style>",
   );
 writeFileSync(indice, html);
 

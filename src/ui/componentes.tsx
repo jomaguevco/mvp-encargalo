@@ -892,7 +892,7 @@ const s = StyleSheet.create({
     borderBottomRightRadius: R.xl + 4,
   },
   // En escritorio la cabecera es una tarjeta: el contenido ya está centrado.
-  cabeceraEscritorio: { borderRadius: R.xl + 4, marginBottom: E.lg },
+  cabeceraEscritorio: { borderRadius: R.xl + 4, marginBottom: E.lg, marginHorizontal: E.sm },
   cabeceraFila: { flexDirection: 'row', alignItems: 'center', gap: E.md },
   cabeceraAnte: {
     color: 'rgba(255,255,255,0.72)',

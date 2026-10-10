@@ -61,7 +61,7 @@ import {
   type NombreIcono,
 } from '@/ui/componentes';
 import { avisar, confirmar } from '@/ui/dialogos';
-import { ICONO_ESTADO, iconoCategoria } from '@/ui/iconos';
+import { ICONO_ESTADO, estiloCategoria, iconoCategoria } from '@/ui/iconos';
 import { Linea } from '@/ui/Linea';
 import { OfertaItem } from '@/ui/OfertaItem';
 import { C, E, G, R, sombra } from '@/ui/tema';
@@ -165,7 +165,10 @@ function siguientePaso(opts: {
     if (SIGUIENTE_PASO_COMPRADOR[e])
       return {
         icono: e === 'pagado' ? 'cart' : e === 'comprado' ? 'airplane' : 'cube',
-        titulo: e === 'pagado' ? 'El pago está retenido: ya puedes comprar' : 'Te toca actualizar el avance',
+        titulo:
+          e === 'pagado'
+            ? 'El pago está retenido: ya puedes comprar'
+            : 'Te toca actualizar el avance',
         texto: 'Marca cada paso: el cliente lo ve al instante y sube tu puntualidad.',
         colores: G.accion,
       };
@@ -249,7 +252,8 @@ export default function DetallePedido() {
     // La otra parte del pedido, para mostrar con quién estás tratando
     if (pg) {
       const uid = perfil?.id;
-      const otro = pg.cliente_id === uid ? pg.comprador_id : pg.comprador_id === uid ? pg.cliente_id : null;
+      const otro =
+        pg.cliente_id === uid ? pg.comprador_id : pg.comprador_id === uid ? pg.cliente_id : null;
       setContraparte(otro ? await api.reputacionDe(otro) : null);
     } else if (p.cliente_id !== perfil?.id) {
       setContraparte(await api.reputacionDe(p.cliente_id));
@@ -321,9 +325,7 @@ export default function DetallePedido() {
 
   const info = ESTADO_PEDIDO[pedido.estado];
   const masBarata = ofertas.length ? Math.min(...ofertas.map((o) => o.precio_final)) : null;
-  const masRapida = ofertas.length
-    ? ofertas.map((o) => o.fecha_entrega).sort()[0]
-    : null;
+  const masRapida = ofertas.length ? ofertas.map((o) => o.fecha_entrega).sort()[0] : null;
   const foto = pedido.imagen_path ? api.urlPublica('productos', pedido.imagen_path) : null;
   const dias = diasHasta(pedido.fecha_limite);
   const paso = siguientePaso({
@@ -361,12 +363,16 @@ export default function DetallePedido() {
               <Image source={{ uri: foto }} style={s.portadaImagen} resizeMode="cover" />
             ) : (
               <LinearGradient
-                colors={G.marca}
+                colors={estiloCategoria(pedido.categoria).colores}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[s.portadaImagen, s.portadaIcono]}>
                 <View style={s.portadaBurbuja} />
-                <Ionicons name={iconoCategoria(pedido.categoria)} size={56} color="rgba(255,255,255,0.9)" />
+                <Ionicons
+                  name={estiloCategoria(pedido.categoria).icono}
+                  size={64}
+                  color={C.blanco}
+                />
               </LinearGradient>
             )}
             <View style={s.portadaCuerpo}>
@@ -385,9 +391,21 @@ export default function DetallePedido() {
               )}
 
               <View style={s.datos}>
-                <DatoCaja icono={iconoCategoria(pedido.categoria)} etiqueta="Categoría" valor={pedido.categoria} />
-                <DatoCaja icono="layers-outline" etiqueta="Cantidad" valor={String(pedido.cantidad)} />
-                <DatoCaja icono="location-outline" etiqueta="Entrega en" valor={pedido.ciudad_entrega} />
+                <DatoCaja
+                  icono={iconoCategoria(pedido.categoria)}
+                  etiqueta="Categoría"
+                  valor={pedido.categoria}
+                />
+                <DatoCaja
+                  icono="layers-outline"
+                  etiqueta="Cantidad"
+                  valor={String(pedido.cantidad)}
+                />
+                <DatoCaja
+                  icono="location-outline"
+                  etiqueta="Entrega en"
+                  valor={pedido.ciudad_entrega}
+                />
                 <DatoCaja
                   icono="calendar-outline"
                   etiqueta="Fecha límite"
@@ -401,7 +419,11 @@ export default function DetallePedido() {
                     valor={soles(pedido.valor_referencial)}
                   />
                 )}
-                <DatoCaja icono="time-outline" etiqueta="Publicado" valor={hace(pedido.creado_en)} />
+                <DatoCaja
+                  icono="time-outline"
+                  etiqueta="Publicado"
+                  valor={hace(pedido.creado_en)}
+                />
               </View>
             </View>
           </View>
@@ -437,16 +459,13 @@ export default function DetallePedido() {
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={s.contraparteRol}>
-                    {soyCliente
-                      ? 'Te lo trae'
-                      : participo
-                        ? 'Tu cliente'
-                        : 'Lo pide'}
+                    {soyCliente ? 'Te lo trae' : participo ? 'Tu cliente' : 'Lo pide'}
                   </Text>
                   <Text style={s.contraparteNombre} numberOfLines={1}>
                     {contraparte.nombre_completo}
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     <Estrellas valor={Number(contraparte.calificacion ?? 0)} tamano={12} />
                     <Text style={s.contraparteMeta}>
                       {contraparte.pedidos_cumplidos} cumplido
@@ -558,8 +577,8 @@ export default function DetallePedido() {
           <Tarjeta style={{ borderColor: `${C.naranja}66`, borderWidth: 1.5 }}>
             <Seccion titulo="Tu turno" icono="flash-outline" style={{ marginTop: 0 }} />
             <Text style={s.nota}>
-              El cliente ve cada paso que marcas. Mantenerlo informado es lo que sube tu
-              puntualidad y tu reputación.
+              El cliente ve cada paso que marcas. Mantenerlo informado es lo que sube tu puntualidad
+              y tu reputación.
             </Text>
             <Boton
               titulo={SIGUIENTE_PASO_COMPRADOR[pedido.estado]!.accion}
@@ -667,10 +686,14 @@ export default function DetallePedido() {
               </Pressable>
             ) : (
               <>
-                <Seccion titulo="Cancelar el pedido" icono="close-circle-outline" style={{ marginTop: 0 }} />
+                <Seccion
+                  titulo="Cancelar el pedido"
+                  icono="close-circle-outline"
+                  style={{ marginTop: 0 }}
+                />
                 <Text style={s.nota}>
-                  Puedes cancelar mientras no hayas reportado el pago. Las ofertas recibidas
-                  quedan descartadas y quien ofertó recibe un aviso.
+                  Puedes cancelar mientras no hayas reportado el pago. Las ofertas recibidas quedan
+                  descartadas y quien ofertó recibe un aviso.
                 </Text>
                 <Campo
                   etiqueta="¿Por qué lo cancelas?"
@@ -777,7 +800,10 @@ function FormularioOferta({
     { valor: '35', etiqueta: '5 semanas' },
   ].filter((o) => Number(o.valor) <= diasHastaLimite);
   if (plazos.length === 0) {
-    plazos.push({ valor: String(diasHastaLimite), etiqueta: `${diasHastaLimite} día${diasHastaLimite === 1 ? '' : 's'}` });
+    plazos.push({
+      valor: String(diasHastaLimite),
+      etiqueta: `${diasHastaLimite} día${diasHastaLimite === 1 ? '' : 's'}`,
+    });
   }
   const [dias, setDias] = useState(plazos[Math.min(2, plazos.length - 1)].valor);
   const precioNum = Number(precio.replace(',', '.'));
@@ -807,7 +833,11 @@ function FormularioOferta({
   if (propia) {
     return (
       <Tarjeta style={{ borderColor: `${C.azulMedio}55`, borderWidth: 1.5 }}>
-        <Seccion titulo="Tu oferta está enviada" icono="paper-plane-outline" style={{ marginTop: 0 }} />
+        <Seccion
+          titulo="Tu oferta está enviada"
+          icono="paper-plane-outline"
+          style={{ marginTop: 0 }}
+        />
         <View style={s.ofertaPropia}>
           <View>
             <Text style={s.datoEtiqueta}>Precio ofertado</Text>
@@ -822,7 +852,12 @@ function FormularioOferta({
           El cliente está comparando las ofertas. Te avisaremos si elige la tuya.
         </Text>
         {propia.estado === 'enviada' && (
-          <Boton titulo="Retirar mi oferta" variante="fantasma" cargando={retirando} onPress={onRetirar} />
+          <Boton
+            titulo="Retirar mi oferta"
+            variante="fantasma"
+            cargando={retirando}
+            onPress={onRetirar}
+          />
         )}
       </Tarjeta>
     );
@@ -840,8 +875,8 @@ function FormularioOferta({
     <Tarjeta>
       <Seccion titulo="Enviar mi oferta" icono="pricetag-outline" style={{ marginTop: 0 }} />
       <Text style={s.nota}>
-        Indica el precio final que le cobrarías al cliente, ya con tu recompensa incluida. La
-        fecha límite del cliente es el {fecha(pedido.fecha_limite)}.
+        Indica el precio final que le cobrarías al cliente, ya con tu recompensa incluida. La fecha
+        límite del cliente es el {fecha(pedido.fecha_limite)}.
       </Text>
 
       <Campo
@@ -850,16 +885,14 @@ function FormularioOferta({
         value={precio}
         onChangeText={setPrecio}
         keyboardType="decimal-pad"
-        placeholder={pedido.valor_referencial ? String(Math.round(pedido.valor_referencial * 1.15)) : '491.40'}
+        placeholder={
+          pedido.valor_referencial ? String(Math.round(pedido.valor_referencial * 1.15)) : '491.40'
+        }
       />
 
       <Etiqueta>¿En cuánto tiempo lo entregas?</Etiqueta>
       <View style={{ marginBottom: E.lg }}>
-        <Opciones
-          valor={dias}
-          onChange={setDias}
-          opciones={plazos}
-        />
+        <Opciones valor={dias} onChange={setDias} opciones={plazos} />
         <Text style={[s.datoEtiqueta, { marginTop: E.sm }]}>
           Entregarías el {fecha(enDias(Number(dias)))}
         </Text>
@@ -938,9 +971,15 @@ function PanelPago({
 
   return (
     <>
-      <Seccion titulo="Pago protegido" icono="shield-checkmark-outline" style={{ marginTop: E.md }} />
-      <TarjetaDegradada colores={protegido ? G.dinero : pago.estado === 'reembolsado' ? G.marca : G.noche}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Seccion
+        titulo="Pago protegido"
+        icono="shield-checkmark-outline"
+        style={{ marginTop: E.md }}
+      />
+      <TarjetaDegradada
+        colores={protegido ? G.dinero : pago.estado === 'reembolsado' ? G.marca : G.noche}>
+        <View
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Chip
             texto={info.etiqueta}
             color={C.blanco}
@@ -949,7 +988,9 @@ function PanelPago({
           />
           <Ionicons name="shield-checkmark" size={26} color="rgba(255,255,255,0.5)" />
         </View>
-        <Text style={s.dineroEtiqueta}>{soyCliente ? 'Total a pagar' : 'Recibirás al entregar'}</Text>
+        <Text style={s.dineroEtiqueta}>
+          {soyCliente ? 'Total a pagar' : 'Recibirás al entregar'}
+        </Text>
         <Text style={s.dineroMonto}>
           {soles(soyCliente ? pago.total_cobrado : pago.monto_liberado)}
         </Text>
@@ -957,9 +998,21 @@ function PanelPago({
       </TarjetaDegradada>
 
       <Tarjeta>
-        <Dato icono="pricetag-outline" etiqueta="Producto y recompensa" valor={soles(pago.monto_encargo)} />
-        <Dato icono="briefcase-outline" etiqueta="Comisión de servicio" valor={soles(pago.comision_cliente)} />
-        <Dato icono="card-outline" etiqueta="Procesamiento del pago" valor={soles(pago.cargo_procesamiento)} />
+        <Dato
+          icono="pricetag-outline"
+          etiqueta="Producto y recompensa"
+          valor={soles(pago.monto_encargo)}
+        />
+        <Dato
+          icono="briefcase-outline"
+          etiqueta="Comisión de servicio"
+          valor={soles(pago.comision_cliente)}
+        />
+        <Dato
+          icono="card-outline"
+          etiqueta="Procesamiento del pago"
+          valor={soles(pago.cargo_procesamiento)}
+        />
         <Separador />
         <Dato etiqueta="Total que paga el cliente" valor={soles(pago.total_cobrado)} fuerte />
         {!soyCliente && (
@@ -969,7 +1022,11 @@ function PanelPago({
               etiqueta="Tarifa al comprador externo"
               valor={`− ${soles(pago.tarifa_comprador)}`}
             />
-            <Dato etiqueta="Recibe el comprador externo" valor={soles(pago.monto_liberado)} fuerte />
+            <Dato
+              etiqueta="Recibe el comprador externo"
+              valor={soles(pago.monto_liberado)}
+              fuerte
+            />
           </>
         )}
 
@@ -988,8 +1045,8 @@ function PanelPago({
               </View>
             </View>
             <Text style={[s.nota, { marginTop: E.md }]}>
-              Después sube la captura. El comprador externo no recibe tu dinero hasta que
-              confirmes que llegó tu producto.
+              Después sube la captura. El comprador externo no recibe tu dinero hasta que confirmes
+              que llegó tu producto.
             </Text>
 
             <Etiqueta>Método de pago</Etiqueta>
@@ -998,9 +1055,21 @@ function PanelPago({
                 valor={metodo}
                 onChange={setMetodo}
                 opciones={[
-                  { valor: 'yape' as MetodoPago, etiqueta: 'Yape', icono: 'phone-portrait-outline' },
-                  { valor: 'plin' as MetodoPago, etiqueta: 'Plin', icono: 'phone-portrait-outline' },
-                  { valor: 'transferencia' as MetodoPago, etiqueta: 'Transferencia', icono: 'business-outline' },
+                  {
+                    valor: 'yape' as MetodoPago,
+                    etiqueta: 'Yape',
+                    icono: 'phone-portrait-outline',
+                  },
+                  {
+                    valor: 'plin' as MetodoPago,
+                    etiqueta: 'Plin',
+                    icono: 'phone-portrait-outline',
+                  },
+                  {
+                    valor: 'transferencia' as MetodoPago,
+                    etiqueta: 'Transferencia',
+                    icono: 'business-outline',
+                  },
                 ]}
               />
             </View>
@@ -1022,10 +1091,16 @@ function PanelPago({
               ]}>
               {comprobante ? (
                 <>
-                  <Image source={{ uri: comprobante }} style={s.comprobanteImagen} resizeMode="cover" />
+                  <Image
+                    source={{ uri: comprobante }}
+                    style={s.comprobanteImagen}
+                    resizeMode="cover"
+                  />
                   <View style={s.comprobantePie}>
                     <Ionicons name="checkmark-circle" size={16} color={C.verde} />
-                    <Text style={s.comprobantePieTexto}>Comprobante listo · tocar para cambiar</Text>
+                    <Text style={s.comprobantePieTexto}>
+                      Comprobante listo · tocar para cambiar
+                    </Text>
                   </View>
                 </>
               ) : (
@@ -1049,8 +1124,8 @@ function PanelPago({
         {pago.estado === 'en_revision' && (
           <View style={{ marginTop: E.md }}>
             <Aviso tono="alerta" titulo="Validando el pago">
-              Recibimos el comprobante ({pago.codigo_operacion}). En cuanto el equipo confirme
-              que el dinero llegó, el pedido pasa a «pago retenido».
+              Recibimos el comprobante ({pago.codigo_operacion}). En cuanto el equipo confirme que
+              el dinero llegó, el pedido pasa a «pago retenido».
             </Aviso>
             {/* Durante el piloto la retención la confirma a mano el equipo.
                 El botón solo aparece para quien figura en la tabla operadores. */}
@@ -1069,7 +1144,11 @@ function PanelPago({
         {pago.estado === 'liberado' && (
           <>
             <Separador />
-            <Dato icono="lock-open-outline" etiqueta="Liberado el" valor={fechaHora(pago.liberado_en)} />
+            <Dato
+              icono="lock-open-outline"
+              etiqueta="Liberado el"
+              valor={fechaHora(pago.liberado_en)}
+            />
           </>
         )}
       </Tarjeta>
@@ -1109,7 +1188,9 @@ function PanelDisputa({
       <Tarjeta>
         <Pressable onPress={() => setAbierto(true)} style={s.plegado}>
           <Ionicons name="flag-outline" size={20} color={C.ambar} />
-          <Text style={[s.plegadoTexto, { color: C.ambar }]}>Tengo un problema con este pedido</Text>
+          <Text style={[s.plegadoTexto, { color: C.ambar }]}>
+            Tengo un problema con este pedido
+          </Text>
           <Ionicons name="chevron-down" size={18} color={C.textoSuave} />
         </Pressable>
       </Tarjeta>
@@ -1225,11 +1306,7 @@ function PanelCalificacion({
           : 'Tu calificación es lo que hará que el próximo cliente pueda confiar.'}
       </Text>
 
-      <Estrellas
-        valor={puntaje}
-        tamano={38}
-        onCambiar={yaCalifique ? undefined : setPuntaje}
-      />
+      <Estrellas valor={puntaje} tamano={38} onCambiar={yaCalifique ? undefined : setPuntaje} />
       <Text style={s.calificarPalabra}>{PALABRAS[puntaje] || 'Toca una estrella'}</Text>
 
       {yaCalifique ? (
@@ -1279,7 +1356,12 @@ function Chat({
 
   return (
     <>
-      <Seccion titulo="Conversación" icono="chatbubbles-outline" conteo={mensajes.length} style={{ marginTop: E.md }} />
+      <Seccion
+        titulo="Conversación"
+        icono="chatbubbles-outline"
+        conteo={mensajes.length}
+        style={{ marginTop: E.md }}
+      />
       <Tarjeta style={{ padding: E.md }}>
         <View style={s.chatAviso}>
           <Ionicons name="lock-closed" size={12} color={C.textoSuave} />
@@ -1412,7 +1494,13 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  pasoTitulo: { color: C.blanco, fontSize: 17, fontWeight: '800', marginTop: 2, letterSpacing: -0.3 },
+  pasoTitulo: {
+    color: C.blanco,
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 2,
+    letterSpacing: -0.3,
+  },
   pasoTexto: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 2 },
 
   contraparteRol: { fontSize: 12, color: C.textoSuave, fontWeight: '700' },
@@ -1431,7 +1519,13 @@ const s = StyleSheet.create({
     marginBottom: E.md,
   },
   esperaTitulo: { fontSize: 16.5, fontWeight: '800', color: C.azul },
-  esperaTexto: { fontSize: 14, color: C.textoSuave, textAlign: 'center', marginTop: 4, lineHeight: 20 },
+  esperaTexto: {
+    fontSize: 14,
+    color: C.textoSuave,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 20,
+  },
 
   ofertaPropia: {
     flexDirection: 'row',
@@ -1545,7 +1639,12 @@ const s = StyleSheet.create({
   },
   chatAvisoTexto: { fontSize: 11.5, color: C.textoSuave, fontWeight: '600' },
   burbujaFila: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: E.sm },
-  burbuja: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: E.md, paddingVertical: E.sm + 1 },
+  burbuja: {
+    maxWidth: '78%',
+    borderRadius: 18,
+    paddingHorizontal: E.md,
+    paddingVertical: E.sm + 1,
+  },
   burbujaMia: { backgroundColor: C.azul, borderBottomRightRadius: 5 },
   burbujaSuya: { backgroundColor: C.superficieSuave, borderBottomLeftRadius: 5 },
   burbujaTexto: { fontSize: 14.5, color: C.texto, lineHeight: 20 },

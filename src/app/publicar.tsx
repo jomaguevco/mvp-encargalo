@@ -14,16 +14,8 @@ import {
 } from 'react-native';
 import { publicarPedido, subirImagenProducto } from '@/lib/api';
 import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD, fecha } from '@/lib/negocio';
-import {
-  Aviso,
-  Boton,
-  Campo,
-  Entrada,
-  Etiqueta,
-  Opciones,
-  Tarjeta,
-} from '@/ui/componentes';
-import { iconoCategoria } from '@/ui/iconos';
+import { Aviso, Boton, Campo, Entrada, Etiqueta, Opciones, Tarjeta } from '@/ui/componentes';
+import { estiloCategoria } from '@/ui/iconos';
 import { C, E, R } from '@/ui/tema';
 
 /** Devuelve una fecha ISO (YYYY-MM-DD) a N días de hoy. */
@@ -34,10 +26,16 @@ function enDias(n: number) {
 }
 
 const DESPUES = [
-  { icono: 'megaphone' as const, texto: 'Los compradores externos verificados ven tu pedido y te ofertan.' },
+  {
+    icono: 'megaphone' as const,
+    texto: 'Los compradores externos verificados ven tu pedido y te ofertan.',
+  },
   { icono: 'git-compare' as const, texto: 'Comparas precio, fecha y reputación, y eliges.' },
   { icono: 'lock-closed' as const, texto: 'Pagas y tu dinero queda retenido por Encárgalo.' },
-  { icono: 'checkmark-done' as const, texto: 'Confirmas que lo recibiste y recién se libera el pago.' },
+  {
+    icono: 'checkmark-done' as const,
+    texto: 'Confirmas que lo recibiste y recién se libera el pago.',
+  },
 ];
 
 export default function Publicar() {
@@ -144,11 +142,7 @@ export default function Publicar() {
 
             <Pressable
               onPress={elegirFoto}
-              style={({ pressed }) => [
-                s.foto,
-                foto && s.fotoLista,
-                pressed && { opacity: 0.85 },
-              ]}>
+              style={({ pressed }) => [s.foto, foto && s.fotoLista, pressed && { opacity: 0.85 }]}>
               {foto ? (
                 <>
                   <Image source={{ uri: foto }} style={s.fotoImagen} resizeMode="cover" />
@@ -190,18 +184,35 @@ export default function Publicar() {
             <View style={s.categorias}>
               {CATEGORIAS.map((c) => {
                 const activa = c === categoria;
+                const estilo = estiloCategoria(c);
                 return (
                   <Pressable
                     key={c}
                     onPress={() => setCategoria(c)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: activa }}
-                    style={[s.categoria, activa && s.categoriaActiva]}>
-                    <Ionicons
-                      name={iconoCategoria(c)}
-                      size={22}
-                      color={activa ? C.blanco : C.azulMedio}
-                    />
+                    style={[
+                      s.categoria,
+                      activa && {
+                        backgroundColor: estilo.colores[1],
+                        borderColor: estilo.colores[1],
+                      },
+                    ]}>
+                    <View
+                      style={[
+                        s.categoriaIcono,
+                        {
+                          backgroundColor: activa
+                            ? 'rgba(255,255,255,0.2)'
+                            : `${estilo.colores[0]}1F`,
+                        },
+                      ]}>
+                      <Ionicons
+                        name={estilo.icono}
+                        size={20}
+                        color={activa ? C.blanco : estilo.colores[1]}
+                      />
+                    </View>
                     <Text
                       style={[s.categoriaTexto, activa && { color: C.blanco }]}
                       numberOfLines={2}>
@@ -285,9 +296,8 @@ export default function Publicar() {
               </View>
             )}
             <Text style={[s.ayuda, { marginTop: E.md }]}>
-              Si el producto cuesta más de US$ {UMBRAL_IMPUESTO_USD}, paga impuestos de
-              importación al llegar al Perú: pregunta al comprador externo si su oferta ya
-              los incluye.
+              Si el producto cuesta más de US$ {UMBRAL_IMPUESTO_USD}, paga impuestos de importación
+              al llegar al Perú: pregunta al comprador externo si su oferta ya los incluye.
             </Text>
           </Tarjeta>
         </Entrada>
@@ -377,7 +387,13 @@ const s = StyleSheet.create({
     borderColor: C.borde,
     backgroundColor: C.blanco,
   },
-  categoriaActiva: { backgroundColor: C.azul, borderColor: C.azul },
+  categoriaIcono: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   categoriaTexto: {
     fontSize: 11.5,
     fontWeight: '700',
@@ -426,5 +442,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   despuesTallo: { width: 2, flex: 1, minHeight: 14, backgroundColor: C.azulClaro },
-  despuesTexto: { flex: 1, fontSize: 14, color: C.texto, lineHeight: 20, paddingBottom: E.md, paddingTop: 4 },
+  despuesTexto: {
+    flex: 1,
+    fontSize: 14,
+    color: C.texto,
+    lineHeight: 20,
+    paddingBottom: E.md,
+    paddingTop: 4,
+  },
 });

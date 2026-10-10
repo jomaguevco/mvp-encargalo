@@ -259,6 +259,82 @@ p { margin: 0; }
 .pie-rejilla a:hover { color: #fff; }
 .pie-final { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid rgba(255, 255, 255, .1); margin-top: 48px; padding-top: 22px; font-size: 13.5px; }
 
+
+/* ---------- Categorías (mismos colores que la app: src/ui/iconos.ts) ---------- */
+.categorias-rejilla { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; }
+.categoria {
+  position: relative; overflow: hidden; border-radius: 20px; padding: 22px 20px 20px; color: #fff;
+  background: linear-gradient(140deg, var(--c1), var(--c2));
+  box-shadow: 0 12px 28px -12px var(--c2);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.categoria::after {
+  content: ''; position: absolute; width: 140px; height: 140px; border-radius: 50%;
+  right: -50px; top: -60px; background: rgba(255, 255, 255, .14);
+}
+.categoria:hover { transform: translateY(-4px) rotate(-.5deg); box-shadow: 0 20px 36px -12px var(--c2); }
+.categoria-icono {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px;
+  background: rgba(255, 255, 255, .22); margin-bottom: 16px;
+}
+.categoria-icono svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.categoria strong { display: block; font-size: 17px; letter-spacing: -.01em; }
+.categoria small { display: block; font-size: 13.5px; opacity: .88; margin-top: 4px; line-height: 1.4; }
+
+/* ---------- La app por dentro ---------- */
+.app-rejilla { display: grid; grid-template-columns: .85fr 1.15fr; gap: 56px; align-items: center; }
+.app-rejilla .portada-botones .boton-primario { margin-top: 0; }
+.navegador {
+  margin: 0; border-radius: 18px; overflow: hidden; background: #fff;
+  box-shadow: 0 40px 80px -30px rgba(14, 50, 85, .45), 0 0 0 1px var(--borde);
+  transform: perspective(1600px) rotateY(-6deg) rotateX(2deg);
+  transition: transform .4s ease;
+}
+.navegador:hover { transform: perspective(1600px) rotateY(0) rotateX(0); }
+.navegador-barra { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: #EEF2F7; border-bottom: 1px solid var(--borde); }
+.navegador-barra span { width: 11px; height: 11px; border-radius: 50%; background: #F87171; }
+.navegador-barra span:nth-child(2) { background: #FBBF24; }
+.navegador-barra span:nth-child(3) { background: #34D399; }
+.navegador-barra em { font-style: normal; font-size: 12.5px; color: var(--suave); background: #fff; border-radius: 8px; padding: 3px 12px; margin-left: 10px; }
+.navegador img { width: 100%; height: auto; }
+.navegador figcaption { font-size: 12.5px; color: var(--suave); padding: 10px 14px; border-top: 1px solid var(--borde); }
+
+/* ---------- Etiquetas flotantes de la portada ---------- */
+.flotante {
+  position: absolute; z-index: 4; display: flex; align-items: center; gap: 8px;
+  background: #fff; color: var(--texto); font-weight: 700; font-size: 14px;
+  padding: 10px 14px; border-radius: 14px; box-shadow: var(--sombra-2);
+  animation: flotar-chip 5s ease-in-out infinite;
+}
+.flotante svg { width: 20px; height: 20px; }
+.flotante-1 { left: -6%; top: 46%; }
+.flotante-1 svg { fill: var(--azul-medio); }
+.flotante-2 { right: -4%; bottom: 14%; animation-delay: -2.5s; }
+.flotante-2 svg { fill: var(--verde); }
+@keyframes flotar-chip { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+/* ---------- Aparición al desplazarse (main.js) ---------- */
+.js .revelar { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.js .revelar.visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .js .revelar { opacity: 1; transform: none; transition: none; }
+  .flotante { animation: none; }
+}
+
+@media (max-width: 1000px) {
+  .categorias-rejilla { grid-template-columns: repeat(2, 1fr); }
+  .app-rejilla { grid-template-columns: 1fr; }
+  .navegador { transform: none; }
+}
+@media (max-width: 520px) {
+  .categorias-rejilla { gap: 12px; }
+  .categoria { padding: 18px 16px; }
+  .categoria small { display: none; }
+  .flotante { font-size: 12.5px; padding: 8px 11px; }
+  .flotante-1 { left: 0; }
+  .flotante-2 { right: 0; }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1000px) {
   .pasos { grid-template-columns: repeat(2, 1fr); }

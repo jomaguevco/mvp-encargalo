@@ -31,6 +31,7 @@
     </a>
     <nav class="menu" id="menu" aria-label="Principal">
       <a href="#como-funciona">Cómo funciona</a>
+      <a href="#app">La app</a>
       <a href="#seguridad">Seguridad</a>
       <a href="#viajeros">Viajeros</a>
       <a href="#tarifas">Tarifas</a>
@@ -75,6 +76,8 @@
           <span class="ruta-origen">Miami</span>
           <span class="ruta-destino">Chiclayo</span>
         </div>
+        <div class="flotante flotante-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z"/></svg> DNI verificado</div>
+        <div class="flotante flotante-2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9h-2Zm-8-2a3 3 0 0 1 6 0v2H9V7Z"/></svg> S/ 640 retenidos</div>
         <div class="telefono">
           <div class="telefono-isla"></div>
           <div class="pantalla">
@@ -125,32 +128,86 @@
       <p class="antetitulo">Cómo funciona</p>
       <h2>Cuatro pasos, y tu dinero nunca queda en el aire</h2>
       <ol class="pasos">
-        <li class="paso">
+        <li class="paso revelar">
           <span class="paso-num">1</span>
           <h3>Publica tu encargo</h3>
           <p>Di qué producto quieres, pega el enlace de la tienda y pon una fecha límite. Publicar es gratis.</p>
         </li>
-        <li class="paso">
+        <li class="paso revelar">
           <span class="paso-num">2</span>
           <h3>Compara ofertas</h3>
           <p>Viajeros verificados te ofrecen un precio final y una fecha de entrega. Eliges por precio, plazo y reputación.</p>
         </li>
-        <li class="paso">
+        <li class="paso revelar">
           <span class="paso-num">3</span>
           <h3>Paga protegido</h3>
           <p>Pagas por Yape a Encárgalo, no al viajero. El equipo confirma el pago y lo retiene mientras dura el viaje.</p>
         </li>
-        <li class="paso">
+        <li class="paso revelar">
           <span class="paso-num">4</span>
           <h3>Recibe y confirma</h3>
           <p>Te entregan en Chiclayo, revisas el producto y confirmas. Recién ahí se libera el pago. Luego calificas al viajero.</p>
         </li>
       </ol>
-      <div class="categorias" aria-label="Qué se puede encargar">
-        <span class="categorias-titulo">Lo que más se encarga</span>
-        <span class="chip">Tecnología</span><span class="chip">Perfumes</span><span class="chip">Zapatillas</span>
-        <span class="chip">Videojuegos</span><span class="chip">Suplementos</span><span class="chip">Ropa y accesorios</span>
+      <div class="categorias-rejilla" aria-label="Qué se puede encargar">
+        <div class="categoria revelar" style="--c1:#6366F1;--c2:#4338CA">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
+          <strong>Tecnología</strong><small>Celulares, laptops, audífonos</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#F97316;--c2:#C2410C">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3l-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/></svg></span>
+          <strong>Zapatillas y ropa</strong><small>Ediciones y tallas que aquí no llegan</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#8B5CF6;--c2:#6D28D9">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 15h-4l-1 .6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4z"/><path d="M7 11v3M5.5 12.5h3M16 12h.01M18 13h.01"/></svg></span>
+          <strong>Videojuegos</strong><small>Consolas, mandos y lanzamientos</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#10B981;--c2:#047857">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg></span>
+          <strong>Suplementos</strong><small>Proteínas y vitaminas originales</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#EC4899;--c2:#BE185D">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>
+          <strong>Cosméticos</strong><small>Perfumes y skincare con factura</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#F59E0B;--c2:#B45309">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M12 21L8 9l4-6 4 6z"/></svg></span>
+          <strong>Coleccionables</strong><small>Figuras, cartas y ediciones limitadas</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#64748B;--c2:#334155">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L22 14l-8 8-2.3-2.3a4 4 0 0 0-5-5L3 11l3-3 3.7 3.7"/></svg></span>
+          <strong>Repuestos</strong><small>Piezas difíciles de conseguir</small>
+        </div>
+        <div class="categoria revelar" style="--c1:#2A6BA8;--c2:#0E3255">
+          <span class="categoria-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg></span>
+          <strong>Lo que necesites</strong><small>Si es legal y viaja, se puede</small>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ La app por dentro ============ -->
+  <section class="seccion seccion-suave" id="app">
+    <div class="contenedor app-rejilla">
+      <div class="revelar">
+        <p class="antetitulo">La app por dentro</p>
+        <h2>Todo tu encargo en una sola pantalla</h2>
+        <p class="parrafo-grande">Úsala desde el navegador o instálala en Android. Ves en qué paso va cada pedido, las ofertas que recibiste y cuánto falta para que llegue.</p>
+        <ul class="lista-check lista-check-oscura">
+          <li>Avance del pedido en siete pasos, de publicado a confirmado</li>
+          <li>Chat con el viajero dentro de cada pedido</li>
+          <li>Avisos cuando te ofertan, te pagan o te entregan</li>
+        </ul>
+        <div class="portada-botones">
+          <a class="boton boton-primario boton-grande" href="/app/">Abrir la app web</a>
+          <a class="boton boton-claro boton-grande" href="/descargar">Descargar para Android</a>
+        </div>
+      </div>
+      <figure class="navegador revelar">
+        <div class="navegador-barra"><span></span><span></span><span></span><em>encargalo.vercel.app/app</em></div>
+        <img src="/img/app-escritorio.jpg" alt="Pantalla de Mis pedidos en la app web de Encárgalo" loading="lazy" width="1568" height="777">
+        <figcaption>Captura real de la app web. Los pedidos que se ven son de prueba.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -160,7 +217,7 @@
       <p class="antetitulo antetitulo-claro">Seguridad</p>
       <h2>Tres promesas, y la plataforma está construida alrededor de ellas</h2>
       <div class="promesas">
-        <article class="promesa">
+        <article class="revelar promesa">
           <div class="promesa-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2c-3.3 0-6 1.7-6 4v2h12v-2c0-2.3-2.7-4-6-4Zm8.3-4.7-1.4-1.4L14 8.8l-.9-.9-1.4 1.4 2.3 2.3 3.3-3.3Z"/></svg></div>
           <h3>Identidad verificada</h3>
           <p>Cada persona registra su DNI y se valida su nombre contra RENIEC. Luego se toma una selfie y un sistema biométrico la compara con la foto del documento. Si hay dudas, la revisa una persona del equipo.</p>
@@ -170,7 +227,7 @@
             <li>Las fotos se borran al resolver (Ley N° 29733)</li>
           </ul>
         </article>
-        <article class="promesa promesa-destacada">
+        <article class="revelar promesa promesa-destacada">
           <div class="promesa-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9h-2Zm-8-2a3 3 0 0 1 6 0v2H9V7Zm4 10.7V19h-2v-1.3a2 2 0 1 1 2 0Z"/></svg></div>
           <h3>Pago retenido</h3>
           <p>El viajero no recibe tu dinero hasta que confirmas la entrega. Si algo sale mal, abres una disputa y el equipo media con el chat y el historial del pedido a la vista.</p>
@@ -180,7 +237,7 @@
             <li>7 días para confirmar o reclamar tras la entrega</li>
           </ul>
         </article>
-        <article class="promesa">
+        <article class="revelar promesa">
           <div class="promesa-icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 17.3 6.2 3.7-1.6-7 5.4-4.7-7.1-.6L12 2 9.1 8.7 2 9.3l5.4 4.7-1.6 7z"/></svg></div>
           <h3>Reputación pública</h3>
           <p>Cada entrega termina en una calificación. Antes de aceptar una oferta ves la nota, las entregas completadas y la antigüedad de quien te va a traer tu pedido.</p>

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/ctx/auth';
@@ -29,6 +30,14 @@ export function BarraLateral({
 
   return (
     <View style={s.barra}>
+      <LinearGradient
+        colors={['#0B2A48', '#0E3255', '#123E6A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.4, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Brillo coral de la marca, como en la página pública */}
+      <View style={s.brillo} />
       <Pressable
         onPress={() => {
           // Volver a la página pública, fuera de la aplicación.
@@ -88,6 +97,7 @@ export function BarraLateral({
                 s.item,
                 activo ? s.itemActivo : hovered && s.itemEncima,
               ]}>
+              {activo && <View style={s.indicador} />}
               {icono && (
                 <Ionicons
                   name={activo ? icono.encendido : icono.apagado}
@@ -132,6 +142,7 @@ const s = StyleSheet.create({
     width: ANCHO_LATERAL,
     height: '100%',
     backgroundColor: C.azul,
+    overflow: 'hidden',
     paddingHorizontal: E.md,
     paddingTop: E.xl,
     paddingBottom: E.lg,
@@ -142,7 +153,7 @@ const s = StyleSheet.create({
     gap: E.sm + 2,
     paddingHorizontal: E.sm,
   },
-  logo: { width: 36, height: 36, borderRadius: 10 },
+  logo: { width: 40, height: 40, borderRadius: 11 },
   marcaTexto: {
     color: C.blanco,
     fontSize: 21,
@@ -172,6 +183,25 @@ const s = StyleSheet.create({
   },
   itemEncima: { backgroundColor: 'rgba(255,255,255,0.06)' },
   itemActivo: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  indicador: {
+    position: 'absolute',
+    left: -E.md,
+    top: 8,
+    bottom: 8,
+    width: 4,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+    backgroundColor: C.naranja,
+  },
+  brillo: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    left: -190,
+    bottom: -150,
+    backgroundColor: 'rgba(238,108,52,0.18)',
+  },
   itemTexto: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 15,

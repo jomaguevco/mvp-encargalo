@@ -1,21 +1,16 @@
 import { router } from 'expo-router';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { urlPublica } from '@/lib/api';
 import { ESTADO_PEDIDO, PASOS, diasHasta, fecha, soles } from '@/lib/negocio';
 import type { Pedido } from '@/lib/tipos';
 import { Chip, Progreso, Tarjeta } from './componentes';
-import { ICONO_ESTADO, iconoCategoria } from './iconos';
+import { ICONO_ESTADO, estiloCategoria, iconoCategoria } from './iconos';
 import { C, E, R } from './tema';
 
 /** Un dato del pedido con su icono. Se leen de un barrido, no leyendo. */
-function Meta({
-  icono,
-  children,
-}: {
-  icono: keyof typeof Ionicons.glyphMap;
-  children: string;
-}) {
+function Meta({ icono, children }: { icono: keyof typeof Ionicons.glyphMap; children: string }) {
   return (
     <View style={s.meta}>
       <Ionicons name={icono} size={13} color={C.textoSuave} />
@@ -50,9 +45,13 @@ export function PedidoCard({ pedido, pie }: { pedido: Pedido; pie?: string }) {
         {foto ? (
           <Image source={{ uri: foto }} style={s.miniatura} resizeMode="cover" />
         ) : (
-          <View style={[s.miniatura, s.miniaturaIcono]}>
-            <Ionicons name={iconoCategoria(pedido.categoria)} size={26} color={C.azulMedio} />
-          </View>
+          <LinearGradient
+            colors={estiloCategoria(pedido.categoria).colores}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[s.miniatura, s.miniaturaIcono]}>
+            <Ionicons name={estiloCategoria(pedido.categoria).icono} size={28} color={C.blanco} />
+          </LinearGradient>
         )}
 
         <View style={{ flex: 1 }}>
@@ -130,7 +129,7 @@ const s = StyleSheet.create({
   miniaturaIcono: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.azulClaro,
+    overflow: 'hidden',
   },
   titulo: {
     fontWeight: '800',

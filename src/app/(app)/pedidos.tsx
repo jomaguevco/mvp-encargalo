@@ -18,6 +18,7 @@ import {
   Vacio,
 } from '@/ui/componentes';
 import { PedidoCard } from '@/ui/PedidoCard';
+import { Banners } from '@/ui/Banners';
 import { useEscritorio } from '@/ui/escritorio';
 import { C, E, R, sombra } from '@/ui/tema';
 
@@ -109,7 +110,11 @@ export default function MisPedidos() {
               </FilaCifras>
             </Cabecera>
 
-            <View style={{ paddingHorizontal: E.lg, marginTop: -E.md }}>
+            <View
+              style={{
+                paddingHorizontal: escritorio ? E.sm : E.lg,
+                marginTop: escritorio ? 0 : -E.md,
+              }}>
               {!verificado && v && (
                 <Entrada>
                   <Pressable
@@ -150,6 +155,8 @@ export default function MisPedidos() {
                   </Pressable>
                 </Entrada>
               )}
+
+              <Banners />
 
               {lista.length > 0 && (
                 <View style={{ marginTop: E.lg, marginBottom: E.md }}>

@@ -81,4 +81,22 @@ var PROMOCIONES = [
   alDesplazar();
 
   document.getElementById('anio').textContent = new Date().getFullYear();
+
+  // Aparición al desplazarse. La clase `js` en <html> hace que el contenido
+  // solo se oculte si este script corre: sin JavaScript todo se ve igual.
+  if ('IntersectionObserver' in window) {
+    document.documentElement.classList.add('js');
+    var observador = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observador.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.revelar').forEach(function (el, i) {
+      el.style.transitionDelay = (i % 4) * 70 + 'ms';
+      observador.observe(el);
+    });
+  }
 })();
