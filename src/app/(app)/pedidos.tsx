@@ -34,7 +34,7 @@ function saludo() {
 }
 
 export default function MisPedidos() {
-  const { es: escritorio } = useEscritorio();
+  const { es: escritorio, columnas } = useEscritorio();
   const { perfil, verificado, refrescarPerfil } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
@@ -82,9 +82,9 @@ export default function MisPedidos() {
       <FlatList
         data={visibles}
         keyExtractor={(p) => p.id}
-        // En escritorio, dos columnas (ui/escritorio). `key` rehace la lista al cambiar.
-        key={escritorio ? 'dos' : 'una'}
-        numColumns={escritorio ? 2 : 1}
+        // En escritorio, dos o tres columnas (ui/escritorio). `key` rehace la lista al cambiar.
+        key={`columnas-${columnas}`}
+        numColumns={columnas}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}
         ListHeaderComponent={
@@ -181,7 +181,13 @@ export default function MisPedidos() {
           </>
         }
         renderItem={({ item, index }) => (
-          <Entrada i={index} style={escritorio ? s.celda : { paddingHorizontal: E.lg }}>
+          <Entrada
+            i={index}
+            style={
+              escritorio
+                ? { paddingHorizontal: E.sm, width: `${100 / columnas}%` as `${number}%` }
+                : { paddingHorizontal: E.lg }
+            }>
             <PedidoCard
               pedido={item}
               pie={
@@ -230,7 +236,6 @@ export default function MisPedidos() {
 }
 
 const s = StyleSheet.create({
-  celda: { width: '50%', paddingHorizontal: E.sm },
   verificar: {
     flexDirection: 'row',
     alignItems: 'center',

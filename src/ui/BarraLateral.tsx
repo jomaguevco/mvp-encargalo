@@ -39,13 +39,11 @@ export function BarraLateral({
       {/* Brillo coral de la marca, como en la página pública */}
       <View style={s.brillo} />
       <Pressable
-        onPress={() => {
-          // Volver a la página pública, fuera de la aplicación.
-          if (typeof window !== 'undefined') window.location.href = '/';
-        }}
+        // El logo lleva al inicio de la aplicación, no a la página pública.
+        onPress={() => router.push('/(app)/pedidos')}
         style={s.marca}
         accessibilityRole="link"
-        accessibilityLabel="Ir a la página de Encárgalo">
+        accessibilityLabel="Ir a Mis pedidos">
         <Image source={require('../../assets/images/icon.png')} style={s.logo} />
         <Text style={s.marcaTexto}>Encárgalo</Text>
       </Pressable>

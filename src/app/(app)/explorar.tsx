@@ -71,7 +71,7 @@ function Bloqueo({
 }
 
 export default function Explorar() {
-  const { es: escritorio } = useEscritorio();
+  const { es: escritorio, columnas } = useEscritorio();
   const { perfil, verificado } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
@@ -162,9 +162,9 @@ export default function Explorar() {
       style={{ backgroundColor: C.fondo }}
       data={visibles}
       keyExtractor={(p) => p.id}
-      // En escritorio, dos columnas (ui/escritorio). `key` rehace la lista al cambiar.
-      key={escritorio ? 'dos' : 'una'}
-      numColumns={escritorio ? 2 : 1}
+      // En escritorio, dos o tres columnas (ui/escritorio). `key` rehace la lista al cambiar.
+      key={`columnas-${columnas}`}
+      numColumns={columnas}
       contentContainerStyle={{ paddingBottom: E.xxl }}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -251,7 +251,13 @@ export default function Explorar() {
         </>
       }
       renderItem={({ item, index }) => (
-        <Entrada i={index} style={escritorio ? s.celda : { paddingHorizontal: E.lg }}>
+        <Entrada
+          i={index}
+          style={
+            escritorio
+              ? { paddingHorizontal: E.sm, width: `${100 / columnas}%` as `${number}%` }
+              : { paddingHorizontal: E.lg }
+          }>
           <PedidoCard pedido={item} pie="Ver y ofertar" />
         </Entrada>
       )}
@@ -280,7 +286,6 @@ export default function Explorar() {
 }
 
 const s = StyleSheet.create({
-  celda: { width: '50%', paddingHorizontal: E.sm },
   buscador: {
     flexDirection: 'row',
     alignItems: 'center',
