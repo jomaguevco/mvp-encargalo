@@ -5,7 +5,7 @@
  *   /app/...     la aplicación, exportada para navegador con Expo
  *
  *   node scripts/construir-web.mjs
- *   npx vercel deploy publico --prod
+ *   cd publico && npx vercel deploy --prod
  *
  * Se construye aquí y no en Vercel porque las variables EXPO_PUBLIC_* viven en
  * el .env local (los datos de Yape no van al repositorio, que es público).
@@ -24,8 +24,15 @@ rmSync(exportado, { recursive: true, force: true });
 execSync(`npx expo export --platform web --output-dir dist-web`, { cwd: raiz, stdio: 'inherit' });
 
 console.log('2/3 Juntando la página pública y la aplicación…');
+// publico/.vercel enlaza la carpeta con el proyecto de Vercel: se conserva.
+const enlace = join(raiz, '.vercel-publico');
+if (existsSync(join(publico, '.vercel'))) cpSync(join(publico, '.vercel'), enlace, { recursive: true });
 rmSync(publico, { recursive: true, force: true });
 cpSync(join(raiz, 'web'), publico, { recursive: true });
+if (existsSync(enlace)) {
+  cpSync(enlace, join(publico, '.vercel'), { recursive: true });
+  rmSync(enlace, { recursive: true, force: true });
+}
 cpSync(exportado, join(publico, 'app'), { recursive: true });
 rmSync(exportado, { recursive: true, force: true });
 

@@ -53,3 +53,4 @@ supabase/.temp/
 publico/
 dist-web/
 .vercel
+.vercel-publico
