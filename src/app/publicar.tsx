@@ -9,9 +9,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { publicarPedido, subirImagenProducto } from '@/lib/api';
 import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD, fecha } from '@/lib/negocio';
 import { Aviso, Boton, Campo, Entrada, Etiqueta, Opciones, Tarjeta } from '@/ui/componentes';
@@ -194,27 +194,25 @@ export default function Publicar() {
                     style={[
                       s.categoria,
                       activa && {
-                        backgroundColor: estilo.colores[1],
-                        borderColor: estilo.colores[1],
+                        backgroundColor: estilo.color,
+                        borderColor: estilo.color,
                       },
                     ]}>
                     <View
                       style={[
                         s.categoriaIcono,
                         {
-                          backgroundColor: activa
-                            ? 'rgba(255,255,255,0.2)'
-                            : `${estilo.colores[0]}1F`,
+                          backgroundColor: activa ? 'rgba(242,235,225,0.18)' : estilo.fondo,
                         },
                       ]}>
                       <Ionicons
                         name={estilo.icono}
                         size={20}
-                        color={activa ? C.blanco : estilo.colores[1]}
+                        color={activa ? C.sobreOscuro : estilo.color}
                       />
                     </View>
                     <Text
-                      style={[s.categoriaTexto, activa && { color: C.blanco }]}
+                      style={[s.categoriaTexto, activa && { color: C.sobreOscuro }]}
                       numberOfLines={2}>
                       {c}
                     </Text>

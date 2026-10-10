@@ -57,47 +57,47 @@ export const ESTADO_PEDIDO: Record<EstadoPedido, Info> = {
   publicado: {
     etiqueta: 'Publicado',
     detalle: 'Esperando ofertas de compradores externos',
-    color: '#2A6BA8',
+    color: '#2E6A55',
   },
   aceptado: {
     etiqueta: 'Aceptado',
     detalle: 'Elegiste una oferta. Falta que pagues para asegurar el pedido',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   pagado: {
     etiqueta: 'Pago retenido',
     detalle: 'Tu dinero está protegido. El comprador externo ya puede comprar',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   comprado: {
     etiqueta: 'Producto comprado',
     detalle: 'El comprador externo ya adquirió tu producto',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   en_viaje: {
     etiqueta: 'En viaje',
     detalle: 'Tu producto está en camino al Perú',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   entregado: {
     etiqueta: 'Entregado',
     detalle: 'El comprador externo marcó la entrega. Confirma si lo recibiste',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   confirmado: {
     etiqueta: 'Confirmado',
     detalle: 'Recibiste tu pedido y el pago fue liberado',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   en_disputa: {
     etiqueta: 'En disputa',
     detalle: 'Tu dinero sigue retenido mientras revisamos el caso',
-    color: '#B42318',
+    color: '#A8322A',
   },
   cancelado: {
     etiqueta: 'Cancelado',
     detalle: 'Este pedido ya no está activo',
-    color: '#6B7280',
+    color: '#8A8276',
   },
 };
 
@@ -105,27 +105,27 @@ export const ESTADO_PAGO: Record<EstadoPago, Info> = {
   pendiente: {
     etiqueta: 'Sin pagar',
     detalle: 'Todavía no reportaste el pago',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   en_revision: {
     etiqueta: 'Verificando pago',
     detalle: 'Recibimos tu comprobante y lo estamos validando',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   retenido: {
     etiqueta: 'Dinero retenido',
     detalle: 'Encárgalo tiene tu dinero. No se mueve hasta que confirmes',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   liberado: {
     etiqueta: 'Pago liberado',
     detalle: 'El comprador externo ya recibió su dinero',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   reembolsado: {
     etiqueta: 'Reembolsado',
     detalle: 'Te devolvimos el dinero',
-    color: '#2A6BA8',
+    color: '#2E6A55',
   },
 };
 
@@ -133,22 +133,22 @@ export const ESTADO_VERIFICACION: Record<EstadoVerificacion, Info> = {
   pendiente: {
     etiqueta: 'Sin verificar',
     detalle: 'Verifica tu identidad para publicar pedidos u ofertar',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   en_revision: {
     etiqueta: 'En revisión',
     detalle: 'Estamos validando tu DNI. Suele tomar menos de 24 horas',
-    color: '#EE6C34',
+    color: '#C65A3A',
   },
   verificado: {
     etiqueta: 'Identidad verificada',
     detalle: 'Tu DNI fue validado. Ya puedes operar',
-    color: '#12805C',
+    color: '#3B7F4C',
   },
   rechazado: {
     etiqueta: 'Verificación rechazada',
     detalle: 'No pudimos validar tus documentos',
-    color: '#B42318',
+    color: '#A8322A',
   },
 };
 
@@ -177,19 +177,19 @@ export const TIPO_AVISO: Record<
   'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion',
   { etiqueta: string; color: string }
 > = {
-  oferta: { etiqueta: 'Oferta', color: '#2A6BA8' },
-  pedido: { etiqueta: 'Pedido', color: '#EE6C34' },
-  pago: { etiqueta: 'Dinero', color: '#12805C' },
-  mensaje: { etiqueta: 'Mensaje', color: '#2A6BA8' },
-  calificacion: { etiqueta: 'Reputación', color: '#B45309' },
-  verificacion: { etiqueta: 'Identidad', color: '#12805C' },
+  oferta: { etiqueta: 'Oferta', color: '#2E6A55' },
+  pedido: { etiqueta: 'Pedido', color: '#C65A3A' },
+  pago: { etiqueta: 'Dinero', color: '#3B7F4C' },
+  mensaje: { etiqueta: 'Mensaje', color: '#2E6A55' },
+  calificacion: { etiqueta: 'Reputación', color: '#9C6B12' },
+  verificacion: { etiqueta: 'Identidad', color: '#3B7F4C' },
 };
 
 export const ESTADO_OFERTA: Record<EstadoOferta, { etiqueta: string; color: string }> = {
-  enviada: { etiqueta: 'Esperando respuesta', color: '#EE6C34' },
-  aceptada: { etiqueta: 'Aceptada', color: '#12805C' },
-  rechazada: { etiqueta: 'No elegida', color: '#6B7280' },
-  retirada: { etiqueta: 'Retirada', color: '#6B7280' },
+  enviada: { etiqueta: 'Esperando respuesta', color: '#C65A3A' },
+  aceptada: { etiqueta: 'Aceptada', color: '#3B7F4C' },
+  rechazada: { etiqueta: 'No elegida', color: '#8A8276' },
+  retirada: { etiqueta: 'Retirada', color: '#8A8276' },
 };
 
 /** Estados del pedido en los que cualquiera de las dos partes puede disputar. */

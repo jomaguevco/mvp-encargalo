@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { pedidosAbiertos } from '@/lib/api';
 import { CATEGORIAS, diasHasta } from '@/lib/negocio';
@@ -189,12 +190,12 @@ export default function Explorar() {
               <Cifra claro icono="grid" valor={String(categorias)} etiqueta="Categorías" />
             </FilaCifras>
             <View style={s.buscador}>
-              <Ionicons name="search" size={18} color="#98A6B8" />
+              <Ionicons name="search" size={18} color={C.grisTexto} />
               <TextInput
                 value={busqueda}
                 onChangeText={setBusqueda}
                 placeholder="Zapatillas, consola, suplemento…"
-                placeholderTextColor="#98A6B8"
+                placeholderTextColor={C.grisTexto}
                 autoCapitalize="none"
                 style={s.buscadorCampo}
               />
@@ -202,7 +203,7 @@ export default function Explorar() {
                 <Ionicons
                   name="close-circle"
                   size={18}
-                  color="#98A6B8"
+                  color={C.grisTexto}
                   onPress={() => setBusqueda('')}
                 />
               )}

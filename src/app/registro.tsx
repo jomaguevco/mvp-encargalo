@@ -7,9 +7,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { actualizarPerfil } from '@/lib/api';
 import { ORIGENES, VERSION_TERMINOS } from '@/lib/negocio';
@@ -344,5 +344,5 @@ const s = StyleSheet.create({
 
   pie: { flexDirection: 'row', justifyContent: 'center', marginTop: E.lg },
   pieTexto: { color: C.textoSuave, fontSize: 14.5 },
-  enlace: { color: C.naranja, fontWeight: '800', fontSize: 14.5 },
+  enlace: { color: C.naranjaOscuro, fontWeight: '700', fontSize: 14.5 },
 });

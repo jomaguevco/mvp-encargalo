@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { diasHasta, fecha, soles } from '@/lib/negocio';
 import type { OfertaConReputacion } from '@/lib/tipos';
 import { Avatar, Boton, Chip, Estrellas, Tarjeta } from './componentes';

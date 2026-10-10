@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { consultarDni } from '@/lib/api';
 import { nombreDeReniec } from '@/lib/negocio';
 import type { PersonaReniec } from '@/lib/tipos';
@@ -119,7 +120,7 @@ export function CampoDni({
       {estado.tipo === 'no_existe' && (
         <View style={[s.resultado, { backgroundColor: C.rojoClaro, borderColor: `${C.rojo}40` }]}>
           <Ionicons name="alert-circle" size={20} color={C.rojo} />
-          <Text style={[s.resultadoTexto, { color: '#8A1B12' }]}>
+          <Text style={[s.resultadoTexto, { color: C.rojoOscuro }]}>
             RENIEC no reconoce ese número. Revisa que esté bien escrito.
           </Text>
         </View>
@@ -128,7 +129,7 @@ export function CampoDni({
       {estado.tipo === 'sin_servicio' && (
         <View style={[s.resultado, { backgroundColor: C.ambarClaro, borderColor: `${C.ambar}40` }]}>
           <Ionicons name="cloud-offline-outline" size={20} color={C.ambar} />
-          <Text style={[s.resultadoTexto, { color: '#7A3D06' }]}>
+          <Text style={[s.resultadoTexto, { color: C.ambarOscuro }]}>
             {estado.mensaje.replace(/\.$/, '')}. Puedes continuar y escribir tu nombre a mano: el equipo revisará tu DNI.
           </Text>
         </View>
@@ -163,6 +164,6 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  resultadoNombre: { fontSize: 16, fontWeight: '800', color: '#0B5B41', marginTop: 1 },
+  resultadoNombre: { fontSize: 16, fontWeight: '800', color: C.verdeOscuro, marginTop: 1 },
   resultadoTexto: { flex: 1, fontSize: 13.5, fontWeight: '600', lineHeight: 19 },
 });

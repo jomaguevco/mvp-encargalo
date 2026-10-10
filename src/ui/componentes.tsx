@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
@@ -7,13 +6,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TextInputProps,
   TextProps,
   View,
   ViewStyle,
 } from 'react-native';
+import { Text, TextInput } from './Texto';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { iniciales } from '@/lib/negocio';
@@ -25,8 +23,8 @@ import { useEscritorio } from './escritorio';
  *
  * Las de siempre (Titulo, Boton, Campo, Tarjeta, Chip, Aviso, Dato…) conservan
  * nombre y propiedades: todas las pantallas las usan. Lo nuevo de este
- * rediseño son las piezas que le dan carácter a la aplicación: la cabecera con
- * degradado, el avatar, las cifras, las estrellas, la barra de progreso del
+ * rediseño son las piezas que le dan carácter a la aplicación: la cabecera en
+ * Monte, el avatar, las cifras, las estrellas, la barra de progreso del
  * pedido y los estados vacíos con icono.
  */
 
@@ -119,7 +117,7 @@ export function Boton({
   style,
 }: BotonProps) {
   const inactivo = deshabilitado || cargando;
-  const degradado = {
+  const fondo = {
     primario: G.accion,
     secundario: G.marca,
     peligro: G.peligro,
@@ -154,20 +152,13 @@ export function Boton({
         chico && s.botonChico,
         variante === 'fantasma' && s.botonFantasma,
         variante === 'suave' && s.botonSuave,
-        degradado && !inactivo && sombra(2),
+        fondo && { backgroundColor: fondo },
+        fondo && !inactivo && sombra(2),
         // Hundirse un punto al pulsar da la sensación de que el botón responde.
         pressed && !inactivo && { transform: [{ scale: 0.98 }], opacity: 0.92 },
         inactivo && { opacity: 0.45 },
         style,
       ]}>
-      {degradado ? (
-        <LinearGradient
-          colors={degradado}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFill, { borderRadius: R.md }]}
-        />
-      ) : null}
       {contenido}
     </Pressable>
   );
@@ -196,7 +187,7 @@ export function BotonIcono({
         claro ? s.botonIconoClaro : null,
         pressed && { opacity: 0.7 },
       ]}>
-      <Ionicons name={icono} size={20} color={claro ? C.blanco : C.azul} />
+      <Ionicons name={icono} size={20} color={claro ? C.sobreOscuro : C.azul} />
     </Pressable>
   );
 }
@@ -241,12 +232,12 @@ export function Campo({
           <Ionicons
             name={icono}
             size={18}
-            color={enfocado ? C.azulMedio : '#98A6B8'}
+            color={enfocado ? C.azul : C.grisTexto}
             style={{ marginLeft: E.md, marginTop: multilinea ? 14 : 0 }}
           />
         )}
         <TextInput
-          placeholderTextColor="#98A6B8"
+          placeholderTextColor={C.grisTexto}
           {...rest}
           onFocus={(e) => {
             setEnfocado(true);
@@ -302,37 +293,27 @@ export function Tarjeta({
   return <View style={[s.tarjeta, style]}>{children}</View>;
 }
 
-/** Tarjeta con degradado de fondo: para el dinero y los momentos clave. */
+/**
+ * Tarjeta de fondo oscuro y plano: para el dinero y los momentos clave. Se
+ * llamaba así cuando llevaba degradado; el nombre se conserva porque diez
+ * pantallas la usan.
+ */
 export function TarjetaDegradada({
   children,
-  colores = G.marca,
+  fondo = G.marca,
   style,
 }: {
   children: ReactNode;
-  colores?: readonly [string, string, ...string[]];
+  fondo?: string;
   style?: ViewStyle;
 }) {
-  return (
-    <View style={[s.tarjetaDegradada, sombra(3), style]}>
-      <LinearGradient
-        colors={colores}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Dos círculos translúcidos: textura sin imágenes */}
-      <View style={[s.burbuja, { top: -40, right: -30, width: 140, height: 140 }]} />
-      <View style={[s.burbuja, { bottom: -50, left: -20, width: 110, height: 110 }]} />
-      {children}
-    </View>
-  );
+  return <View style={[s.tarjetaDegradada, { backgroundColor: fondo }, style]}>{children}</View>;
 }
 
 // ------------------------------------------------------------------ cabecera
 /**
- * Cabecera de las pestañas: degradado navy a todo ancho, saludo o título, y
- * debajo lo que la pantalla quiera mostrar (cifras, buscador). Reemplaza a la
- * barra de navegación plana, que era lo primero que hacía ver la app «seca».
+ * Cabecera de las pestañas: Monte a todo ancho, saludo o título, y debajo lo
+ * que la pantalla quiera mostrar (cifras, buscador).
  */
 export function Cabecera({
   titulo,
@@ -340,27 +321,19 @@ export function Cabecera({
   subtitulo,
   derecha,
   children,
-  colores = G.marca,
+  fondo = G.marca,
 }: {
   titulo: string;
   antetitulo?: string;
   subtitulo?: string;
   derecha?: ReactNode;
   children?: ReactNode;
-  colores?: readonly [string, string, ...string[]];
+  fondo?: string;
 }) {
   const insets = useSafeAreaInsets();
   const { es: escritorio } = useEscritorio();
   return (
-    <View style={[s.cabecera, escritorio && s.cabeceraEscritorio]}>
-      <LinearGradient
-        colors={colores}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[s.burbuja, { top: -60, right: -40, width: 200, height: 200 }]} />
-      <View style={[s.burbuja, { top: 40, right: 90, width: 70, height: 70 }]} />
+    <View style={[s.cabecera, { backgroundColor: fondo }, escritorio && s.cabeceraEscritorio]}>
       <View style={{ paddingTop: insets.top + E.lg, paddingHorizontal: E.lg }}>
         <View style={s.cabeceraFila}>
           <View style={{ flex: 1 }}>
@@ -395,30 +368,28 @@ export function Avatar({
   tamano?: number;
   verificado?: boolean;
 }) {
-  const colores = colorDe(nombre ?? '?');
+  const color = colorDe(nombre ?? '?');
   return (
     <View style={{ width: tamano, height: tamano }}>
-      <LinearGradient
-        colors={colores}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={{
           width: tamano,
           height: tamano,
           borderRadius: tamano / 2,
+          backgroundColor: color,
           alignItems: 'center',
           justifyContent: 'center',
         }}>
         <Text
           style={{
-            color: C.blanco,
-            fontWeight: '800',
+            color: C.sobreOscuro,
+            fontWeight: '700',
             fontSize: tamano * 0.38,
             letterSpacing: -0.5,
           }}>
           {iniciales(nombre)}
         </Text>
-      </LinearGradient>
+      </View>
       {verificado && (
         <View
           style={[
@@ -455,14 +426,14 @@ export function Cifra({
       <View
         style={[
           s.cifraIcono,
-          { backgroundColor: claro ? 'rgba(255,255,255,0.16)' : `${color}18` },
+          { backgroundColor: claro ? 'rgba(242,235,225,0.12)' : `${color}18` },
         ]}>
-        <Ionicons name={icono} size={17} color={claro ? C.blanco : color} />
+        <Ionicons name={icono} size={17} color={claro ? C.trigo : color} />
       </View>
-      <Text style={[s.cifraValor, claro && { color: C.blanco }]} numberOfLines={1}>
+      <Text style={[s.cifraValor, claro && { color: C.sobreOscuro }]} numberOfLines={1}>
         {valor}
       </Text>
-      <Text style={[s.cifraEtiqueta, claro && { color: 'rgba(255,255,255,0.75)' }]}>
+      <Text style={[s.cifraEtiqueta, claro && { color: C.sobreOscuroSuave }]}>
         {etiqueta}
       </Text>
     </>
@@ -500,7 +471,7 @@ export function Estrellas({
         const nombre: NombreIcono =
           valor >= i ? 'star' : valor >= i - 0.5 ? 'star-half' : 'star-outline';
         const icono = (
-          <Ionicons name={nombre} size={tamano} color={valor >= i - 0.5 ? '#F5A524' : '#C8D2DE'} />
+          <Ionicons name={nombre} size={tamano} color={valor >= i - 0.5 ? C.estrella : C.borde} />
         );
         return onCambiar ? (
           <Pressable
@@ -582,9 +553,9 @@ export function Aviso({
 }) {
   const estilos = {
     info: { bg: C.azulClaro, bd: C.azulMedio, tx: C.azul, ic: 'information-circle' },
-    exito: { bg: C.verdeClaro, bd: C.verde, tx: '#0B5B41', ic: 'checkmark-circle' },
-    alerta: { bg: C.ambarClaro, bd: C.ambar, tx: '#7A3D06', ic: 'warning' },
-    error: { bg: C.rojoClaro, bd: C.rojo, tx: '#8A1B12', ic: 'close-circle' },
+    exito: { bg: C.verdeClaro, bd: C.verde, tx: C.verdeOscuro, ic: 'checkmark-circle' },
+    alerta: { bg: C.ambarClaro, bd: C.ambar, tx: C.ambarOscuro, ic: 'warning' },
+    error: { bg: C.rojoClaro, bd: C.rojo, tx: C.rojoOscuro, ic: 'close-circle' },
   }[tono] as { bg: string; bd: string; tx: string; ic: NombreIcono };
 
   return (
@@ -673,7 +644,7 @@ export function Seccion({
 export function Cargando({ texto }: { texto?: string }) {
   return (
     <View style={[s.centro, { flex: 1 }]}>
-      <ActivityIndicator color={C.naranja} size="large" />
+      <ActivityIndicator color={C.azul} size="large" />
       {!!texto && <Text style={[s.parrafoSuave, { marginTop: E.md }]}>{texto}</Text>}
     </View>
   );
@@ -743,7 +714,7 @@ export function Opciones<T extends string>({
           pressed && { opacity: 0.8 },
         ]}>
         {!!o.icono && (
-          <Ionicons name={o.icono} size={14} color={activa ? C.blanco : C.textoSuave} />
+          <Ionicons name={o.icono} size={14} color={activa ? C.sobreOscuro : C.textoSuave} />
         )}
         <Text style={[s.opcionTexto, activa && s.opcionTextoActivo]}>{o.etiqueta}</Text>
       </Pressable>
@@ -805,13 +776,13 @@ const s = StyleSheet.create({
   botonChico: { height: 44, borderRadius: R.md },
   botonFila: { flexDirection: 'row', alignItems: 'center', gap: E.sm },
   botonFantasma: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.bordeFuerte,
     height: 50,
     backgroundColor: C.blanco,
   },
   botonSuave: { backgroundColor: C.azulClaro },
-  botonTexto: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
+  botonTexto: { fontSize: 16, fontWeight: '600' },
 
   botonIcono: {
     width: 42,
@@ -822,22 +793,22 @@ const s = StyleSheet.create({
     backgroundColor: C.azulClaro,
   },
   botonIconoClaro: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(242,235,225,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(242,235,225,0.18)',
   },
 
   campoBloque: { marginBottom: E.lg },
   campoEtiqueta: {
     fontSize: 13.5,
-    fontWeight: '700',
+    fontWeight: '600',
     color: C.azul,
     marginBottom: E.xs + 3,
   },
   campoCaja: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.borde,
     backgroundColor: C.blanco,
     borderRadius: R.md,
@@ -854,13 +825,13 @@ const s = StyleSheet.create({
   },
   campoDerecha: { paddingRight: E.md },
   campoEnfocado: {
-    borderColor: C.azulMedio,
-    shadowColor: C.azulMedio,
+    borderColor: C.azul,
+    shadowColor: C.azul,
     shadowOpacity: 0.12,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 0 },
   },
-  campoError: { borderColor: C.rojo, backgroundColor: '#FFFBFA' },
+  campoError: { borderColor: C.rojo, backgroundColor: '#FFFAF8' },
   campoAyuda: { fontSize: 12.5, color: C.textoSuave, marginTop: E.xs + 2, lineHeight: 18 },
   campoErrorFila: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: E.xs + 2 },
   campoMensajeError: { fontSize: 12.5, color: C.rojo, fontWeight: '600', flex: 1 },
@@ -872,37 +843,30 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.borde,
     marginBottom: E.md,
-    ...sombra(1),
   },
   tarjetaDegradada: {
-    borderRadius: R.xl,
+    borderRadius: R.lg,
     padding: E.xl,
     marginBottom: E.md,
     overflow: 'hidden',
   },
-  burbuja: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-
   cabecera: {
     overflow: 'hidden',
-    borderBottomLeftRadius: R.xl + 4,
-    borderBottomRightRadius: R.xl + 4,
+    borderBottomLeftRadius: R.xl,
+    borderBottomRightRadius: R.xl,
   },
   // En escritorio la cabecera es una tarjeta: el contenido ya está centrado.
-  cabeceraEscritorio: { borderRadius: R.xl + 4, marginBottom: E.lg, marginHorizontal: E.sm },
+  cabeceraEscritorio: { borderRadius: R.lg, marginBottom: E.lg, marginHorizontal: E.sm },
   cabeceraFila: { flexDirection: 'row', alignItems: 'center', gap: E.md },
   cabeceraAnte: {
-    color: 'rgba(255,255,255,0.72)',
+    color: C.trigo,
     fontSize: 13.5,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
   },
-  cabeceraTitulo: { ...T.titulo, color: C.blanco, fontSize: 27 },
+  cabeceraTitulo: { ...T.titulo, color: C.sobreOscuro, fontSize: 27 },
   cabeceraSub: {
-    color: 'rgba(255,255,255,0.78)',
+    color: C.sobreOscuroSuave,
     fontSize: 14.5,
     marginTop: E.xs,
     lineHeight: 21,
@@ -929,8 +893,8 @@ const s = StyleSheet.create({
     borderColor: C.borde,
   },
   cifraClara: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(242,235,225,0.07)',
+    borderColor: 'rgba(242,235,225,0.14)',
   },
   cifraIcono: {
     width: 32,
@@ -956,7 +920,7 @@ const s = StyleSheet.create({
     gap: 5,
   },
   chipPunto: { width: 7, height: 7, borderRadius: 4 },
-  chipTexto: { fontSize: 12.5, fontWeight: '800', letterSpacing: -0.1 },
+  chipTexto: { fontSize: 12.5, fontWeight: '600' },
 
   aviso: {
     flexDirection: 'row',
@@ -1010,7 +974,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   seccionConteoTexto: { color: C.blanco, fontWeight: '800', fontSize: 12 },
-  seccionAccion: { color: C.naranja, fontWeight: '800', fontSize: 14 },
+  seccionAccion: { color: C.naranjaOscuro, fontWeight: '600', fontSize: 14 },
 
   centro: { alignItems: 'center', justifyContent: 'center', padding: E.xxl },
   vacioAro: {
@@ -1054,13 +1018,13 @@ const s = StyleSheet.create({
     paddingHorizontal: E.md + 2,
     paddingVertical: E.sm + 2,
     borderRadius: 999,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.borde,
     backgroundColor: C.blanco,
   },
   opcionActiva: { borderColor: C.azul, backgroundColor: C.azul },
-  opcionTexto: { fontSize: 14, color: C.textoSuave, fontWeight: '700' },
-  opcionTextoActivo: { color: C.blanco, fontWeight: '800' },
+  opcionTexto: { fontSize: 14, color: C.textoSuave, fontWeight: '500' },
+  opcionTextoActivo: { color: C.sobreOscuro, fontWeight: '600' },
 
   casillaFila: { flexDirection: 'row', alignItems: 'flex-start', gap: E.sm + 2 },
   casilla: {
@@ -1074,5 +1038,5 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 1,
   },
-  casillaMarcada: { borderColor: C.verde, backgroundColor: C.verde },
+  casillaMarcada: { borderColor: C.azul, backgroundColor: C.azul },
 });

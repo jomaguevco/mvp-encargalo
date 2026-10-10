@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
 import { ESTADO_PEDIDO, PASOS, fechaHora } from '@/lib/negocio';
 import type { EstadoPedido, EventoPedido } from '@/lib/tipos';
@@ -67,7 +68,7 @@ export function Linea({
                 </View>
               ) : (
                 <View style={[s.punto, s.puntoPendiente]}>
-                  <Ionicons name={ICONO_ESTADO[paso]} size={13} color="#AAB6C5" />
+                  <Ionicons name={ICONO_ESTADO[paso]} size={13} color={C.bordeFuerte} />
                 </View>
               )}
 

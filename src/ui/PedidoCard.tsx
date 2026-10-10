@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { urlPublica } from '@/lib/api';
 import { ESTADO_PEDIDO, PASOS, diasHasta, fecha, soles } from '@/lib/negocio';
 import type { Pedido } from '@/lib/tipos';
@@ -45,13 +45,18 @@ export function PedidoCard({ pedido, pie }: { pedido: Pedido; pie?: string }) {
         {foto ? (
           <Image source={{ uri: foto }} style={s.miniatura} resizeMode="cover" />
         ) : (
-          <LinearGradient
-            colors={estiloCategoria(pedido.categoria).colores}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[s.miniatura, s.miniaturaIcono]}>
-            <Ionicons name={estiloCategoria(pedido.categoria).icono} size={28} color={C.blanco} />
-          </LinearGradient>
+          <View
+            style={[
+              s.miniatura,
+              s.miniaturaIcono,
+              { backgroundColor: estiloCategoria(pedido.categoria).fondo },
+            ]}>
+            <Ionicons
+              name={estiloCategoria(pedido.categoria).icono}
+              size={28}
+              color={estiloCategoria(pedido.categoria).color}
+            />
+          </View>
         )}
 
         <View style={{ flex: 1 }}>
@@ -132,9 +137,8 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   titulo: {
-    fontWeight: '800',
+    fontWeight: '600',
     fontSize: 16,
-    letterSpacing: -0.2,
     color: C.texto,
     marginTop: 6,
     lineHeight: 21,
@@ -168,7 +172,7 @@ const s = StyleSheet.create({
   },
   plazoTexto: { fontSize: 12.5, fontWeight: '700', color: C.textoSuave },
   refEtiqueta: { fontSize: 11, color: C.textoSuave, fontWeight: '600' },
-  refValor: { fontSize: 15, color: C.azul, fontWeight: '800' },
+  refValor: { fontSize: 15, color: C.azul, fontWeight: '700' },
 
   pieAccion: {
     flexDirection: 'row',
@@ -179,5 +183,5 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: C.borde,
   },
-  pieTexto: { fontSize: 14, fontWeight: '800', color: C.naranja },
+  pieTexto: { fontSize: 14, fontWeight: '600', color: C.naranjaOscuro },
 });

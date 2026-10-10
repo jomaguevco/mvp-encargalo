@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { misEntregas, misOfertasEnviadas } from '@/lib/api';
 import {
   ESTADO_OFERTA,
@@ -201,7 +202,7 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(242,235,225,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
     transform: [{ rotate: '-20deg' }],
@@ -215,7 +216,7 @@ const s = StyleSheet.create({
     borderRadius: R.md,
     marginBottom: E.lg,
   },
-  turnoTexto: { flex: 1, color: '#9A3412', fontWeight: '700', fontSize: 14 },
+  turnoTexto: { flex: 1, color: C.naranjaOscuro, fontWeight: '700', fontSize: 14 },
   nota: { fontSize: 13.5, color: C.textoSuave, marginBottom: E.md, lineHeight: 20 },
   ofertaFila: { flexDirection: 'row', gap: E.md, alignItems: 'center' },
   ofertaIcono: {

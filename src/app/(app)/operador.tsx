@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Text } from '@/ui/Texto';
 import * as api from '@/lib/api';
 import { ESTADO_PEDIDO, fechaHora, hace, soles } from '@/lib/negocio';
 import type {
@@ -203,7 +210,7 @@ export default function Operador() {
         antetitulo="Operación manual del piloto"
         titulo="Consola del equipo"
         subtitulo="Confirma un pago solo después de verlo en la cuenta."
-        colores={G.noche}>
+        fondo={G.noche}>
         <FilaCifras>
           <Cifra
             claro
@@ -651,7 +658,7 @@ const s = StyleSheet.create({
     marginBottom: E.md,
   },
   filtroTexto: { flex: 1, color: C.azul, fontWeight: '700', fontSize: 13.5 },
-  filtroQuitar: { color: C.naranja, fontWeight: '800', fontSize: 13.5 },
+  filtroQuitar: { color: C.naranjaOscuro, fontWeight: '700', fontSize: 13.5 },
   persona: { flexDirection: 'row', alignItems: 'center', gap: E.md },
   titulo: { fontSize: 16, fontWeight: '800', color: C.texto },
   meta: { fontSize: 12.5, color: C.textoSuave, marginTop: 2 },

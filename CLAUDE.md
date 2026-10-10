@@ -21,6 +21,19 @@ puesta en marcha.
 - Ninguna funcionalidad entra si no refuerza **verificación, pago protegido o
   reputación**: es el criterio de producto acordado por el equipo fundador.
 
+## Diseño
+
+- La marca está en `encargalo/branding` (Monte, Terracota, Trigo, Arena; Bricolage
+  Grotesque + Instrument Sans; plana, sin degradados). En la app vive en `src/ui/tema.ts`
+  y el logo en `src/ui/Logo.tsx`.
+- **`Text` y `TextInput` se importan de `@/ui/Texto`, no de `react-native`.** Ese
+  componente traduce fontWeight/fontSize a la familia de la fuente de marca; con el
+  `Text` nativo la pantalla sale con la letra del sistema.
+- Las claves `C.azul` y `C.naranja` de `tema.ts` se llaman así por historia: hoy son
+  Monte y Terracota. Renombrarlas no gana nada.
+- El check del logo va Terracota sobre claro y Trigo sobre oscuro, nunca Trigo sobre
+  claro. Íconos, splash e imágenes de la web salen de `python marca/generar.py`.
+
 ## Comandos
 
 ```bash

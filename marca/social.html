@@ -1,34 +1,28 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@500;600&display=swap" rel="stylesheet">
 <style>
-  /* Imagen para compartir en redes (1200 × 630). La genera marca/generar.py. */
+  /* Imagen para compartir en redes (1200 × 630). La genera marca/generar.py.
+     Plana, como la hoja de marca: Monte de fondo, Arena y Trigo encima. */
   body { margin: 0; width: 1200px; height: 630px; overflow: hidden;
-    font-family: 'Plus Jakarta Sans', sans-serif; color: #fff;
-    background:
-      radial-gradient(520px 380px at 92% 8%, rgba(238,108,52,.35), transparent 60%),
-      radial-gradient(600px 420px at 0% 100%, rgba(42,107,168,.6), transparent 60%),
-      linear-gradient(135deg, #1A5288, #0E3255); }
-  .puntos { position: absolute; inset: 0; opacity: .45;
-    background-image: radial-gradient(rgba(255,255,255,.14) 1.4px, transparent 1.4px);
-    background-size: 26px 26px; }
+    font-family: 'Instrument Sans', sans-serif; color: #F2EBE1; background: #14352B; }
   .caja { position: absolute; left: 80px; top: 86px; width: 720px; }
-  .marca { display: flex; align-items: center; gap: 18px; font-weight: 800; font-size: 40px; letter-spacing: -.03em; }
-  .marca div { width: 76px; height: 76px; }
-  h1 { font-size: 62px; line-height: 1.08; letter-spacing: -.035em; margin: 48px 0 0; font-weight: 800; }
-  h1 em { font-style: normal; color: #FFB590; }
+  .marca { display: flex; align-items: center; gap: 16px;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 42px; letter-spacing: -.025em; }
+  .marca div { width: 64px; height: 64px; }
+  h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 62px; line-height: 1.06;
+    letter-spacing: -.03em; margin: 48px 0 0; font-weight: 800; }
+  h1 em { font-style: normal; color: #D9B45A; }
   .chips { display: flex; gap: 14px; margin-top: 40px; }
   .chip { font-weight: 600; font-size: 22px; padding: 10px 20px; border-radius: 99px;
-    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); }
-  .iso { position: absolute; right: 70px; top: 150px; width: 330px; height: 330px;
-    transform: rotate(6deg); filter: drop-shadow(0 30px 50px rgba(0,0,0,.35)); }
+    color: #F2EBE1; border: 1px solid rgba(242,235,225,.28); }
+  .iso { position: absolute; right: 70px; top: 140px; width: 340px; height: 340px; }
 </style></head>
 <body>
-  <div class="puntos"></div>
   <div class="caja">
-    <div class="marca"><div>{{ISOTIPO}}</div>Encárgalo</div>
+    <div class="marca"><div>{{SIMBOLO_OSCURO}}</div>Encárgalo</div>
     <h1>Lo que quieres del extranjero, <em>sin miedo a perder tu plata</em></h1>
     <div class="chips"><span class="chip">Identidad verificada</span><span class="chip">Pago retenido</span><span class="chip">Reputación</span></div>
   </div>
-  <div class="iso">{{ISOTIPO}}</div>
+  <div class="iso">{{SIMBOLO_OSCURO}}</div>
 </body></html>

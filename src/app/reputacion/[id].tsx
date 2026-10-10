@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { reputacionDe, resenasDe } from '@/lib/api';
 import { fecha, hace } from '@/lib/negocio';
 import type { Reputacion, Resena } from '@/lib/tipos';
@@ -80,7 +81,7 @@ export default function PerfilPublico() {
       style={{ backgroundColor: C.fondo }}
       contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}>
       <Entrada>
-        <TarjetaDegradada colores={G.marca} style={{ alignItems: 'center' }}>
+        <TarjetaDegradada fondo={G.marca} style={{ alignItems: 'center' }}>
           <Avatar
             nombre={rep.nombre_completo}
             tamano={84}
@@ -88,7 +89,7 @@ export default function PerfilPublico() {
           />
           <Text style={s.nombre}>{rep.nombre_completo || 'Comprador externo'}</Text>
           <View style={s.lugar}>
-            <Ionicons name="location" size={13} color="rgba(255,255,255,0.75)" />
+            <Ionicons name="location" size={13} color="rgba(242,235,225,0.75)" />
             <Text style={s.lugarTexto}>
               {rep.ciudad} · en Encárgalo hace {rep.antiguedad_dias} día
               {rep.antiguedad_dias === 1 ? '' : 's'}
@@ -98,15 +99,15 @@ export default function PerfilPublico() {
             {rep.verificacion === 'verificado' ? (
               <Chip
                 texto="DNI verificado"
-                color="#7EE2B8"
-                fondo="rgba(255,255,255,0.14)"
+                color={C.trigo}
+                fondo="rgba(242,235,225,0.14)"
                 icono="shield-checkmark"
               />
             ) : (
               <Chip
                 texto="Identidad sin verificar"
-                color="#FFC59E"
-                fondo="rgba(255,255,255,0.14)"
+                color={C.sobreOscuroSuave}
+                fondo="rgba(242,235,225,0.14)"
                 icono="shield-outline"
               />
             )}
@@ -129,7 +130,7 @@ export default function PerfilPublico() {
               {conteo.map((c, i) => (
                 <View key={i} style={s.barraFila}>
                   <Text style={s.barraEtiqueta}>{5 - i}</Text>
-                  <Ionicons name="star" size={11} color="#F5A524" />
+                  <Ionicons name="star" size={11} color={C.estrella} />
                   <View style={s.barraFondo}>
                     <View style={[s.barra, { width: `${(c / maximo) * 100}%` }]} />
                   </View>
@@ -217,7 +218,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   lugar: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  lugarTexto: { color: 'rgba(255,255,255,0.75)', fontSize: 13.5 },
+  lugarTexto: { color: 'rgba(242,235,225,0.75)', fontSize: 13.5 },
 
   notaFila: { flexDirection: 'row', alignItems: 'center', gap: E.lg },
   nota: { fontSize: 44, fontWeight: '800', color: C.azul, letterSpacing: -1.5 },
@@ -231,7 +232,7 @@ const s = StyleSheet.create({
     backgroundColor: C.superficieSuave,
     overflow: 'hidden',
   },
-  barra: { height: 7, borderRadius: 4, backgroundColor: '#F5A524' },
+  barra: { height: 7, borderRadius: 4, backgroundColor: C.estrella },
   barraConteo: { fontSize: 12, color: C.textoSuave, width: 18, textAlign: 'right' },
 
   resenaCabecera: { flexDirection: 'row', alignItems: 'center', gap: E.md },

@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/ctx/auth';
 import { Avatar } from './componentes';
+import { Logo } from './Logo';
 import { ANCHO_LATERAL } from './escritorio';
 import { C, E, R } from './tema';
 
@@ -30,22 +30,14 @@ export function BarraLateral({
 
   return (
     <View style={s.barra}>
-      <LinearGradient
-        colors={['#0B2A48', '#0E3255', '#123E6A']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.4, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Brillo coral de la marca, como en la página pública */}
-      <View style={s.brillo} />
       <Pressable
         // El logo lleva al inicio de la aplicación, no a la página pública.
         onPress={() => router.push('/(app)/pedidos')}
         style={s.marca}
         accessibilityRole="link"
         accessibilityLabel="Ir a Mis pedidos">
-        <Image source={require('../../assets/images/icon.png')} style={s.logo} />
-        <Text style={s.marcaTexto}>Encárgalo</Text>
+        {/* Sobre Monte, el encaje oscuro: bolsa Arena y check Trigo. */}
+        <Logo tamano={34} oscuro />
       </Pressable>
 
       <Pressable
@@ -53,7 +45,7 @@ export function BarraLateral({
         onPress={() => !enRevision && router.push(verificado ? '/publicar' : '/verificacion')}
         style={({ hovered, pressed }: { hovered?: boolean; pressed: boolean }) => [
           s.publicar,
-          (hovered || pressed) && { backgroundColor: '#D95A24' },
+          (hovered || pressed) && { backgroundColor: C.naranjaOscuro },
         ]}>
         <Ionicons name={verificado ? 'add' : 'shield-checkmark'} size={20} color={C.blanco} />
         <Text style={s.publicarTexto}>
@@ -100,7 +92,7 @@ export function BarraLateral({
                 <Ionicons
                   name={activo ? icono.encendido : icono.apagado}
                   size={20}
-                  color={activo ? C.naranja : 'rgba(255,255,255,0.7)'}
+                  color={activo ? C.trigo : C.sobreOscuroSuave}
                 />
               )}
               <Text style={[s.itemTexto, activo && s.itemTextoActivo]}>
@@ -151,13 +143,6 @@ const s = StyleSheet.create({
     gap: E.sm + 2,
     paddingHorizontal: E.sm,
   },
-  logo: { width: 40, height: 40, borderRadius: 11 },
-  marcaTexto: {
-    color: C.blanco,
-    fontSize: 21,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
   publicar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,7 +154,7 @@ const s = StyleSheet.create({
     marginTop: E.xl,
     marginBottom: E.lg,
   },
-  publicarTexto: { color: C.blanco, fontWeight: '800', fontSize: 15 },
+  publicarTexto: { color: C.blanco, fontWeight: '600', fontSize: 15 },
   lista: { flex: 1, gap: 2 },
   item: {
     flexDirection: 'row',
@@ -179,8 +164,8 @@ const s = StyleSheet.create({
     paddingVertical: E.sm + 3,
     borderRadius: R.sm,
   },
-  itemEncima: { backgroundColor: 'rgba(255,255,255,0.06)' },
-  itemActivo: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  itemEncima: { backgroundColor: 'rgba(242,235,225,0.06)' },
+  itemActivo: { backgroundColor: 'rgba(242,235,225,0.10)' },
   indicador: {
     position: 'absolute',
     left: -E.md,
@@ -189,24 +174,15 @@ const s = StyleSheet.create({
     width: 4,
     borderTopRightRadius: 4,
     borderBottomRightRadius: 4,
-    backgroundColor: C.naranja,
-  },
-  brillo: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    left: -190,
-    bottom: -150,
-    backgroundColor: 'rgba(238,108,52,0.18)',
+    backgroundColor: C.trigo,
   },
   itemTexto: {
-    color: 'rgba(255,255,255,0.75)',
+    color: C.sobreOscuroSuave,
     fontSize: 15,
     fontWeight: '600',
     flex: 1,
   },
-  itemTextoActivo: { color: C.blanco, fontWeight: '800' },
+  itemTextoActivo: { color: C.sobreOscuro, fontWeight: '600' },
   globo: {
     minWidth: 20,
     height: 20,
@@ -216,15 +192,15 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  globoTexto: { color: C.blanco, fontSize: 11, fontWeight: '800' },
+  globoTexto: { color: C.blanco, fontSize: 11, fontWeight: '700' },
   usuario: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: E.sm + 2,
     padding: E.sm + 2,
     borderRadius: R.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(242,235,225,0.06)',
   },
-  usuarioNombre: { color: C.blanco, fontWeight: '700', fontSize: 14 },
-  usuarioEstado: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
+  usuarioNombre: { color: C.sobreOscuro, fontWeight: '600', fontSize: 14 },
+  usuarioEstado: { color: C.sobreOscuroSuave, fontSize: 12 },
 });

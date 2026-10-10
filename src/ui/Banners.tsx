@@ -1,17 +1,19 @@
 import { router, type Href } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
 import type { NombreIcono } from './componentes';
 import { useEscritorio } from './escritorio';
-import { C, E, R, sombra } from './tema';
+import { C, E, R } from './tema';
 
 type Banner = {
   etiqueta: string;
   titulo: string;
   texto: string;
   icono: NombreIcono;
-  colores: readonly [string, string, ...string[]];
+  /** Fondo plano y color del ícono y la etiqueta sobre él. */
+  fondo: string;
+  acento: string;
   destino: Href;
 };
 
@@ -26,7 +28,8 @@ const BANNERS: Banner[] = [
     titulo: 'Tu plata no se mueve hasta que recibes',
     texto: 'Pagas a Encárgalo, no al viajero. Se libera cuando confirmas la entrega.',
     icono: 'lock-closed',
-    colores: ['#0F6E52', '#12805C', '#1A9A6E'],
+    fondo: C.azul,
+    acento: C.trigo,
     destino: '/legal',
   },
   {
@@ -34,7 +37,8 @@ const BANNERS: Banner[] = [
     titulo: '¿Viajas pronto? Gana trayendo encargos',
     texto: 'Oferta por pedidos abiertos, pon tu precio y cobra al entregar.',
     icono: 'airplane',
-    colores: ['#F58A50', '#EE6C34', '#E0521F'],
+    fondo: C.naranja,
+    acento: C.sobreOscuro,
     destino: '/(app)/explorar',
   },
   {
@@ -43,7 +47,8 @@ const BANNERS: Banner[] = [
     texto:
       'Comparte tu código desde tu perfil: los primeros pedidos los acompaña el equipo fundador.',
     icono: 'people',
-    colores: ['#5B21B6', '#7C3AED', '#8B5CF6'],
+    fondo: C.verdeOscuro,
+    acento: C.trigo,
     destino: '/(app)/perfil',
   },
 ];
@@ -56,24 +61,18 @@ function Tarjeta({ b, ancho }: { b: Banner; ancho?: number }) {
         { width: ancho, flex: ancho ? undefined : 1 },
         pressed && { opacity: 0.9 },
       ]}>
-      <LinearGradient
-        colors={b.colores}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[s.tarjeta, sombra(2)]}>
-        <View style={[s.burbuja, { top: -40, right: -30, width: 140, height: 140 }]} />
-        <View style={[s.burbuja, { bottom: -50, right: 50, width: 90, height: 90 }]} />
+      <View style={[s.tarjeta, { backgroundColor: b.fondo }]}>
         <View style={s.icono}>
-          <Ionicons name={b.icono} size={22} color={C.blanco} />
+          <Ionicons name={b.icono} size={22} color={b.acento} />
         </View>
-        <Text style={s.etiqueta}>{b.etiqueta.toUpperCase()}</Text>
+        <Text style={[s.etiqueta, { color: b.acento }]}>{b.etiqueta.toUpperCase()}</Text>
         <Text style={s.titulo}>{b.titulo}</Text>
         <Text style={s.texto}>{b.texto}</Text>
         <View style={s.mas}>
           <Text style={s.masTexto}>Ver más</Text>
-          <Ionicons name="arrow-forward" size={14} color={C.blanco} />
+          <Ionicons name="arrow-forward" size={14} color={C.sobreOscuro} />
         </View>
-      </LinearGradient>
+      </View>
     </Pressable>
   );
 }
@@ -116,30 +115,28 @@ const s = StyleSheet.create({
     minHeight: 178,
     overflow: 'hidden',
   },
-  burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
   icono: {
     width: 42,
     height: 42,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: R.sm,
+    backgroundColor: 'rgba(242,235,225,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: E.md,
   },
   etiqueta: {
-    color: 'rgba(255,255,255,0.85)',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   titulo: {
-    color: C.blanco,
-    fontSize: 17,
-    fontWeight: '800',
+    color: C.sobreOscuro,
+    fontSize: 18,
+    fontWeight: '700',
     letterSpacing: -0.3,
     marginTop: 4,
   },
-  texto: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18, marginTop: 6 },
+  texto: { color: 'rgba(242,235,225,0.85)', fontSize: 13, lineHeight: 18, marginTop: 6 },
   mas: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: E.md },
-  masTexto: { color: C.blanco, fontWeight: '800', fontSize: 13 },
+  masTexto: { color: C.sobreOscuro, fontWeight: '600', fontSize: 13 },
 });

@@ -1,12 +1,13 @@
 import { Redirect, Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
 import { BarraLateral } from '@/ui/BarraLateral';
 import { Cargando } from '@/ui/componentes';
 import { useEscritorio } from '@/ui/escritorio';
-import { C, E } from '@/ui/tema';
+import { C, E, F } from '@/ui/tema';
 
 /**
  * Icono de una pestaña.
@@ -61,7 +62,7 @@ function Icono({
             borderWidth: 2,
             borderColor: C.blanco,
           }}>
-          <Text style={{ fontSize: 10, fontWeight: '800', color: C.blanco }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', color: C.blanco }}>
             {globo > 9 ? '9+' : globo}
           </Text>
         </View>
@@ -105,9 +106,9 @@ export default function AppLayout() {
       tabBar={escritorio ? (props) => <BarraLateral {...props} iconos={ICONOS} /> : undefined}
       screenOptions={{
         tabBarPosition: escritorio ? 'left' : 'bottom',
-        // Cada pestaña dibuja su propia cabecera con degradado (ui/componentes
-        // → Cabecera), con cifras y acciones; la barra de navegación plana
-        // quedaba corta para eso.
+        // Cada pestaña dibuja su propia cabecera en Monte (ui/componentes →
+        // Cabecera), con cifras y acciones; la barra de navegación quedaba
+        // corta para eso.
         headerShown: false,
         tabBarActiveTintColor: C.naranja,
         tabBarInactiveTintColor: C.textoSuave,
@@ -118,15 +119,11 @@ export default function AppLayout() {
           height: 66 + insets.bottom,
           paddingTop: 8,
           paddingBottom: insets.bottom,
-          elevation: 12,
-          shadowColor: '#0E3255',
-          shadowOpacity: 0.08,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -2 },
+          elevation: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '700',
+          fontFamily: F.cuerpo600,
           marginBottom: 6,
           marginTop: 2,
         },

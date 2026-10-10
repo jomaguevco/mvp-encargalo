@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { misPedidos } from '@/lib/api';
 import { ESTADO_VERIFICACION } from '@/lib/negocio';

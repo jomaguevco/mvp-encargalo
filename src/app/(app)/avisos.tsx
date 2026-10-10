@@ -6,9 +6,9 @@ import {
   RefreshControl,
   SectionList,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { marcarAvisosLeidos, misAvisos } from '@/lib/api';
 import { TIPO_AVISO, hace } from '@/lib/negocio';
@@ -183,7 +183,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(242,235,225,0.16)',
     paddingHorizontal: E.md,
     paddingVertical: E.sm,
     borderRadius: 999,
@@ -193,7 +193,7 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(242,235,225,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,7 +231,7 @@ const s = StyleSheet.create({
   titulo: { fontSize: 15, fontWeight: '700', color: C.texto, marginTop: 3, lineHeight: 20 },
   cuerpo: { fontSize: 13.5, color: C.textoSuave, marginTop: 3, lineHeight: 19 },
   ver: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: E.sm },
-  verTexto: { fontSize: 13, fontWeight: '800', color: C.naranja },
+  verTexto: { fontSize: 13, fontWeight: '700', color: C.naranjaOscuro },
   punto: {
     width: 9,
     height: 9,

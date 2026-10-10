@@ -6,16 +6,15 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import { Text } from '@/ui/Texto';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/ctx/auth';
 import { Aviso, Boton, Campo, Entrada } from '@/ui/componentes';
 import { useEscritorio } from '@/ui/escritorio';
-import { C, E, G, R, sombra } from '@/ui/tema';
+import { Simbolo } from '@/ui/Logo';
+import { C, E, R } from '@/ui/tema';
 
 /**
  * Las tres promesas del producto, en la primera pantalla.
@@ -36,7 +35,8 @@ function Garantia({
   return (
     <View style={s.garantia}>
       <View style={s.garantiaAro}>
-        <Ionicons name={icono} size={18} color={C.naranja} />
+        {/* Sobre Monte el acento es Trigo: la Terracota pierde contraste. */}
+        <Ionicons name={icono} size={18} color={C.trigo} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.garantiaTitulo}>{titulo}</Text>
@@ -98,16 +98,6 @@ export default function Entrar() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: C.azul }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <LinearGradient
-        colors={G.marca}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Círculos de fondo: textura sin imágenes */}
-      <View style={[s.burbuja, { top: -80, right: -60, width: 260, height: 260 }]} />
-      <View style={[s.burbuja, { top: 180, left: -90, width: 200, height: 200 }]} />
-      <View style={[s.burbuja, { bottom: -60, right: 30, width: 160, height: 160 }]} />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         {/* En escritorio: la marca y las garantías a la izquierda, el formulario a la derecha. */}
@@ -115,11 +105,10 @@ export default function Entrar() {
           <View style={escritorio && s.colMarca}>
             <Entrada>
               <View style={[s.marca, escritorio && s.marcaEscritorio]}>
-                <Image
-                  source={require('../../assets/images/icon.png')}
-                  style={s.logoAro}
-                  accessibilityLabel="Logo de Encárgalo"
-                />
+                {/* Encaje vertical sobre oscuro, como en la hoja de marca */}
+                <View style={s.logoAro} accessibilityLabel="Logo de Encárgalo">
+                  <Simbolo tamano={escritorio ? 84 : 72} oscuro />
+                </View>
                 <Text style={[s.logo, escritorio && { fontSize: 52 }]}>Encárgalo</Text>
                 <Text style={[s.lema, escritorio && s.lemaEscritorio]}>
                   Lo que quieres del extranjero, sin miedo a perder tu plata
@@ -196,12 +185,6 @@ export default function Entrar() {
 
 const s = StyleSheet.create({
   scroll: { flexGrow: 1, justifyContent: 'center', padding: E.xl },
-  burbuja: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-
   marca: { alignItems: 'center', marginBottom: E.xl + E.sm, marginTop: E.xl },
   filaEscritorio: {
     flexDirection: 'row',
@@ -220,21 +203,15 @@ const s = StyleSheet.create({
     lineHeight: 28,
     maxWidth: 460,
   },
-  logoAro: {
-    width: 76,
-    height: 76,
-    borderRadius: 20,
-    marginBottom: E.md,
-    ...sombra(3),
-  },
+  logoAro: { marginBottom: E.sm },
   logo: {
     fontSize: 42,
-    fontWeight: '800',
-    color: C.blanco,
-    letterSpacing: -1.4,
+    fontWeight: '700',
+    color: C.sobreOscuro,
+    letterSpacing: -1,
   },
   lema: {
-    color: 'rgba(255,255,255,0.8)',
+    color: C.sobreOscuroSuave,
     fontSize: 15,
     marginTop: E.sm,
     textAlign: 'center',
@@ -243,10 +220,9 @@ const s = StyleSheet.create({
   },
 
   panel: {
-    backgroundColor: C.blanco,
-    borderRadius: R.xl,
+    backgroundColor: C.fondo,
+    borderRadius: R.lg,
     padding: E.xl,
-    ...sombra(3),
   },
   panelTitulo: {
     fontSize: 22,
@@ -272,30 +248,31 @@ const s = StyleSheet.create({
   crear: {
     height: 50,
     borderRadius: R.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.bordeFuerte,
+    backgroundColor: C.blanco,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: E.sm,
   },
-  crearTexto: { color: C.azul, fontWeight: '800', fontSize: 15.5 },
+  crearTexto: { color: C.azul, fontWeight: '600', fontSize: 15.5 },
 
   garantias: { marginTop: E.xl + E.sm, gap: E.lg, marginBottom: E.xl },
   garantia: { flexDirection: 'row', alignItems: 'center', gap: E.md },
   garantiaAro: {
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: R.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(242,235,225,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(242,235,225,0.14)',
   },
-  garantiaTitulo: { color: C.blanco, fontSize: 15, fontWeight: '800' },
+  garantiaTitulo: { color: C.sobreOscuro, fontSize: 15, fontWeight: '600' },
   garantiaTexto: {
-    color: 'rgba(255,255,255,0.72)',
+    color: C.sobreOscuroSuave,
     fontSize: 13.5,
     marginTop: 1,
   },

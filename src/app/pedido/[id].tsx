@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,10 +11,9 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
+import { Text, TextInput } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
 import {
@@ -73,7 +71,7 @@ type Paso = {
   icono: NombreIcono;
   titulo: string;
   texto: string;
-  colores: readonly [string, string, ...string[]];
+  fondo: string;
 };
 
 /**
@@ -98,7 +96,7 @@ function siguientePaso(opts: {
       icono: 'alert-circle',
       titulo: 'Caso en revisión',
       texto: 'El dinero sigue retenido mientras el equipo revisa la disputa.',
-      colores: G.peligro,
+      fondo: G.peligro,
     };
   }
 
@@ -109,13 +107,13 @@ function siguientePaso(opts: {
             icono: 'git-compare',
             titulo: `Tienes ${ofertas} oferta${ofertas === 1 ? '' : 's'}`,
             texto: 'Compara precio, fecha y reputación, y elige la que prefieras.',
-            colores: G.accion,
+            fondo: G.accion,
           }
         : {
             icono: 'megaphone',
             titulo: 'Esperando ofertas',
             texto: 'Los compradores externos verificados ya ven tu pedido. Te avisaremos.',
-            colores: G.marca,
+            fondo: G.marca,
           };
     if (e === 'aceptado')
       return pago?.estado === 'en_revision'
@@ -123,34 +121,34 @@ function siguientePaso(opts: {
             icono: 'hourglass',
             titulo: 'Validando tu pago',
             texto: 'En cuanto confirmemos que llegó, queda retenido y el comprador puede comprar.',
-            colores: G.alerta,
+            fondo: G.alerta,
           }
         : {
             icono: 'wallet',
             titulo: `Paga ${soles(pago?.total_cobrado)} para asegurarlo`,
             texto: 'Tu dinero queda retenido por Encárgalo hasta que recibas el producto.',
-            colores: G.accion,
+            fondo: G.accion,
           };
     if (e === 'pagado' || e === 'comprado' || e === 'en_viaje')
       return {
         icono: 'shield-checkmark',
         titulo: 'Tu dinero está protegido',
         texto: 'Nadie lo recibe hasta que confirmes la entrega. Sigue el avance abajo.',
-        colores: G.dinero,
+        fondo: G.dinero,
       };
     if (e === 'entregado')
       return {
         icono: 'cube',
         titulo: '¿Ya lo tienes en tus manos?',
         texto: 'Revísalo y confirma la recepción para liberar el pago.',
-        colores: G.accion,
+        fondo: G.accion,
       };
     if (e === 'confirmado')
       return {
         icono: 'checkmark-done-circle',
         titulo: 'Pedido completado',
         texto: 'Califica la experiencia: es lo que hace confiable al próximo cliente.',
-        colores: G.dinero,
+        fondo: G.dinero,
       };
   }
 
@@ -160,7 +158,7 @@ function siguientePaso(opts: {
         icono: 'time',
         titulo: 'Te eligieron. Espera el pago',
         texto: 'No compres todavía: te avisaremos cuando el dinero esté retenido.',
-        colores: G.alerta,
+        fondo: G.alerta,
       };
     if (SIGUIENTE_PASO_COMPRADOR[e])
       return {
@@ -170,21 +168,21 @@ function siguientePaso(opts: {
             ? 'El pago está retenido: ya puedes comprar'
             : 'Te toca actualizar el avance',
         texto: 'Marca cada paso: el cliente lo ve al instante y sube tu puntualidad.',
-        colores: G.accion,
+        fondo: G.accion,
       };
     if (e === 'entregado')
       return {
         icono: 'hourglass',
         titulo: 'Esperando la confirmación del cliente',
         texto: `Al confirmar, recibes ${soles(pago?.monto_liberado)}.`,
-        colores: G.marca,
+        fondo: G.marca,
       };
     if (e === 'confirmado')
       return {
         icono: 'cash',
         titulo: `Pago liberado: ${soles(pago?.monto_liberado)}`,
         texto: 'Buen trabajo. Califica al cliente para cerrar el pedido.',
-        colores: G.dinero,
+        fondo: G.dinero,
       };
   }
 
@@ -194,13 +192,13 @@ function siguientePaso(opts: {
           icono: 'paper-plane',
           titulo: 'Tu oferta está enviada',
           texto: 'El cliente está comparando. Te avisaremos si elige la tuya.',
-          colores: G.marca,
+          fondo: G.marca,
         }
       : {
           icono: 'pricetag',
           titulo: 'Envía tu oferta',
           texto: 'Pon tu precio final y la fecha en que lo entregas.',
-          colores: G.accion,
+          fondo: G.accion,
         };
   }
   return null;
@@ -362,18 +360,18 @@ export default function DetallePedido() {
             {foto ? (
               <Image source={{ uri: foto }} style={s.portadaImagen} resizeMode="cover" />
             ) : (
-              <LinearGradient
-                colors={estiloCategoria(pedido.categoria).colores}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[s.portadaImagen, s.portadaIcono]}>
-                <View style={s.portadaBurbuja} />
+              <View
+                style={[
+                  s.portadaImagen,
+                  s.portadaIcono,
+                  { backgroundColor: estiloCategoria(pedido.categoria).fondo },
+                ]}>
                 <Ionicons
                   name={estiloCategoria(pedido.categoria).icono}
                   size={64}
-                  color={C.blanco}
+                  color={estiloCategoria(pedido.categoria).color}
                 />
-              </LinearGradient>
+              </View>
             )}
             <View style={s.portadaCuerpo}>
               <Chip texto={info.etiqueta} color={info.color} icono={ICONO_ESTADO[pedido.estado]} />
@@ -432,10 +430,10 @@ export default function DetallePedido() {
         {/* ---------------------------------------------------- siguiente paso */}
         {paso && (
           <Entrada i={1}>
-            <TarjetaDegradada colores={paso.colores} style={{ padding: E.lg }}>
+            <TarjetaDegradada fondo={paso.fondo} style={{ padding: E.lg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.md }}>
                 <View style={s.pasoIcono}>
-                  <Ionicons name={paso.icono} size={24} color={C.blanco} />
+                  <Ionicons name={paso.icono} size={24} color={C.sobreOscuro} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.pasoAnte}>Siguiente paso</Text>
@@ -977,16 +975,16 @@ function PanelPago({
         style={{ marginTop: E.md }}
       />
       <TarjetaDegradada
-        colores={protegido ? G.dinero : pago.estado === 'reembolsado' ? G.marca : G.noche}>
+        fondo={protegido ? G.dinero : pago.estado === 'reembolsado' ? G.marca : G.noche}>
         <View
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Chip
             texto={info.etiqueta}
-            color={C.blanco}
-            fondo="rgba(255,255,255,0.18)"
+            color={C.sobreOscuro}
+            fondo="rgba(242,235,225,0.14)"
             icono={protegido ? 'lock-closed' : 'time'}
           />
-          <Ionicons name="shield-checkmark" size={26} color="rgba(255,255,255,0.5)" />
+          <Ionicons name="shield-checkmark" size={26} color={C.trigo} />
         </View>
         <Text style={s.dineroEtiqueta}>
           {soyCliente ? 'Total a pagar' : 'Recibirás al entregar'}
@@ -1295,7 +1293,7 @@ function PanelCalificacion({
   return (
     <Tarjeta style={{ alignItems: 'center' }}>
       <View style={s.calificarIcono}>
-        <Ionicons name={yaCalifique ? 'heart' : 'star'} size={28} color="#F5A524" />
+        <Ionicons name={yaCalifique ? 'heart' : 'star'} size={28} color={C.estrella} />
       </View>
       <Text style={s.calificarTitulo}>
         {yaCalifique ? 'Tu calificación' : 'Califica esta experiencia'}
@@ -1385,7 +1383,7 @@ function Chat({
                 {!mio && <Avatar nombre={otro} tamano={28} />}
                 <View style={[s.burbuja, mio ? s.burbujaMia : s.burbujaSuya]}>
                   <Text style={[s.burbujaTexto, mio && { color: C.blanco }]}>{m.cuerpo}</Text>
-                  <Text style={[s.burbujaHora, mio && { color: 'rgba(255,255,255,0.7)' }]}>
+                  <Text style={[s.burbujaHora, mio && { color: 'rgba(242,235,225,0.7)' }]}>
                     {hace(m.creado_en)}
                   </Text>
                 </View>
@@ -1399,7 +1397,7 @@ function Chat({
             value={texto}
             onChangeText={setTexto}
             placeholder="Escribe un mensaje…"
-            placeholderTextColor="#98A6B8"
+            placeholderTextColor={C.grisTexto}
             multiline
             style={s.chatCampo}
           />
@@ -1415,7 +1413,6 @@ function Chat({
               (!texto.trim() || enviando) && { opacity: 0.4 },
               pressed && { transform: [{ scale: 0.94 }] },
             ]}>
-            <LinearGradient colors={G.accion} style={StyleSheet.absoluteFill} />
             <Ionicons name="send" size={18} color={C.blanco} />
           </Pressable>
         </View>
@@ -1427,7 +1424,7 @@ function Chat({
 const s = StyleSheet.create({
   portada: {
     backgroundColor: C.blanco,
-    borderRadius: R.xl,
+    borderRadius: R.lg,
     overflow: 'hidden',
     marginBottom: E.md,
     borderWidth: 1,
@@ -1435,15 +1432,6 @@ const s = StyleSheet.create({
   },
   portadaImagen: { width: '100%', height: 200, backgroundColor: C.superficieSuave },
   portadaIcono: { alignItems: 'center', justifyContent: 'center', height: 150, overflow: 'hidden' },
-  portadaBurbuja: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    top: -90,
-    right: -60,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
   portadaCuerpo: { padding: E.lg + 2 },
   titulo: {
     fontSize: 21,
@@ -1464,7 +1452,7 @@ const s = StyleSheet.create({
     borderRadius: 999,
     marginTop: E.md,
   },
-  enlaceTexto: { color: C.naranja, fontWeight: '800', fontSize: 13.5 },
+  enlaceTexto: { color: C.naranjaOscuro, fontWeight: '600', fontSize: 13.5 },
   datos: { flexDirection: 'row', flexWrap: 'wrap', gap: E.sm, marginTop: E.lg },
   datoCaja: {
     width: '48%',
@@ -1477,31 +1465,31 @@ const s = StyleSheet.create({
     padding: E.sm + 2,
   },
   datoEtiqueta: { fontSize: 11.5, color: C.textoSuave, fontWeight: '600' },
-  datoValor: { fontSize: 14, color: C.texto, fontWeight: '800' },
+  datoValor: { fontSize: 14, color: C.texto, fontWeight: '600' },
 
   pasoIcono: {
     width: 50,
     height: 50,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: R.md,
+    backgroundColor: 'rgba(242,235,225,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pasoAnte: {
-    color: 'rgba(255,255,255,0.75)',
+    color: C.trigo,
     fontSize: 11.5,
-    fontWeight: '800',
+    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   pasoTitulo: {
-    color: C.blanco,
-    fontSize: 17,
-    fontWeight: '800',
+    color: C.sobreOscuro,
+    fontSize: 18,
+    fontWeight: '700',
     marginTop: 2,
     letterSpacing: -0.3,
   },
-  pasoTexto: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 2 },
+  pasoTexto: { color: 'rgba(242,235,225,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 2 },
 
   contraparteRol: { fontSize: 12, color: C.textoSuave, fontWeight: '700' },
   contraparteNombre: { fontSize: 16, color: C.texto, fontWeight: '800' },
@@ -1545,8 +1533,8 @@ const s = StyleSheet.create({
     gap: 6,
   },
   desgloseFila: { flexDirection: 'row', justifyContent: 'space-between' },
-  desgloseEtiqueta: { fontSize: 13.5, color: '#0B5B41' },
-  desgloseValor: { fontSize: 13.5, color: '#0B5B41', fontWeight: '700' },
+  desgloseEtiqueta: { fontSize: 13.5, color: C.verdeOscuro },
+  desgloseValor: { fontSize: 13.5, color: C.verdeOscuro, fontWeight: '700' },
   desgloseTotal: {
     borderTopWidth: 1,
     borderTopColor: `${C.verde}40`,
@@ -1557,13 +1545,13 @@ const s = StyleSheet.create({
   desgloseRecibe: { fontSize: 20, color: C.verde, fontWeight: '800' },
 
   dineroEtiqueta: {
-    color: 'rgba(255,255,255,0.75)',
+    color: C.trigo,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: E.lg,
   },
-  dineroMonto: { color: C.blanco, fontSize: 36, fontWeight: '800', letterSpacing: -1 },
-  dineroDetalle: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 4 },
+  dineroMonto: { color: C.sobreOscuro, fontSize: 36, fontWeight: '800', letterSpacing: -1 },
+  dineroDetalle: { color: 'rgba(242,235,225,0.85)', fontSize: 13.5, lineHeight: 19, marginTop: 4 },
 
   yape: {
     flexDirection: 'row',
@@ -1611,13 +1599,13 @@ const s = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: C.trigoClaro,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: E.md,
   },
   calificarTitulo: { fontSize: 18, fontWeight: '800', color: C.azul, marginBottom: E.xs },
-  calificarPalabra: { fontSize: 14, fontWeight: '800', color: '#B7791F', marginTop: E.sm },
+  calificarPalabra: { fontSize: 14, fontWeight: '800', color: C.ambar, marginTop: E.sm },
   calificarComentario: {
     fontSize: 15,
     color: C.texto,
@@ -1652,7 +1640,7 @@ const s = StyleSheet.create({
   chatEntrada: { flexDirection: 'row', alignItems: 'flex-end', gap: E.sm, marginTop: E.sm },
   chatCampo: {
     flex: 1,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.borde,
     borderRadius: 22,
     paddingHorizontal: E.lg,
@@ -1670,5 +1658,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: C.naranja,
   },
 });

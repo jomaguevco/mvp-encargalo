@@ -2,7 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
 import { actualizarPerfil, enviarVerificacion } from '@/lib/api';
 import { coincideConReniec } from '@/lib/negocio';
@@ -191,7 +198,7 @@ export default function Verificacion() {
         style={{ backgroundColor: C.fondo }}
         contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}>
         <Entrada>
-          <TarjetaDegradada colores={G.marca} style={{ alignItems: 'center' }}>
+          <TarjetaDegradada fondo={G.marca} style={{ alignItems: 'center' }}>
             <View style={s.esperaIcono}>
               <Ionicons name="shield-checkmark" size={34} color={C.blanco} />
             </View>
@@ -216,7 +223,7 @@ export default function Verificacion() {
         style={{ backgroundColor: C.fondo }}
         contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}>
         <Entrada>
-          <TarjetaDegradada colores={G.marca} style={{ alignItems: 'center' }}>
+          <TarjetaDegradada fondo={G.marca} style={{ alignItems: 'center' }}>
             <View style={s.esperaIcono}>
               <Ionicons name="hourglass" size={34} color={C.blanco} />
             </View>
@@ -272,7 +279,7 @@ export default function Verificacion() {
       contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
       keyboardShouldPersistTaps="handled">
       <Entrada>
-        <TarjetaDegradada colores={G.marca}>
+        <TarjetaDegradada fondo={G.marca}>
           <View style={{ flexDirection: 'row', gap: E.md, alignItems: 'center' }}>
             <View style={s.heroIcono}>
               <Ionicons name="finger-print" size={28} color={C.blanco} />
@@ -286,7 +293,7 @@ export default function Verificacion() {
             </View>
           </View>
           <View style={{ marginTop: E.lg }}>
-            <Progreso hechos={hechos} total={3} color="#7EE2B8" />
+            <Progreso hechos={hechos} total={3} color={C.trigo} />
             <Text style={s.heroProgreso}>{hechos} de 3 pasos listos</Text>
           </View>
         </TarjetaDegradada>
@@ -373,13 +380,13 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(242,235,225,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroTitulo: { color: C.blanco, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },
-  heroTexto: { color: 'rgba(255,255,255,0.8)', fontSize: 13.5, lineHeight: 19, marginTop: 3 },
-  heroProgreso: { color: 'rgba(255,255,255,0.8)', fontSize: 12.5, fontWeight: '700', marginTop: 6 },
+  heroTexto: { color: 'rgba(242,235,225,0.8)', fontSize: 13.5, lineHeight: 19, marginTop: 3 },
+  heroProgreso: { color: 'rgba(242,235,225,0.8)', fontSize: 12.5, fontWeight: '700', marginTop: 6 },
 
   pasoCabecera: { flexDirection: 'row', alignItems: 'center', gap: E.sm + 2, marginBottom: E.lg },
   pasoNumero: {
@@ -399,8 +406,8 @@ const s = StyleSheet.create({
     padding: E.md,
     marginTop: -E.sm,
   },
-  diferenciaTitulo: { fontSize: 14.5, fontWeight: '800', color: '#7A3D06' },
-  diferenciaTexto: { fontSize: 13.5, color: '#7A3D06', marginTop: 3, lineHeight: 19 },
+  diferenciaTitulo: { fontSize: 14.5, fontWeight: '800', color: C.ambarOscuro },
+  diferenciaTexto: { fontSize: 13.5, color: C.ambarOscuro, marginTop: 3, lineHeight: 19 },
 
   capturador: {
     borderWidth: 2,
@@ -438,7 +445,7 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(242,235,225,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: E.md,
@@ -451,7 +458,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.4,
   },
   esperaTexto: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(242,235,225,0.8)',
     fontSize: 14,
     textAlign: 'center',
     marginTop: E.sm,

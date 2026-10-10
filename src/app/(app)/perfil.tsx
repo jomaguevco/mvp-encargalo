@@ -1,9 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  View,
+} from 'react-native';
+import { Text } from '@/ui/Texto';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/ctx/auth';
 import { actualizarPerfil, reputacionDe } from '@/lib/api';
 import { codigoReferidoDe, ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
@@ -91,14 +98,7 @@ export default function Perfil() {
       style={{ backgroundColor: C.fondo }}
       contentContainerStyle={{ paddingBottom: E.xxl }}>
       {/* ------------------------------------------------ cabecera */}
-      <View style={s.cabecera}>
-        <LinearGradient
-          colors={G.marca}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={[s.burbuja, { top: -70, right: -50, width: 220, height: 220 }]} />
+      <View style={[s.cabecera, { backgroundColor: G.marca }]}>
         <View style={{ paddingTop: insets.top + E.xl, alignItems: 'center' }}>
           <View style={s.avatarAro}>
             <Avatar nombre={perfil.nombre_completo} tamano={92} verificado={verificado} />
@@ -108,20 +108,20 @@ export default function Perfil() {
           <View style={{ flexDirection: 'row', gap: E.sm, marginTop: E.md }}>
             <Chip
               texto={v.etiqueta}
-              color={verificado ? '#7EE2B8' : '#FFC59E'}
-              fondo="rgba(255,255,255,0.14)"
+              color={verificado ? C.trigo : C.sobreOscuroSuave}
+              fondo="rgba(242,235,225,0.14)"
               icono={verificado ? 'shield-checkmark' : 'shield-outline'}
             />
             {perfil.es_comprador && (
               <Chip
                 texto="Comprador externo"
-                color="#BFD8F5"
-                fondo="rgba(255,255,255,0.14)"
+                color={C.sobreOscuro}
+                fondo="rgba(242,235,225,0.14)"
                 icono="airplane"
               />
             )}
             {esOperador && (
-              <Chip texto="Equipo" color="#FDE68A" fondo="rgba(255,255,255,0.14)" icono="key" />
+              <Chip texto="Equipo" color={C.trigo} fondo="rgba(242,235,225,0.14)" icono="key" />
             )}
           </View>
         </View>
@@ -238,7 +238,7 @@ export default function Perfil() {
 
         {/* ------------------------------------------------ referidos */}
         <Seccion titulo="Invita a un amigo" icono="gift-outline" style={{ marginTop: E.lg }} />
-        <TarjetaDegradada colores={G.accion}>
+        <TarjetaDegradada fondo={G.accion}>
           <Text style={s.refTexto}>
             Cuando tu amigo complete su primer pedido, los dos reciben un descuento.
           </Text>
@@ -326,21 +326,16 @@ export default function Perfil() {
 const s = StyleSheet.create({
   cabecera: {
     overflow: 'hidden',
-    borderBottomLeftRadius: R.xl + 4,
-    borderBottomRightRadius: R.xl + 4,
-  },
-  burbuja: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderBottomLeftRadius: R.xl,
+    borderBottomRightRadius: R.xl,
   },
   avatarAro: {
     padding: 4,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(242,235,225,0.18)',
   },
   nombre: {
-    color: C.blanco,
+    color: C.sobreOscuro,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -348,7 +343,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: E.lg,
   },
-  correo: { color: 'rgba(255,255,255,0.72)', fontSize: 14, marginTop: 2 },
+  correo: { color: C.sobreOscuroSuave, fontSize: 14, marginTop: 2 },
 
   repCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   repEtiqueta: { fontSize: 13, fontWeight: '700', color: C.textoSuave },
@@ -364,7 +359,7 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  verPublicoTexto: { fontSize: 12.5, fontWeight: '800', color: C.azulMedio },
+  verPublicoTexto: { fontSize: 12.5, fontWeight: '600', color: C.azul },
 
   opcion: {
     flexDirection: 'row',
@@ -384,12 +379,12 @@ const s = StyleSheet.create({
   opcionDetalle: { fontSize: 13, color: C.textoSuave, marginTop: 2, lineHeight: 18 },
   linea: { height: 1, backgroundColor: C.borde, marginLeft: 70 },
 
-  refTexto: { color: C.blanco, fontSize: 14.5, lineHeight: 21, fontWeight: '600' },
+  refTexto: { color: C.sobreOscuro, fontSize: 14.5, lineHeight: 21, fontWeight: '500' },
   codigoCaja: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(242,235,225,0.14)',
     borderRadius: R.md,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(242,235,225,0.35)',
     borderStyle: 'dashed',
     paddingVertical: E.md,
     marginVertical: E.lg,
@@ -398,7 +393,7 @@ const s = StyleSheet.create({
     fontSize: 30,
     fontWeight: '800',
     letterSpacing: 6,
-    color: C.blanco,
+    color: C.sobreOscuro,
     textAlign: 'center',
   },
   compartir: {
@@ -410,7 +405,7 @@ const s = StyleSheet.create({
     borderRadius: R.md,
     height: 48,
   },
-  compartirTexto: { color: C.naranja, fontWeight: '800', fontSize: 15.5 },
+  compartirTexto: { color: C.naranjaOscuro, fontWeight: '700', fontSize: 15.5 },
 
   ley: { flexDirection: 'row', gap: E.sm, paddingHorizontal: E.sm, marginTop: E.sm },
   leyTexto: { flex: 1, fontSize: 12.5, color: C.textoSuave, lineHeight: 18 },
