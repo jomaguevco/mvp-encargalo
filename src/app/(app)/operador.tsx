@@ -135,10 +135,17 @@ function InsigniasIa({ v }: { v: VerificacionPendiente }) {
  */
 export default function Operador({
   soloCola,
+  enPanel,
 }: {
   /** El panel de administración la incrusta mostrando una sola cola. */
   soloCola?: Cola;
+  /** Dentro del panel, los enlaces abren las páginas del panel y no las de la app. */
+  enPanel?: boolean;
 } = {}) {
+  const abrirPedido = (id: string) =>
+    router.push(enPanel ? `/admin/pedido/${id}` : `/pedido/${id}`);
+  const abrirPersona = (id: string) =>
+    router.push(enPanel ? `/admin/cuenta/${id}` : `/reputacion/${id}`);
   const [verificaciones, setVerificaciones] = useState<VerificacionPendiente[]>([]);
   const [pagos, setPagos] = useState<PagoPendiente[]>([]);
   const [disputas, setDisputas] = useState<DisputaAbierta[]>([]);
@@ -563,7 +570,7 @@ export default function Operador({
                   <Boton
                     titulo="Ver el pedido"
                     variante="fantasma"
-                    onPress={() => router.push(`/pedido/${p.pedido_id}`)}
+                    onPress={() => abrirPedido(p.pedido_id)}
                   />
                 </Tarjeta>
               </Entrada>
@@ -625,7 +632,7 @@ export default function Operador({
                   <Boton
                     titulo="Abrir el pedido y su chat"
                     variante="fantasma"
-                    onPress={() => router.push(`/pedido/${c.pedido_id}`)}
+                    onPress={() => abrirPedido(c.pedido_id)}
                   />
                 </Tarjeta>
               </Entrada>
@@ -737,13 +744,13 @@ export default function Operador({
                   <Boton
                     titulo="Abrir el chat del pedido"
                     variante="fantasma"
-                    onPress={() => router.push(`/pedido/${d.pedido_id}`)}
+                    onPress={() => abrirPedido(d.pedido_id)}
                   />
                   <View style={{ height: E.sm }} />
                   <Boton
                     titulo="Ver el historial de quien la abrió"
                     variante="fantasma"
-                    onPress={() => router.push(`/reputacion/${d.abierta_por_id}`)}
+                    onPress={() => abrirPersona(d.abierta_por_id)}
                   />
                 </Tarjeta>
               </Entrada>

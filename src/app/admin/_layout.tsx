@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
-import { Boton, Cargando, Vacio } from '@/ui/componentes';
+import { Cargando, Vacio } from '@/ui/componentes';
 import { useEscritorio, ANCHO_LATERAL } from '@/ui/escritorio';
 import { Logo } from '@/ui/Logo';
 import { Text } from '@/ui/Texto';
@@ -120,8 +120,8 @@ export default function AdminLayout() {
             <Logo tamano={26} oscuro />
             <Text style={s.superiorTitulo}>Administración</Text>
             <View style={{ flex: 1 }} />
-            <Pressable onPress={() => router.replace('/(app)/pedidos')} hitSlop={8}>
-              <Ionicons name="phone-portrait-outline" size={20} color={C.sobreOscuro} />
+            <Pressable onPress={salir} hitSlop={8} accessibilityLabel="Cerrar sesión">
+              <Ionicons name="log-out-outline" size={20} color={C.sobreOscuro} />
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: E.xs, paddingHorizontal: E.md }}>
@@ -149,16 +149,19 @@ export default function AdminLayout() {
         </ScrollView>
 
         <View style={s.pie}>
-          <Text style={s.pieNombre} numberOfLines={1}>
-            {perfil?.nombre_completo || 'Administración'}
-          </Text>
-          <Boton
-            titulo="Ir a la app"
-            icono="phone-portrait-outline"
-            variante="suave"
-            chico
-            onPress={() => router.push('/(app)/pedidos')}
-          />
+          <Pressable
+            onPress={() => perfil && router.push(`/admin/cuenta/${perfil.id}`)}
+            accessibilityRole="link"
+            accessibilityLabel="Mi cuenta en el panel"
+            style={({ hovered }: { hovered?: boolean }) => [s.yo, hovered && s.itemEncima]}>
+            <Ionicons name="person-circle-outline" size={20} color={C.sobreOscuroSuave} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.pieNombre} numberOfLines={1}>
+                {perfil?.nombre_completo || 'Administración'}
+              </Text>
+              <Text style={s.pieRol}>Administrador</Text>
+            </View>
+          </Pressable>
           <Pressable onPress={salir} style={s.salir}>
             <Ionicons name="log-out-outline" size={17} color={C.sobreOscuroSuave} />
             <Text style={s.salirTexto}>Cerrar sesión</Text>
@@ -223,7 +226,9 @@ const s = StyleSheet.create({
   },
   globoTexto: { fontSize: 11, fontWeight: '700', color: C.blanco },
   pie: { gap: E.sm, borderTopWidth: 1, borderColor: 'rgba(242,235,225,0.12)', paddingTop: E.md },
-  pieNombre: { fontSize: 13.5, fontWeight: '700', color: C.sobreOscuro, paddingHorizontal: E.xs },
+  pieNombre: { fontSize: 13.5, fontWeight: '700', color: C.sobreOscuro },
+  pieRol: { fontSize: 12, color: C.sobreOscuroSuave },
+  yo: { flexDirection: 'row', alignItems: 'center', gap: E.sm, padding: E.xs, borderRadius: R.sm },
   salir: { flexDirection: 'row', alignItems: 'center', gap: E.sm, padding: E.xs },
   salirTexto: { fontSize: 13.5, color: C.sobreOscuroSuave },
   superior: { backgroundColor: C.azul, paddingTop: E.lg, paddingBottom: E.sm, gap: E.sm },

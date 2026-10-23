@@ -75,9 +75,9 @@ export default function BitacoraAdmin() {
   function abrir(e: EntradaBitacora) {
     if (!e.objetivo_id) return;
     if (e.objetivo_tipo === 'perfil') router.push(`/admin/cuenta/${e.objetivo_id}`);
-    else if (e.objetivo_tipo === 'pago') router.push(`/pedido/${e.objetivo_id}`);
+    else if (e.objetivo_tipo === 'pago') router.push(`/admin/pedido/${e.objetivo_id}`);
     else if (e.objetivo_tipo === 'disputa' && typeof e.detalle?.pedido_id === 'string') {
-      router.push(`/pedido/${e.detalle.pedido_id}`);
+      router.push(`/admin/pedido/${e.detalle.pedido_id}`);
     }
   }
 

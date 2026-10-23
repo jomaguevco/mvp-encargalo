@@ -150,7 +150,7 @@ export default function PedidosAdmin() {
             columnas={columnas}
             filas={filas}
             clave={(p) => p.pedido_id}
-            onFila={(p) => router.push(`/pedido/${p.pedido_id}`)}
+            onFila={(p) => router.push(`/admin/pedido/${p.pedido_id}`)}
             vacio="No hay pedidos con estos filtros"
           />
           <Paginador

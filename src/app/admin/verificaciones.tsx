@@ -90,7 +90,7 @@ export default function VerificacionesAdmin() {
     return (
       <View style={{ flex: 1, backgroundColor: C.fondo }}>
         {selector}
-        <Operador soloCola="verificaciones" />
+        <Operador soloCola="verificaciones" enPanel />
       </View>
     );
   }

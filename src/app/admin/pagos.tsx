@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as api from '@/lib/api';
@@ -38,7 +38,11 @@ const suma = (xs: PagoAdmin[], f: (p: PagoAdmin) => number) =>
  * liberó y cuánto es comisión (lo único que es ingreso de Encárgalo).
  */
 export default function PagosAdmin() {
-  const [filtro, setFiltro] = useState<Filtro>('todos');
+  // El Resumen llega con ?estado=retenido para abrir ya filtrado.
+  const { estado } = useLocalSearchParams<{ estado?: string }>();
+  const [filtro, setFiltro] = useState<Filtro>(
+    estado && estado in ESTADO_PAGO ? (estado as EstadoPago) : 'todos',
+  );
   const [filas, setFilas] = useState<PagoAdmin[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +104,7 @@ export default function PagosAdmin() {
       subtitulo="El dinero retenido es de los clientes hasta que confirman: solo la comisión es ingreso."
       acciones={
         <>
-          <BotonAdmin titulo="Confirmar pagos" icono="shield-checkmark-outline" onPress={() => router.push('/admin/operacion')} />
+          <BotonAdmin titulo="Confirmar pagos" icono="shield-checkmark-outline" onPress={() => router.push('/admin/operacion?cola=pagos')} />
           <BotonAdmin
             titulo="Exportar CSV"
             icono="download-outline"
@@ -154,7 +158,7 @@ export default function PagosAdmin() {
             columnas={columnas}
             filas={xs}
             clave={(p) => p.pedido_id}
-            onFila={(p) => router.push(`/pedido/${p.pedido_id}`)}
+            onFila={(p) => router.push(`/admin/pedido/${p.pedido_id}`)}
             vacio="No hay pagos con este estado"
           />
         </>

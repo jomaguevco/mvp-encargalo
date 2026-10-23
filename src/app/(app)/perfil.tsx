@@ -133,7 +133,7 @@ function Acceso({
 }
 
 export default function Perfil() {
-  const { perfil, sesion, salir, refrescarPerfil, esOperador, avisosPendientes } = useAuth();
+  const { perfil, sesion, salir, refrescarPerfil, esOperador, esAdmin, avisosPendientes } = useAuth();
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   // Foto de perfil: cuadrada, liviana y opcional. Sin foto se ven las iniciales.
@@ -329,6 +329,18 @@ export default function Perfil() {
           }
         />
       </Tarjeta>
+
+      {esAdmin && (
+        <Tarjeta style={{ padding: 0 }}>
+          <Opcion
+            icono="shield-checkmark"
+            color={C.ambar}
+            titulo="Panel de administración"
+            detalle="Reportes, verificaciones, cuentas y configuración"
+            onPress={() => router.push('/admin')}
+          />
+        </Tarjeta>
+      )}
 
       <Tarjeta style={{ padding: 0 }}>
         <Opcion

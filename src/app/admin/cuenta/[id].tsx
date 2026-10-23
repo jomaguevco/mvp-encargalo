@@ -20,6 +20,7 @@ import {
   PaginaAdmin,
   pedirTexto,
   Tabla,
+  volver,
 } from '@/ui/admin';
 import { Aviso, Avatar, Cargando, Chip, Estrellas } from '@/ui/componentes';
 import { avisar, confirmar } from '@/ui/dialogos';
@@ -85,7 +86,7 @@ export default function FichaCuentaAdmin() {
 
   const acciones = (
     <>
-      <BotonAdmin titulo="Volver" icono="arrow-back" onPress={() => router.back()} />
+      <BotonAdmin titulo="Volver" icono="arrow-back" onPress={() => volver('/admin/cuentas')} />
       {p.verificacion === 'en_revision' && (
         <BotonAdmin
           titulo="Revisar verificación"
@@ -277,7 +278,7 @@ export default function FichaCuentaAdmin() {
           ]}
           filas={ficha.pedidos}
           clave={(x) => x.id}
-          onFila={(x) => router.push(`/pedido/${x.id}`)}
+          onFila={(x) => router.push(`/admin/pedido/${x.id}`)}
           vacio="No publicó pedidos"
         />
       </Bloque>
@@ -293,7 +294,7 @@ export default function FichaCuentaAdmin() {
           ]}
           filas={ficha.entregas}
           clave={(x) => `${x.id}-${x.creado_en}`}
-          onFila={(x) => router.push(`/pedido/${x.id}`)}
+          onFila={(x) => router.push(`/admin/pedido/${x.id}`)}
           vacio="No envió ofertas"
         />
       </Bloque>
@@ -310,7 +311,7 @@ export default function FichaCuentaAdmin() {
             ]}
             filas={ficha.disputas}
             clave={(x) => x.id}
-            onFila={(x) => router.push(`/pedido/${x.pedido_id}`)}
+            onFila={(x) => router.push(`/admin/pedido/${x.pedido_id}`)}
           />
         </Bloque>
       )}

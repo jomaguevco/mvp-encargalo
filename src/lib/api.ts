@@ -792,6 +792,67 @@ export async function cuentasParecidas(perfilId: string): Promise<CuentaParecida
   return (data ?? []) as CuentaParecida[];
 }
 
+/**
+ * Todo lo de un pedido para el panel: datos, todas las ofertas (también las
+ * retiradas), pago, bitácora, chat, disputas y calificaciones, con el nombre de
+ * cada participante. Usa la lectura que el equipo ya tiene por RLS
+ * (0011_correcciones_flujo.sql) y los nombres de la vista pública de reputación.
+ */
+export async function detallePedidoAdmin(pedidoId: string) {
+  const [pedido, ofertas, pago, eventos, mensajes, disputas, notas] = await Promise.all([
+    verPedido(pedidoId),
+    supabase.from('ofertas').select('*').eq('pedido_id', pedidoId).order('creado_en'),
+    pagoDelPedido(pedidoId),
+    eventosDelPedido(pedidoId),
+    mensajesDelPedido(pedidoId),
+    supabase.from('disputas').select('*').eq('pedido_id', pedidoId).order('creado_en'),
+    supabase.from('calificaciones').select('*').eq('pedido_id', pedidoId).order('creado_en'),
+  ]);
+  revienta(ofertas.error);
+  revienta(disputas.error);
+  if (!pedido) return null;
+
+  const listaOfertas = (ofertas.data ?? []) as Oferta[];
+  const listaDisputas = (disputas.data ?? []) as {
+    id: string;
+    abierta_por: string;
+    motivo: string;
+    estado: string;
+    resolucion: string | null;
+    creado_en: string;
+    resuelta_en: string | null;
+  }[];
+  const listaNotas = (notas.data ?? []) as Calificacion[];
+
+  const ids = new Set<string>([pedido.cliente_id]);
+  listaOfertas.forEach((o) => ids.add(o.comprador_id));
+  eventos.forEach((e) => e.actor_id && ids.add(e.actor_id));
+  mensajes.forEach((m) => ids.add(m.emisor_id));
+  listaDisputas.forEach((d) => ids.add(d.abierta_por));
+  listaNotas.forEach((c) => ids.add(c.califica_id));
+  const { data: gente } = await supabase
+    .from('v_reputacion')
+    .select('perfil_id, nombre_completo, foto_path')
+    .in('perfil_id', [...ids]);
+  const nombres: Record<string, { nombre: string; foto: string | null }> = {};
+  (gente ?? []).forEach((g: { perfil_id: string; nombre_completo: string; foto_path?: string | null }) => {
+    nombres[g.perfil_id] = { nombre: g.nombre_completo || 'Sin nombre', foto: g.foto_path ?? null };
+  });
+
+  return {
+    pedido,
+    ofertas: listaOfertas,
+    pago,
+    eventos,
+    mensajes,
+    disputas: listaDisputas,
+    calificaciones: listaNotas,
+    nombres,
+  };
+}
+
+export type DetallePedidoAdmin = NonNullable<Awaited<ReturnType<typeof detallePedidoAdmin>>>;
+
 /** Moderación: quita una foto de perfil inapropiada y borra el archivo. */
 export async function quitarFotoDe(perfilId: string) {
   const { data, error } = await supabase.rpc('admin_quitar_foto', { p_perfil: perfilId });

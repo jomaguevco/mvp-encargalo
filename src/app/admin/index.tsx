@@ -128,14 +128,14 @@ export default function ResumenAdminPantalla() {
             valor={String(ahora.pagos_por_confirmar)}
             detalle="Comprobantes de Yape esperando"
             color={ahora.pagos_por_confirmar > 0 ? C.naranja : C.verde}
-            onPress={() => router.push('/admin/operacion')}
+            onPress={() => router.push('/admin/operacion?cola=pagos')}
           />
           <Kpi
             icono="flag"
             etiqueta="Disputas abiertas"
             valor={String(ahora.disputas_abiertas)}
             color={ahora.disputas_abiertas > 0 ? C.rojo : C.verde}
-            onPress={() => router.push('/admin/operacion')}
+            onPress={() => router.push('/admin/operacion?cola=disputas')}
           />
           <Kpi
             icono="lock-closed"
@@ -143,7 +143,7 @@ export default function ResumenAdminPantalla() {
             valor={soles(ahora.retenido)}
             detalle={`${ahora.pagos_retenidos} pagos en custodia: no es ingreso`}
             color={C.verdeOscuro}
-            onPress={() => router.push('/admin/pagos')}
+            onPress={() => router.push('/admin/pagos?estado=retenido')}
           />
         </GrillaKpi>
       </Bloque>
