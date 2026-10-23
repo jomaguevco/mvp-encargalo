@@ -5,6 +5,8 @@ import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
 import { urlFoto } from '@/lib/api';
 import { useAuth } from '@/ctx/auth';
+import { ESTADO_VERIFICACION } from '@/lib/negocio';
+import { accesoPublicar } from './navegacion';
 import { Avatar } from './componentes';
 import { Logo } from './Logo';
 import { ANCHO_LATERAL } from './escritorio';
@@ -26,8 +28,8 @@ export function BarraLateral({
 }: BottomTabBarProps & {
   iconos: Record<string, { apagado: Icono; encendido: Icono }>;
 }) {
-  const { perfil, verificado, avisosPendientes, esAdmin } = useAuth();
-  const enRevision = perfil?.verificacion === 'en_revision';
+  const { perfil, avisosPendientes, esAdmin } = useAuth();
+  const publicar = accesoPublicar(perfil);
 
   return (
     <View style={s.barra}>
@@ -42,20 +44,16 @@ export function BarraLateral({
       </Pressable>
 
       <Pressable
-        // Igual que el botón de Mis pedidos: sin identidad verificada no se publica.
-        onPress={() => !enRevision && router.push(verificado ? '/publicar' : '/verificacion')}
+        // El mismo criterio que el botón de Mis pedidos y el acceso de Perfil.
+        onPress={() => publicar.destino && router.push(publicar.destino)}
+        disabled={!publicar.destino}
         style={({ hovered, pressed }: { hovered?: boolean; pressed: boolean }) => [
           s.publicar,
           (hovered || pressed) && { backgroundColor: C.naranjaOscuro },
+          !publicar.destino && { opacity: 0.5 },
         ]}>
-        <Ionicons name={verificado ? 'add' : 'shield-checkmark'} size={20} color={C.blanco} />
-        <Text style={s.publicarTexto}>
-          {verificado
-            ? 'Publicar pedido'
-            : enRevision
-              ? 'Verificación en revisión'
-              : 'Verificar identidad'}
-        </Text>
+        <Ionicons name={publicar.icono} size={20} color={C.blanco} />
+        <Text style={s.publicarTexto}>{publicar.etiqueta}</Text>
       </Pressable>
 
       <View style={s.lista}>
@@ -131,7 +129,11 @@ export function BarraLateral({
             {perfil?.nombre_completo || 'Mi cuenta'}
           </Text>
           <Text style={s.usuarioEstado} numberOfLines={1}>
-            {perfil?.verificacion === 'verificado' ? 'Identidad verificada' : 'Sin verificar'}
+            {perfil?.suspendido
+              ? 'Cuenta suspendida'
+              : perfil
+                ? ESTADO_VERIFICACION[perfil.verificacion].etiqueta
+                : ''}
           </Text>
         </View>
       </Pressable>

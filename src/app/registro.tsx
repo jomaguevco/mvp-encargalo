@@ -110,7 +110,8 @@ export default function Registro() {
         /* el proyecto pide confirmar el correo */
       }
       if (!conSesion) {
-        router.replace('/entrar');
+        // El proyecto pide confirmar el correo: se avisa en la pantalla de ingreso.
+        router.replace({ pathname: '/entrar', params: { confirmar: '1' } });
         return;
       }
       // El DNI ya quedó en el perfil: lo copió el trigger del alta (0015) desde

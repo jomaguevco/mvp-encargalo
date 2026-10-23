@@ -30,6 +30,7 @@ import {
 import { avisar, confirmar } from '@/ui/dialogos';
 import { useEscritorio } from '@/ui/escritorio';
 import { PedidoCard } from '@/ui/PedidoCard';
+import { accesoPublicar } from '@/ui/navegacion';
 import { C, E, R } from '@/ui/tema';
 
 /** Una fila de dato o de ajuste dentro de una tarjeta. */
@@ -184,7 +185,28 @@ export default function Perfil() {
     }, [perfil?.id, refrescarPerfil]),
   );
 
-  if (!perfil) return null;
+  if (!perfil) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.fondo, justifyContent: 'center', padding: E.xl, gap: E.md }}>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: C.azul, textAlign: 'center' }}>
+          No pudimos cargar tu perfil
+        </Text>
+        <Text style={{ fontSize: 14, color: C.textoSuave, textAlign: 'center' }}>
+          Revisa tu conexión e inténtalo otra vez.
+        </Text>
+        <Boton titulo="Reintentar" icono="refresh" onPress={refrescarPerfil} />
+        <Boton
+          titulo="Cerrar sesión"
+          variante="fantasma"
+          onPress={async () => {
+            await salir();
+            router.replace('/entrar');
+          }}
+        />
+      </View>
+    );
+  }
+  const publicar = accesoPublicar(perfil);
   const v = ESTADO_VERIFICACION[perfil.verificacion];
   const verificado = perfil.verificacion === 'verificado';
   const codigo = codigoReferidoDe(perfil.id);
@@ -510,11 +532,11 @@ export default function Perfil() {
             destino="/(app)/pedidos"
           />
           <Acceso
-            icono="add-circle"
+            icono={publicar.icono}
             color={C.naranja}
-            titulo="Publicar"
-            detalle="Pide algo del extranjero"
-            destino={verificado ? '/publicar' : '/verificacion'}
+            titulo={publicar.destino === '/publicar' ? 'Publicar' : publicar.etiqueta}
+            detalle={publicar.detalle}
+            destino={publicar.destino ?? '/(app)/pedidos'}
           />
           <Acceso
             icono="airplane"

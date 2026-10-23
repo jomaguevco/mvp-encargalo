@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Image, RefreshControl, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { Text, TextInput } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
-import { pedidosAbiertos } from '@/lib/api';
+import { actualizarPerfil, pedidosAbiertos } from '@/lib/api';
+import { avisar } from '@/ui/dialogos';
 import { CATEGORIAS, diasHasta } from '@/lib/negocio';
 import type { Pedido } from '@/lib/tipos';
 import {
@@ -80,7 +81,7 @@ function Bloqueo({
 
 export default function Explorar() {
   const { es: escritorio, columnas } = useEscritorio();
-  const { perfil, verificado } = useAuth();
+  const { perfil, verificado, refrescarPerfil } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -158,8 +159,15 @@ export default function Explorar() {
           'El pago del cliente ya está retenido antes de que compres',
           'Cobras al entregar, sin perseguir a nadie',
         ]}
-        accion="Activarla en mi perfil"
-        onAccion={() => router.push('/(app)/perfil')}
+        accion="Activar cuenta de comprador externo"
+        onAccion={async () => {
+          try {
+            await actualizarPerfil({ es_comprador: true });
+            await refrescarPerfil();
+          } catch (e) {
+            avisar('No se pudo activar', (e as Error).message);
+          }
+        }}
       />
     );
   }

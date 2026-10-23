@@ -107,7 +107,6 @@ export default function PedidoAdmin() {
       <View style={s.chips}>
         <ChipPedido estado={pe.estado} />
         <ChipPago estado={pago?.estado ?? null} />
-        <Text style={s.meta}>{ESTADO_PEDIDO[pe.estado]?.detalle}</Text>
       </View>
 
       <View style={{ flexDirection: escritorio ? 'row' : 'column', gap: E.lg, alignItems: 'flex-start' }}>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { conSesion } from '@/ui/navegacion';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -29,7 +30,7 @@ import { C, E, G } from '@/ui/tema';
  * esta persona. No expone DNI, teléfono ni correo: todo sale de la vista
  * v_reputacion y de la función resenas_de.
  */
-export default function PerfilPublico() {
+function PerfilPublico() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacion = useNavigation();
   const [rep, setRep] = useState<Reputacion | null>(null);
@@ -242,3 +243,5 @@ const s = StyleSheet.create({
   resenaTexto: { fontSize: 15, color: C.texto, lineHeight: 22, marginTop: E.md },
   resenaPedido: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: E.md },
 });
+
+export default conSesion(PerfilPublico);

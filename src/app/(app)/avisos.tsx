@@ -71,6 +71,11 @@ export default function Avisos() {
       );
       refrescarAvisos();
     }
+    // Avisos de verificación: llevan a donde se ve el estado o se reintenta.
+    if (aviso.tipo === 'verificacion') {
+      router.push('/verificacion');
+      return;
+    }
     if (aviso.pedido_id) router.push(`/pedido/${aviso.pedido_id}`);
   }
 

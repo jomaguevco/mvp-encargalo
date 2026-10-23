@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -48,13 +48,24 @@ function Garantia({
 }
 
 export default function Entrar() {
-  const { entrar } = useAuth();
+  const { entrar, sesion, esAdmin } = useAuth();
+  // ?volver=/pedido/x al llegar desde una pantalla protegida; ?confirmar=1 al
+  // registrarse en un proyecto que exige confirmar el correo.
+  const { volver: destino, confirmar } = useLocalSearchParams<{ volver?: string; confirmar?: string }>();
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
   const [verClave, setVerClave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const { es: escritorio } = useEscritorio();
+  // Quien ya tenía sesión al abrir esta pantalla no ve el formulario otra vez.
+  // Solo se mira al montar: durante el ingreso la sesión aparece y el destino
+  // lo decide enviar(), que sabe si es administrador y a dónde volver.
+  const [habiaSesion] = useState(!!sesion);
+
+  if (habiaSesion && sesion) {
+    return <Redirect href={esAdmin ? '/admin' : '/(app)/pedidos'} />;
+  }
 
   async function enviar() {
     setError(null);
@@ -67,7 +78,8 @@ export default function Entrar() {
       await entrar(correo, clave);
       // El administrador va directo a su panel. Se pregunta aquí y no en el
       // contexto porque el permiso llega un instante después de la sesión.
-      router.replace((await soyAdmin()) ? '/admin' : '/(app)/pedidos');
+      const vuelta = destino && destino.startsWith('/') && !destino.startsWith('/entrar') ? destino : null;
+      router.replace((vuelta as Href) ?? ((await soyAdmin()) ? '/admin' : '/(app)/pedidos'));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -126,6 +138,12 @@ export default function Entrar() {
               <Text style={s.panelTitulo}>Ingresa a tu cuenta</Text>
               <Text style={s.panelSub}>Qué bueno verte otra vez.</Text>
 
+              {confirmar === '1' && !error && (
+                <Aviso tono="info" titulo="Revisa tu correo">
+                  Te enviamos un enlace para confirmar tu cuenta. Ábrelo y luego ingresa aquí con tu
+                  correo y contraseña.
+                </Aviso>
+              )}
               {!!error && <Aviso tono="error">{error}</Aviso>}
 
               <Campo

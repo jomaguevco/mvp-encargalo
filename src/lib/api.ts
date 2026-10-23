@@ -280,6 +280,8 @@ export async function pedidosAbiertos(): Promise<Pedido[]> {
     .select('*')
     .eq('estado', 'publicado')
     .neq('cliente_id', sesion.user?.id ?? '')
+    // Con la fecha límite vencida nadie puede ofertar: no se muestra.
+    .gte('fecha_limite', diaIso(new Date()))
     .order('creado_en', { ascending: false });
   revienta(error);
   return (data ?? []) as Pedido[];

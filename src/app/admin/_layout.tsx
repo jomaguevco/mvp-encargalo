@@ -85,7 +85,12 @@ export default function AdminLayout() {
     );
   }
 
-  const activa = (r: string) => (r === '/admin' ? ruta === '/admin' : ruta.startsWith(r));
+  // Las páginas de detalle cuentan como su sección: /admin/pedido/x → Pedidos,
+  // /admin/cuenta/x → Cuentas.
+  const seccionDe = (r: string) =>
+    r.startsWith('/admin/pedido/') ? '/admin/pedidos' : r.startsWith('/admin/cuenta/') ? '/admin/cuentas' : r;
+  const activa = (r: string) =>
+    r === '/admin' ? ruta === '/admin' : seccionDe(ruta).startsWith(r);
 
   const items = SECCIONES.map((sec) => {
     const on = activa(sec.ruta);

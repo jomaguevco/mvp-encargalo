@@ -27,6 +27,7 @@ import {
 } from '@/ui/componentes';
 import { PedidoCard } from '@/ui/PedidoCard';
 import { Banners } from '@/ui/Banners';
+import { accesoPublicar } from '@/ui/navegacion';
 import { useEscritorio } from '@/ui/escritorio';
 import { C, E, R, sombra } from '@/ui/tema';
 
@@ -62,6 +63,7 @@ function saludo() {
 export default function MisPedidos() {
   const { es: escritorio, columnas } = useEscritorio();
   const { perfil, verificado, refrescarPerfil } = useAuth();
+  const publicar = accesoPublicar(perfil);
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [refrescando, setRefrescando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>('activos');
@@ -270,10 +272,10 @@ export default function MisPedidos() {
       {!escritorio && (
         <View style={s.flotante}>
           <Boton
-            icono={verificado ? 'add-circle' : 'shield-checkmark'}
-            titulo={verificado ? 'Publicar un pedido' : 'Verifica tu identidad para publicar'}
-            onPress={() => router.push(verificado ? '/publicar' : '/verificacion')}
-            deshabilitado={perfil?.verificacion === 'en_revision'}
+            icono={publicar.icono}
+            titulo={publicar.etiqueta}
+            onPress={() => publicar.destino && router.push(publicar.destino)}
+            deshabilitado={!publicar.destino}
             style={sombra(3)}
           />
         </View>

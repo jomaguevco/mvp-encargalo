@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { conSesion, volver } from '@/ui/navegacion';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -20,9 +21,11 @@ import { C, E, R } from '@/ui/tema';
 
 /** Devuelve una fecha ISO (YYYY-MM-DD) a N días de hoy. */
 function enDias(n: number) {
+  // Fecha LOCAL: con toISOString (UTC), después de las 19:00 en Perú la fecha
+  // límite se guardaba un día tarde.
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 const DESPUES = [
@@ -38,7 +41,7 @@ const DESPUES = [
   },
 ];
 
-export default function Publicar() {
+function Publicar() {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [url, setUrl] = useState('');
@@ -451,3 +454,5 @@ const s = StyleSheet.create({
     paddingTop: 4,
   },
 });
+
+export default conSesion(Publicar);

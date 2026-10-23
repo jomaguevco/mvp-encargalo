@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
+import { conSesion, volver } from '@/ui/navegacion';
 import { actualizarPerfil, enviarVerificacion } from '@/lib/api';
 import { coincideConReniec } from '@/lib/negocio';
 import {
@@ -98,7 +99,7 @@ function Capturador({
   );
 }
 
-export default function Verificacion() {
+function Verificacion() {
   const { perfil, sesion, refrescarPerfil } = useAuth();
   const [dni, setDni] = useState(perfil?.dni ?? '');
   const [estadoDni, setEstadoDni] = useState<EstadoDni>({ tipo: 'vacio' });
@@ -220,7 +221,7 @@ export default function Verificacion() {
             </Text>
           </TarjetaDegradada>
         </Entrada>
-        <Boton titulo="Continuar" icono="arrow-forward" onPress={() => router.back()} />
+        <Boton titulo="Continuar" icono="arrow-forward" onPress={() => volver('/(app)/pedidos')} />
       </ScrollView>
     );
   }
@@ -278,7 +279,7 @@ export default function Verificacion() {
             ))}
           </Tarjeta>
         </Entrada>
-        <Boton titulo="Volver" variante="fantasma" onPress={() => router.back()} />
+        <Boton titulo="Volver" variante="fantasma" onPress={() => volver('/(app)/pedidos')} />
       </ScrollView>
     );
   }
@@ -381,7 +382,7 @@ export default function Verificacion() {
         deshabilitado={hechos < 3}
       />
       <View style={{ height: E.sm }} />
-      <Boton titulo="Ahora no" variante="fantasma" onPress={() => router.back()} />
+      <Boton titulo="Ahora no" variante="fantasma" onPress={() => volver('/(app)/pedidos')} />
 
       <CamaraGuiada
         modo={camara === 'selfie' ? 'selfie' : 'dni'}
@@ -493,3 +494,5 @@ const s = StyleSheet.create({
   },
   esperaPasoTexto: { flex: 1, fontSize: 14.5, fontWeight: '700', color: C.textoSuave },
 });
+
+export default conSesion(Verificacion);

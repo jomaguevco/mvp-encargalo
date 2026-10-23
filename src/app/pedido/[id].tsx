@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Text, TextInput } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
+import { conSesion, volver } from '@/ui/navegacion';
 import * as api from '@/lib/api';
 import {
   CANCELABLES,
@@ -205,10 +206,11 @@ function siguientePaso(opts: {
   return null;
 }
 
-export default function DetallePedido() {
+function DetallePedido() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacion = useNavigation();
-  const { perfil, esOperador } = useAuth();
+  const { perfil, esOperador, verificado, refrescarPerfil } = useAuth();
+  const suspendido = !!perfil?.suspendido;
   const { es: escritorio } = useEscritorio();
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -315,9 +317,9 @@ export default function DetallePedido() {
         <Vacio
           icono="search-outline"
           titulo="No encontramos este pedido"
-          detalle="Puede que haya sido cancelado o que no tengas acceso a él."
-          accion="Volver"
-          onAccion={() => router.back()}
+          detalle="Puede que haya sido cancelado, que ya lo tomó otro comprador externo o que no tengas acceso a él."
+          accion="Ir a mis pedidos"
+          onAccion={() => volver('/(app)/pedidos')}
         />
       </View>
     );
@@ -337,6 +339,12 @@ export default function DetallePedido() {
     propia,
   });
   const participo = soyCliente || soyComprador;
+  // Ofertar exige identidad verificada, cuenta de comprador externo, no estar
+  // suspendido y que la fecha límite no haya pasado (o ya tener una oferta,
+  // para poder retirarla). Antes el formulario salía para cualquiera.
+  const puedeOfertar =
+    !!propia ||
+    (verificado && !!perfil?.es_comprador && !suspendido && diasHasta(pedido.fecha_limite) >= 0);
 
   const bloquePortada = (
     <>
@@ -522,7 +530,38 @@ export default function DetallePedido() {
         )}
   
         {/* ---------------------------------------------------- ofertar */}
-        {pedido.estado === 'publicado' && !soyCliente && (
+        {pedido.estado === 'publicado' && !soyCliente && !puedeOfertar && (
+          <Tarjeta style={{ marginTop: E.md }}>
+            <Seccion titulo="¿Quieres traer este pedido?" icono="airplane-outline" style={{ marginTop: 0 }} />
+            <Text style={s.nota}>
+              {suspendido
+                ? 'Tu cuenta está suspendida: no puedes ofertar por ahora.'
+                : !verificado
+                  ? 'Para ofertar necesitas tener tu identidad verificada.'
+                  : diasHasta(pedido.fecha_limite) < 0
+                    ? 'La fecha límite de este pedido ya pasó: no recibe más ofertas.'
+                    : 'Activa tu cuenta de comprador externo para ofertar en pedidos.'}
+            </Text>
+            {!suspendido && !verificado && (
+              <Boton titulo="Verificar mi identidad" icono="shield-checkmark" onPress={() => router.push('/verificacion')} />
+            )}
+            {!suspendido && verificado && !perfil?.es_comprador && diasHasta(pedido.fecha_limite) >= 0 && (
+              <Boton
+                titulo="Activar cuenta de comprador externo"
+                icono="airplane"
+                cargando={ocupado === 'activar'}
+                onPress={() =>
+                  accion('activar', async () => {
+                    await api.actualizarPerfil({ es_comprador: true });
+                    await refrescarPerfil();
+                  })
+                }
+              />
+            )}
+          </Tarjeta>
+        )}
+
+        {pedido.estado === 'publicado' && !soyCliente && puedeOfertar && (
           <FormularioOferta
             pedido={pedido}
             propia={propia}
@@ -649,8 +688,11 @@ export default function DetallePedido() {
   const bloqueFinal = (
     <>
         {/* ---------------------------------------------------- chat */}
-        {participo && pedido.estado !== 'publicado' && (
+        {(participo || esOperador) && pedido.estado !== 'publicado' && (
           <Chat
+            // El equipo lo lee para decidir disputas, pero no escribe; una cuenta
+            // suspendida tampoco puede escribir (la base lo bloquea).
+            soloLectura={!participo || suspendido}
             mensajes={mensajes}
             yo={perfil?.id ?? ''}
             otro={contraparte?.nombre_completo ?? ''}
@@ -1389,7 +1431,9 @@ function Chat({
   otro,
   onEnviar,
   enviando,
+  soloLectura,
 }: {
+  soloLectura?: boolean;
   mensajes: Mensaje[];
   yo: string;
   otro: string;
@@ -1438,6 +1482,11 @@ function Chat({
           })
         )}
 
+        {soloLectura ? (
+          <Text style={[s.nota, { marginTop: E.sm, marginBottom: 0 }]}>
+            Solo lectura: esta conversación es entre el cliente y el comprador externo.
+          </Text>
+        ) : (
         <View style={s.chatEntrada}>
           <TextInput
             value={texto}
@@ -1462,6 +1511,7 @@ function Chat({
             <Ionicons name="send" size={18} color={C.blanco} />
           </Pressable>
         </View>
+        )}
       </Tarjeta>
     </>
   );
@@ -1722,3 +1772,5 @@ const s = StyleSheet.create({
     backgroundColor: C.naranja,
   },
 });
+
+export default conSesion(DetallePedido);

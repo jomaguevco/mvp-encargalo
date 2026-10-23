@@ -156,7 +156,8 @@ export default function FichaCuentaAdmin() {
         <BotonAdmin
           titulo={p.es_admin ? 'Quitar administrador' : 'Hacer administrador'}
           icono="key-outline"
-          deshabilitado={ocupado}
+          // La base solo nombra administrador a alguien verificado o que ya sea operador.
+          deshabilitado={ocupado || (!p.es_admin && p.verificacion !== 'verificado' && !p.es_operador)}
           onPress={async () => {
             const ok = await confirmar(
               p.es_admin ? 'Quitar rol de administrador' : 'Dar rol de administrador',

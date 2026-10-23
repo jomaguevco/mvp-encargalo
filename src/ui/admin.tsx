@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
   Platform,
@@ -108,14 +107,8 @@ export function BotonAdmin({
   );
 }
 
-/**
- * Vuelve a la pantalla anterior, o a `respaldo` si no hay historial (la
- * página se abrió con un enlace directo o recargando el navegador).
- */
-export function volver(respaldo: Href) {
-  if (router.canGoBack()) router.back();
-  else router.replace(respaldo);
-}
+// «Volver» con destino de respaldo: el mismo de toda la app.
+export { volver } from './navegacion';
 
 // ------------------------------------------------------------------ cifras
 export function Kpi({

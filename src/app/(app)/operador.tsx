@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { useAuth } from '@/ctx/auth';
 import { useCallback, useState } from 'react';
 import {
   Image,
@@ -142,6 +143,7 @@ export default function Operador({
   /** Dentro del panel, los enlaces abren las páginas del panel y no las de la app. */
   enPanel?: boolean;
 } = {}) {
+  const { esOperador } = useAuth();
   const abrirPedido = (id: string) =>
     router.push(enPanel ? `/admin/pedido/${id}` : `/pedido/${id}`);
   const abrirPersona = (id: string) =>
@@ -227,15 +229,23 @@ export default function Operador({
     }
   }
 
+  // La pestaña está oculta para quien no es del equipo, pero la ruta se podía
+  // abrir escribiéndola: se devuelve a la app (dentro del panel ya se validó).
+  if (!enPanel && !esOperador) return <Redirect href="/(app)/pedidos" />;
   if (cargando) return <Cargando texto="Cargando las colas del equipo…" />;
 
-  const vacio =
-    verificaciones.length === 0 &&
-    pagos.length === 0 &&
-    disputas.length === 0 &&
-    vencidas.length === 0;
+  const cuantas: Record<Cola, number> = {
+    verificaciones: verificaciones.length,
+    pagos: pagos.length,
+    vencidas: vencidas.length,
+    disputas: disputas.length,
+  };
+  // Vacío según lo que se está mirando: con una cola elegida y vacía, antes
+  // quedaba la pantalla en blanco porque otra cola sí tenía elementos.
+  const vacio = cola ? cuantas[cola] === 0 : Object.values(cuantas).every((n) => n === 0);
   const ver = (c: Cola) => !cola || cola === c;
-  const alternar = (c: Cola) => setCola(cola === c ? null : c);
+  // Incrustada con una sola cola (Verificaciones del panel), no se cambia de cola.
+  const alternar = (c: Cola) => !soloCola && setCola(cola === c ? null : c);
 
   return (
     <ScrollView
@@ -289,7 +299,7 @@ export default function Operador({
       </Cabecera>
 
       <View style={{ padding: E.lg }}>
-        {!!cola && (
+        {!!cola && !soloCola && (
           <View style={s.filtro}>
             <Ionicons name="funnel" size={14} color={C.azulMedio} />
             <Text style={s.filtroTexto}>Mostrando solo una cola</Text>
@@ -302,8 +312,12 @@ export default function Operador({
         {vacio && (
           <Vacio
             icono="sparkles-outline"
-            titulo="Todo al día"
-            detalle="No hay verificaciones, pagos, disputas ni plazos vencidos esperando."
+            titulo={cola ? 'Nada en esta cola' : 'Todo al día'}
+            detalle={
+              cola
+                ? 'No hay nada esperando aquí. Revisa las otras colas en la cabecera.'
+                : 'No hay verificaciones, pagos, disputas ni plazos vencidos esperando.'
+            }
           />
         )}
 
@@ -766,13 +780,13 @@ export default function Operador({
           </Micro>
         )}
 
-        <View style={{ height: E.lg }} />
-        <Boton
+        {!enPanel && <View style={{ height: E.lg }} />}
+        {!enPanel && <Boton
           titulo="Ver la política de datos"
           icono="document-text-outline"
           variante="fantasma"
           onPress={() => router.push('/legal')}
-        />
+        />}
       </View>
 
       <VisorImagenes
