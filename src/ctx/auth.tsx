@@ -45,8 +45,11 @@ export type DatosRegistro = {
   versionTerminos: string;
 };
 
-/** Correo de la cuenta administrativa (supabase/admin_cuenta.local.sql). */
-const CORREO_ADMIN = process.env.EXPO_PUBLIC_ADMIN_CORREO ?? 'admin@gmail.com';
+/**
+ * Correo de la cuenta administrativa. Vive en el .env (EXPO_PUBLIC_ADMIN_CORREO) y
+ * no aquí porque el repositorio es público. Sin él, «admin» no es un atajo.
+ */
+const CORREO_ADMIN = process.env.EXPO_PUBLIC_ADMIN_CORREO ?? null;
 
 const AuthCtx = createContext<Ctx | null>(null);
 
@@ -114,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const entrar = useCallback(async (correo: string, clave: string) => {
     // La cuenta administrativa entra con «admin» a secas.
     const limpio = correo.trim().toLowerCase();
-    const email = limpio === 'admin' ? CORREO_ADMIN : limpio;
+    const email = limpio === 'admin' && CORREO_ADMIN ? CORREO_ADMIN : limpio;
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password: clave,

@@ -164,7 +164,8 @@ y solo entra quien está en la tabla `administradores`. Un administrador tambié
 Para crear la cuenta administrativa, después de aplicar `0012_administracion.sql`,
 ejecuta en el SQL Editor el script local **`supabase/admin_cuenta.local.sql`**. Ese archivo
 está en `.gitignore` porque lleva la contraseña: este repositorio es público. En la pantalla
-de ingreso basta con escribir `admin` como correo.
+de ingreso basta con escribir `admin` como correo si el `.env` define
+`EXPO_PUBLIC_ADMIN_CORREO` con el correo de esa cuenta.
 
 Para nombrar administrador a otra persona, hazlo desde **Equipo y roles** o con:
 
