@@ -211,6 +211,37 @@ export async function subirArchivo(bucket: string, ruta: string, uri: string) {
   return ruta;
 }
 
+/** URL pública de una foto de perfil, o null si la persona no subió ninguna. */
+export const urlFoto = (ruta: string | null | undefined) => urlPublica('avatares', ruta ?? null);
+
+/**
+ * Sube una foto de perfil nueva y borra la anterior. La foto es pública (la
+ * ven quienes operan contigo), a diferencia de la selfie de verificación.
+ */
+export async function subirFotoPerfil(uri: string) {
+  const { data: sesion } = await supabase.auth.getUser();
+  const uid = sesion.user?.id;
+  if (!uid) throw new Error('No hay sesión activa');
+  const { data: antes } = await supabase.from('profiles').select('foto_path').eq('id', uid).maybeSingle();
+  const ruta = await subirArchivo('avatares', `${uid}/avatar-${Date.now()}.jpg`, uri);
+  await actualizarPerfil({ foto_path: ruta });
+  if (antes?.foto_path) {
+    // Si falla, solo queda un archivo huérfano: no vale la pena interrumpir.
+    await supabase.storage.from('avatares').remove([antes.foto_path]).catch(() => undefined);
+  }
+}
+
+export async function quitarFotoPerfil() {
+  const { data: sesion } = await supabase.auth.getUser();
+  const uid = sesion.user?.id;
+  if (!uid) throw new Error('No hay sesión activa');
+  const { data: antes } = await supabase.from('profiles').select('foto_path').eq('id', uid).maybeSingle();
+  await actualizarPerfil({ foto_path: null });
+  if (antes?.foto_path) {
+    await supabase.storage.from('avatares').remove([antes.foto_path]).catch(() => undefined);
+  }
+}
+
 export function urlPublica(bucket: string, ruta: string | null) {
   if (!ruta) return null;
   return supabase.storage.from(bucket).getPublicUrl(ruta).data.publicUrl;
@@ -759,6 +790,15 @@ export async function cuentasParecidas(perfilId: string): Promise<CuentaParecida
   const { data, error } = await supabase.rpc('admin_cuentas_parecidas', { p_perfil: perfilId });
   revienta(error);
   return (data ?? []) as CuentaParecida[];
+}
+
+/** Moderación: quita una foto de perfil inapropiada y borra el archivo. */
+export async function quitarFotoDe(perfilId: string) {
+  const { data, error } = await supabase.rpc('admin_quitar_foto', { p_perfil: perfilId });
+  revienta(error);
+  if (typeof data === 'string' && data) {
+    await supabase.storage.from('avatares').remove([data]).catch(() => undefined);
+  }
 }
 
 export async function suspenderCuenta(perfilId: string, suspender: boolean, motivo?: string) {

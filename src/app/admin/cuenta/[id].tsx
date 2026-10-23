@@ -122,6 +122,18 @@ export default function FichaCuentaAdmin() {
             }}
           />
         ))}
+      {!!p.foto_path && (
+        <BotonAdmin
+          titulo="Quitar foto"
+          icono="image-outline"
+          deshabilitado={ocupado}
+          onPress={async () => {
+            if (await confirmar('Quitar foto de perfil', `Se borrará la foto de ${p.nombre_completo} y volverán a verse sus iniciales. Queda en la bitácora.`, 'Quitar', true)) {
+              hacer(() => api.quitarFotoDe(p.id));
+            }
+          }}
+        />
+      )}
       {!p.es_admin && (
         <BotonAdmin
           titulo={p.es_operador ? 'Quitar operador' : 'Hacer operador'}
@@ -187,7 +199,7 @@ export default function FichaCuentaAdmin() {
       )}
 
       <View style={[s.cabecera, !escritorio && { flexDirection: 'column', alignItems: 'flex-start' }]}>
-        <Avatar nombre={p.nombre_completo} tamano={64} verificado={p.verificacion === 'verificado'} />
+        <Avatar nombre={p.nombre_completo} tamano={64} verificado={p.verificacion === 'verificado'} foto={api.urlFoto(p.foto_path)} />
         <View style={{ flex: 1, gap: 6 }}>
           <View style={s.chips}>
             <ChipVerificacion estado={p.verificacion} />

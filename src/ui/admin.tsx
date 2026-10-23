@@ -535,6 +535,7 @@ export const ACCION_BITACORA: Record<string, string> = {
   disputa_resuelta_cliente: 'Disputa resuelta a favor del cliente',
   disputa_resuelta_comprador: 'Disputa resuelta a favor del comprador',
   config_actualizada: 'Configuración cambiada',
+  foto_quitada: 'Foto de perfil quitada por moderación',
 };
 
 // ------------------------------------------------------------------ exportar

@@ -3,7 +3,7 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/ui/Texto';
-import { reputacionDe, resenasDe } from '@/lib/api';
+import { reputacionDe, resenasDe, urlFoto } from '@/lib/api';
 import { fecha, hace } from '@/lib/negocio';
 import type { Reputacion, Resena } from '@/lib/tipos';
 import {
@@ -84,6 +84,7 @@ export default function PerfilPublico() {
         <TarjetaDegradada fondo={G.marca} style={{ alignItems: 'center' }}>
           <Avatar
             nombre={rep.nombre_completo}
+            foto={urlFoto(rep.foto_path)}
             tamano={84}
             verificado={rep.verificacion === 'verificado'}
           />

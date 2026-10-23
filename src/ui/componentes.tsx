@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -363,12 +364,17 @@ export function Avatar({
   nombre,
   tamano = 44,
   verificado,
+  foto,
 }: {
   nombre: string | null | undefined;
   tamano?: number;
   verificado?: boolean;
+  /** URL de la foto de perfil. Sin foto, o si no carga, se ven las iniciales. */
+  foto?: string | null;
 }) {
   const color = colorDe(nombre ?? '?');
+  const [fallo, setFallo] = useState(false);
+  const conFoto = !!foto && !fallo;
   return (
     <View style={{ width: tamano, height: tamano }}>
       <View
@@ -379,16 +385,27 @@ export function Avatar({
           backgroundColor: color,
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}>
-        <Text
-          style={{
-            color: C.sobreOscuro,
-            fontWeight: '700',
-            fontSize: tamano * 0.38,
-            letterSpacing: -0.5,
-          }}>
-          {iniciales(nombre)}
-        </Text>
+        {conFoto ? (
+          <Image
+            source={{ uri: foto! }}
+            style={{ width: tamano, height: tamano }}
+            resizeMode="cover"
+            onError={() => setFallo(true)}
+            accessibilityLabel={`Foto de ${nombre ?? 'perfil'}`}
+          />
+        ) : (
+          <Text
+            style={{
+              color: C.sobreOscuro,
+              fontWeight: '700',
+              fontSize: tamano * 0.38,
+              letterSpacing: -0.5,
+            }}>
+            {iniciales(nombre)}
+          </Text>
+        )}
       </View>
       {verificado && (
         <View

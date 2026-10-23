@@ -52,6 +52,8 @@ export type Perfil = {
   /** Lo pone y lo quita un administrador; el propio usuario no puede tocarlo. */
   suspendido?: boolean;
   suspendido_motivo?: string | null;
+  /** Foto de perfil en el bucket público avatares. Null = iniciales. */
+  foto_path?: string | null;
   creado_en: string;
 };
 
@@ -146,6 +148,7 @@ export type Reputacion = {
   calificacion: number | null;
   total_calificaciones: number;
   antiguedad_dias: number;
+  foto_path?: string | null;
 };
 
 export type DesglosePrecio = {

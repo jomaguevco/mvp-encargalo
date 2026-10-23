@@ -101,6 +101,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0011_correcciones_flujo.sql` | Aviso al comprador ganador, `rechazar_pago`, lectura para el equipo, RENIEC al cambiar el nombre |
 | `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
 | `0013_verificacion_reintentos.sql` | Un rechazo ya no reserva el DNI (se puede reintentar), cada verificación se resuelve una sola vez y con motivo, y el panel detecta cuentas duplicadas |
+| `0014_foto_perfil.sql` | Foto de perfil opcional (bucket público `avatares`), visible en ofertas, pedidos y reputación; el administrador puede quitarla |
 
 Para comprobar que quedó bien, ejecuta:
 

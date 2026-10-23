@@ -1,11 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
 import { Image, Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
 import { Text } from '@/ui/Texto';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
-import { actualizarPerfil, misPedidos, reputacionDe } from '@/lib/api';
+import {
+  actualizarPerfil,
+  misPedidos,
+  quitarFotoPerfil,
+  reputacionDe,
+  subirFotoPerfil,
+  urlFoto,
+} from '@/lib/api';
 import { codigoReferidoDe, ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
 import type { Pedido, Reputacion } from '@/lib/tipos';
 import {
@@ -126,6 +134,40 @@ function Acceso({
 
 export default function Perfil() {
   const { perfil, sesion, salir, refrescarPerfil, esOperador, avisosPendientes } = useAuth();
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+
+  // Foto de perfil: cuadrada, liviana y opcional. Sin foto se ven las iniciales.
+  async function cambiarFoto() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    setSubiendoFoto(true);
+    try {
+      await subirFotoPerfil(res.assets[0].uri);
+      await refrescarPerfil();
+    } catch (e) {
+      avisar('No se pudo cambiar la foto', (e as Error).message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
+
+  async function quitarFoto() {
+    if (!(await confirmar('Quitar foto', 'Volverán a verse tus iniciales.', 'Quitar'))) return;
+    setSubiendoFoto(true);
+    try {
+      await quitarFotoPerfil();
+      await refrescarPerfil();
+    } catch (e) {
+      avisar('No se pudo quitar la foto', (e as Error).message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
   const { es: escritorio, columnas } = useEscritorio();
   const [rep, setRep] = useState<Reputacion | null>(null);
   const [recientes, setRecientes] = useState<Pedido[]>([]);
@@ -343,8 +385,32 @@ export default function Perfil() {
         {/* ---------------------------------------------- identidad */}
         <Entrada>
           <View style={[s.identidad, escritorio && s.identidadEscritorio]}>
-            <View style={s.avatarAro}>
-              <Avatar nombre={perfil.nombre_completo} tamano={escritorio ? 96 : 80} verificado={verificado} />
+            <View style={{ alignItems: 'center', gap: 6 }}>
+              <Pressable
+                onPress={cambiarFoto}
+                disabled={subiendoFoto}
+                accessibilityRole="button"
+                accessibilityLabel={perfil.foto_path ? 'Cambiar foto de perfil' : 'Poner foto de perfil'}
+                style={({ pressed }) => [s.avatarAro, pressed && { opacity: 0.85 }]}>
+                <Avatar
+                  nombre={perfil.nombre_completo}
+                  tamano={escritorio ? 96 : 80}
+                  verificado={verificado}
+                  foto={urlFoto(perfil.foto_path)}
+                />
+                <View style={s.camara}>
+                  <Ionicons name={subiendoFoto ? 'hourglass-outline' : 'camera'} size={15} color={C.blanco} />
+                </View>
+              </Pressable>
+              {perfil.foto_path ? (
+                <Text style={s.fotoAccion} onPress={subiendoFoto ? undefined : quitarFoto}>
+                  Quitar foto
+                </Text>
+              ) : (
+                <Text style={s.fotoAccion} onPress={subiendoFoto ? undefined : cambiarFoto}>
+                  Poner foto
+                </Text>
+              )}
             </View>
             <View style={[s.identidadTexto, escritorio && { alignItems: 'flex-start' }]}>
               <Text style={[s.nombre, escritorio && { textAlign: 'left' }]}>
@@ -531,6 +597,20 @@ const s = StyleSheet.create({
     backgroundColor: C.blanco,
     marginTop: -48,
   },
+  camara: {
+    position: 'absolute',
+    left: 4,
+    bottom: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.naranja,
+    borderWidth: 2,
+    borderColor: C.blanco,
+  },
+  fotoAccion: { fontSize: 13, fontWeight: '700', color: C.azulMedio },
   identidadTexto: { flex: 1, alignItems: 'center', alignSelf: 'stretch' },
   nombre: {
     color: C.azul,

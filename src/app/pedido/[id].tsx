@@ -446,6 +446,7 @@ export default function DetallePedido() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: E.md }}>
                 <Avatar
                   nombre={contraparte.nombre_completo}
+                  foto={api.urlFoto(contraparte.foto_path)}
                   tamano={48}
                   verificado={contraparte.verificacion === 'verificado'}
                 />

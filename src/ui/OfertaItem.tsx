@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { urlFoto } from '@/lib/api';
 import { Text } from './Texto';
 import { diasHasta, fecha, soles } from '@/lib/negocio';
 import type { OfertaConReputacion } from '@/lib/tipos';
@@ -50,7 +51,7 @@ export function OfertaItem({
       <Pressable
         onPress={() => router.push(`/reputacion/${oferta.comprador_id}`)}
         style={s.cabecera}>
-        <Avatar nombre={r?.nombre_completo} tamano={46} verificado />
+        <Avatar nombre={r?.nombre_completo} tamano={46} verificado foto={urlFoto(r?.foto_path)} />
         <View style={{ flex: 1 }}>
           <Text style={s.nombre} numberOfLines={1}>
             {r?.nombre_completo ?? 'Comprador externo'}

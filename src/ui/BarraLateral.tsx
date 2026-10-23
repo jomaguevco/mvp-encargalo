@@ -3,6 +3,7 @@ import type { BottomTabBarProps } from 'expo-router/build/react-navigation/botto
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Texto';
 import { Ionicons } from '@expo/vector-icons';
+import { urlFoto } from '@/lib/api';
 import { useAuth } from '@/ctx/auth';
 import { Avatar } from './componentes';
 import { Logo } from './Logo';
@@ -120,6 +121,7 @@ export function BarraLateral({
 
       <Pressable onPress={() => router.push('/(app)/perfil')} style={s.usuario}>
         <Avatar
+          foto={urlFoto(perfil?.foto_path)}
           nombre={perfil?.nombre_completo}
           tamano={36}
           verificado={perfil?.verificacion === 'verificado'}

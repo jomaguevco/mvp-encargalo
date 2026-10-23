@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
-import { misPedidos } from '@/lib/api';
+import { misPedidos, urlFoto } from '@/lib/api';
 import { ESTADO_VERIFICACION } from '@/lib/negocio';
 import type { EstadoPedido, Pedido } from '@/lib/tipos';
 import {
@@ -133,7 +133,7 @@ export default function MisPedidos() {
                     </View>
                   )}
                   <Pressable onPress={() => router.push('/(app)/perfil')}>
-                    <Avatar nombre={perfil?.nombre_completo} tamano={50} verificado={verificado} />
+                    <Avatar nombre={perfil?.nombre_completo} tamano={50} verificado={verificado} foto={urlFoto(perfil?.foto_path)} />
                   </Pressable>
                 </View>
               }>
