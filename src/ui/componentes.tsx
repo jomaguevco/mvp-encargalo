@@ -841,13 +841,10 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
   campoDerecha: { paddingRight: E.md },
-  campoEnfocado: {
-    borderColor: C.azul,
-    shadowColor: C.azul,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  // Solo el borde cambia al enfocar. Una sombra aquí, en Android, rehace la
+  // vista nativa que envuelve al campo: el EditText pierde el foco al primer
+  // toque y el teclado se cierra tras la primera letra.
+  campoEnfocado: { borderColor: C.azul },
   campoError: { borderColor: C.rojo, backgroundColor: '#FFFAF8' },
   campoAyuda: { fontSize: 12.5, color: C.textoSuave, marginTop: E.xs + 2, lineHeight: 18 },
   campoErrorFila: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: E.xs + 2 },
