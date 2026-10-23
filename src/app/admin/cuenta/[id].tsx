@@ -80,6 +80,14 @@ export default function FichaCuentaAdmin() {
   const acciones = (
     <>
       <BotonAdmin titulo="Volver" icono="arrow-back" onPress={() => router.back()} />
+      {p.verificacion === 'en_revision' && (
+        <BotonAdmin
+          titulo="Revisar verificación"
+          icono="id-card-outline"
+          variante="primario"
+          onPress={() => router.push('/admin/verificaciones')}
+        />
+      )}
       {!soyYo &&
         (p.suspendido ? (
           <BotonAdmin

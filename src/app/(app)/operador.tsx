@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   Image,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -36,6 +37,7 @@ import {
   Vacio,
 } from '@/ui/componentes';
 import { avisar, confirmar } from '@/ui/dialogos';
+import { VisorImagenes, type ImagenVisor } from '@/ui/VisorImagenes';
 import { C, E, G, R } from '@/ui/tema';
 
 export type Cola = 'verificaciones' | 'pagos' | 'vencidas' | 'disputas';
@@ -119,6 +121,8 @@ export default function Operador({
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [cola, setCola] = useState<Cola | null>(soloCola ?? null);
+  // Visor a pantalla completa: con una miniatura no se compara un rostro.
+  const [visor, setVisor] = useState<{ imagenes: ImagenVisor[]; inicial: number } | null>(null);
 
   const cargar = useCallback(async () => {
     // Si una cola falla, las demás igual se muestran, y se avisa: una consola
@@ -292,27 +296,45 @@ export default function Operador({
                   <Dato icono="card-outline" etiqueta="DNI declarado" valor={v.dni ?? '—'} />
                   <Dato icono="call-outline" etiqueta="Celular" valor={v.telefono ?? '—'} />
 
-                  <View style={s.fotos}>
-                    {[
-                      ['Documento', v.dni_frente_path],
-                      ['Selfie', v.selfie_path],
-                    ].map(
-                      ([etiqueta, ruta]) =>
-                        ruta &&
-                        urls[ruta] && (
-                          <View key={ruta} style={{ flex: 1 }}>
-                            <Image
-                              source={{ uri: urls[ruta] }}
-                              style={s.foto}
-                              resizeMode="cover"
-                            />
-                            <Micro style={{ textAlign: 'center', marginTop: 4 }}>
-                              {etiqueta}
-                            </Micro>
-                          </View>
-                        ),
-                    )}
-                  </View>
+                  {(() => {
+                    const fotos: ImagenVisor[] = [
+                      { etiqueta: 'Documento (DNI)', ruta: v.dni_frente_path },
+                      { etiqueta: 'Selfie', ruta: v.selfie_path },
+                    ]
+                      .filter((x) => x.ruta && urls[x.ruta])
+                      .map((x) => ({ uri: urls[x.ruta!], etiqueta: x.etiqueta }));
+                    return (
+                      <>
+                        <View style={s.fotos}>
+                          {fotos.map((f, i) => (
+                            <Pressable
+                              key={f.uri}
+                              style={{ flex: 1 }}
+                              accessibilityRole="button"
+                              accessibilityLabel={'Ampliar ' + f.etiqueta}
+                              onPress={() => setVisor({ imagenes: fotos, inicial: i })}>
+                              <Image source={{ uri: f.uri }} style={s.foto} resizeMode="contain" />
+                              <View style={s.lupa}>
+                                <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                                <Text style={s.lupaTexto}>Ampliar</Text>
+                              </View>
+                              <Micro style={{ textAlign: 'center', marginTop: 4 }}>{f.etiqueta}</Micro>
+                            </Pressable>
+                          ))}
+                        </View>
+                        {fotos.length > 1 && (
+                          <Boton
+                            titulo="Comparar documento y selfie lado a lado"
+                            icono="git-compare-outline"
+                            variante="suave"
+                            chico
+                            style={{ marginBottom: E.sm }}
+                            onPress={() => setVisor({ imagenes: fotos, inicial: 0 })}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
                   <Micro>
                     Compara que el rostro de la selfie corresponda al del documento y que el
                     número coincida con el declarado.
@@ -405,11 +427,25 @@ export default function Operador({
                   />
 
                   {p.comprobante_path && urls[p.comprobante_path] && (
-                    <Image
-                      source={{ uri: urls[p.comprobante_path] }}
-                      style={s.comprobante}
-                      resizeMode="contain"
-                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Ampliar comprobante"
+                      onPress={() =>
+                        setVisor({
+                          imagenes: [{ uri: urls[p.comprobante_path!], etiqueta: 'Comprobante · ' + p.titulo }],
+                          inicial: 0,
+                        })
+                      }>
+                      <Image
+                        source={{ uri: urls[p.comprobante_path] }}
+                        style={s.comprobante}
+                        resizeMode="contain"
+                      />
+                      <View style={[s.lupa, { top: E.md + E.sm }]}>
+                        <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                        <Text style={s.lupaTexto}>Ampliar</Text>
+                      </View>
+                    </Pressable>
                   )}
 
                   <Boton
@@ -557,11 +593,25 @@ export default function Operador({
                   </View>
 
                   {d.evidencia_path && urls[d.evidencia_path] && (
-                    <Image
-                      source={{ uri: urls[d.evidencia_path] }}
-                      style={s.comprobante}
-                      resizeMode="contain"
-                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Ampliar evidencia"
+                      onPress={() =>
+                        setVisor({
+                          imagenes: [{ uri: urls[d.evidencia_path!], etiqueta: 'Evidencia · ' + d.titulo }],
+                          inicial: 0,
+                        })
+                      }>
+                      <Image
+                        source={{ uri: urls[d.evidencia_path] }}
+                        style={s.comprobante}
+                        resizeMode="contain"
+                      />
+                      <View style={[s.lupa, { top: E.md + E.sm }]}>
+                        <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                        <Text style={s.lupaTexto}>Ampliar</Text>
+                      </View>
+                    </Pressable>
                   )}
 
                   <Separador />
@@ -647,6 +697,12 @@ export default function Operador({
           onPress={() => router.push('/legal')}
         />
       </View>
+
+      <VisorImagenes
+        imagenes={visor?.imagenes ?? null}
+        inicial={visor?.inicial ?? 0}
+        onCerrar={() => setVisor(null)}
+      />
     </ScrollView>
   );
 }
@@ -675,7 +731,21 @@ const s = StyleSheet.create({
     marginVertical: E.xs,
   },
   fotos: { flexDirection: 'row', gap: E.sm, marginVertical: E.md },
-  foto: { height: 140, borderRadius: R.sm, backgroundColor: C.borde },
+  // contain y fondo oscuro: la foto entera, sin recortar el número ni el rostro.
+  foto: { height: 240, borderRadius: R.sm, backgroundColor: G.noche },
+  lupa: {
+    position: 'absolute',
+    top: E.sm,
+    right: E.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14,38,31,0.75)',
+  },
+  lupaTexto: { fontSize: 12, fontWeight: '700', color: C.sobreOscuro },
   comprobante: {
     height: 220,
     borderRadius: R.sm,
