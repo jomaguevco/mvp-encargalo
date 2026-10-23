@@ -21,6 +21,9 @@
       "predictiveBackGestureEnabled": false,
       "package": "pe.encargalo.app",
       "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },

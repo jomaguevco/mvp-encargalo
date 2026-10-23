@@ -385,6 +385,9 @@ function Verificacion() {
       <Boton titulo="Ahora no" variante="fantasma" onPress={() => volver('/(app)/pedidos')} />
 
       <CamaraGuiada
+        // Se monta de nuevo en cada apertura: así la selfie arranca con la
+        // cámara frontal aunque antes se haya usado la trasera para el DNI.
+        key={camara ?? 'cerrada'}
         modo={camara === 'selfie' ? 'selfie' : 'dni'}
         visible={camara !== null}
         onCancelar={() => setCamara(null)}

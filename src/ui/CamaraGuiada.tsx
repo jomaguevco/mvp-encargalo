@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -130,12 +131,14 @@ export function CamaraGuiada({
               elegir una foto de tu galería.
             </Text>
             <View style={s.botonesFila}>
-              {permiso.canAskAgain && (
-                <Pressable style={[s.boton, s.botonPrimario]} onPress={pedirPermiso}>
-                  <Ionicons name="camera" size={18} color={C.blanco} />
-                  <Text style={s.botonTexto}>Permitir cámara</Text>
-                </Pressable>
-              )}
+              {/* Si el permiso se negó para siempre, el sistema ya no vuelve a
+                  preguntar: solo queda activarlo desde los ajustes del teléfono. */}
+              <Pressable
+                style={[s.boton, s.botonPrimario]}
+                onPress={() => (permiso.canAskAgain ? pedirPermiso() : Linking.openSettings())}>
+                <Ionicons name="camera" size={18} color={C.blanco} />
+                <Text style={s.botonTexto}>{permiso.canAskAgain ? 'Permitir cámara' : 'Abrir ajustes'}</Text>
+              </Pressable>
               <Pressable style={[s.boton, s.botonSecundario]} onPress={galeria}>
                 <Ionicons name="images-outline" size={18} color={C.sobreOscuro} />
                 <Text style={s.botonTexto}>Elegir de la galería</Text>
