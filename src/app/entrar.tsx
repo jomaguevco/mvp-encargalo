@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/ui/Texto';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
 import { soyAdmin } from '@/lib/api';
 import { Aviso, Boton, Campo, Entrada } from '@/ui/componentes';
@@ -58,6 +59,9 @@ export default function Entrar() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const { es: escritorio } = useEscritorio();
+  // Sin encabezado: el margen superior lo pone la pantalla, o en Android el
+  // logo queda debajo de la barra de estado.
+  const insets = useSafeAreaInsets();
   // Quien ya tenía sesión al abrir esta pantalla no ve el formulario otra vez.
   // Solo se mira al montar: durante el ingreso la sesión aparece y el destino
   // lo decide enviar(), que sabe si es administrador y a dónde volver.
@@ -114,7 +118,9 @@ export default function Entrar() {
       style={{ flex: 1, backgroundColor: C.azul }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[s.scroll, { paddingTop: E.xl + insets.top, paddingBottom: E.xl + insets.bottom }]}
+        keyboardShouldPersistTaps="handled">
         {/* En escritorio: la marca y las garantías a la izquierda, el formulario a la derecha. */}
         <View style={escritorio && s.filaEscritorio}>
           <View style={escritorio && s.colMarca}>

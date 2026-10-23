@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, Slot, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
 import { Avatar, Cargando, Vacio } from '@/ui/componentes';
@@ -35,6 +36,7 @@ const SECCIONES: { ruta: string; titulo: string; icono: Icono; cola?: 'identidad
 export default function AdminLayout() {
   const { cargando, sesion, esAdmin, perfil, salir } = useAuth();
   const { es: escritorio } = useEscritorio();
+  const insets = useSafeAreaInsets();
   const ruta = usePathname();
   // El permiso llega un instante después de la sesión: se confirma aquí para
   // no mostrar «sin permiso» a un administrador que acaba de entrar.
@@ -123,7 +125,7 @@ export default function AdminLayout() {
   if (!escritorio) {
     return (
       <View style={{ flex: 1, backgroundColor: C.fondo }}>
-        <View style={s.superior}>
+        <View style={[s.superior, { paddingTop: E.lg + insets.top }]}>
           <View style={s.superiorFila}>
             <Logo tamano={26} oscuro />
             <Text style={s.superiorTitulo}>Administración</Text>
