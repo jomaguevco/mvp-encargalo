@@ -11,13 +11,33 @@ puesta en marcha.
   Si hace falta una transición nueva, se agrega ahí y se expone en `src/lib/api.ts`.
 - **`pagos` no tiene políticas de insert ni de update.** Es deliberado. No las agregues.
 - **Las tarifas viven en la tabla `config`**, nunca como número en el código. Deben
-  coincidir con `Entregables_Unidad2/Encargalo_Flujo_de_Caja_y_OKR.xlsx`, hoja 1.
+  coincidir con `Entregables_Unidad2/02_Encargalo_Flujo_de_Caja_y_Medicion.xlsx`, hoja «Supuestos».
 - **Datos personales: retención mínima.** Solo se guarda el número de DNI. Las imágenes
-  van a buckets privados y se descartan al aprobar la verificación (Ley N° 29733).
+  van a buckets privados y se descartan al resolver la verificación (Ley N° 29733).
+- **La verificación automática nunca rechaza por una foto mala**, solo por otra cara.
+  Lo dudoso va al operador. Ver `supabase/functions/verificar-identidad/decidir.ts`.
 - El código y la interfaz están **en español**, incluidos nombres de funciones, tablas y
   variables. Mantén ese criterio.
 - Ninguna funcionalidad entra si no refuerza **verificación, pago protegido o
   reputación**: es el criterio de producto acordado por el equipo fundador.
+- **Roles: administrador > operador.** `soy_operador()` también es verdadero para los
+  administradores. Todo lo del panel `/admin` pasa por funciones `admin_*`
+  (`0012_administracion.sql`) que llaman a `exigir_admin()` y registran en `bitacora_admin`.
+- **Nunca subas credenciales.** Los scripts SQL con contraseñas van como
+  `supabase/*.local.sql`, que está en `.gitignore`: el repositorio es público.
+
+## Diseño
+
+- La marca está en `encargalo/branding` (Monte, Terracota, Trigo, Arena; Bricolage
+  Grotesque + Instrument Sans; plana, sin degradados). En la app vive en `src/ui/tema.ts`
+  y el logo en `src/ui/Logo.tsx`.
+- **`Text` y `TextInput` se importan de `@/ui/Texto`, no de `react-native`.** Ese
+  componente traduce fontWeight/fontSize a la familia de la fuente de marca; con el
+  `Text` nativo la pantalla sale con la letra del sistema.
+- Las claves `C.azul` y `C.naranja` de `tema.ts` se llaman así por historia: hoy son
+  Monte y Terracota. Renombrarlas no gana nada.
+- El check del logo va Terracota sobre claro y Trigo sobre oscuro, nunca Trigo sobre
+  claro. Íconos, splash e imágenes de la web salen de `python marca/generar.py`.
 
 ## Comandos
 

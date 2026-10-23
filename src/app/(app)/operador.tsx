@@ -1,47 +1,187 @@
-import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { useAuth } from '@/ctx/auth';
 import { useCallback, useState } from 'react';
-import { Image, Linking, RefreshControl, ScrollView, View } from 'react-native';
-import * as api from '@/lib/api';
-import { fechaHora, soles } from '@/lib/negocio';
-import type { DisputaAbierta, PagoPendiente, VerificacionPendiente } from '@/lib/tipos';
 import {
-  Aviso,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Text } from '@/ui/Texto';
+import * as api from '@/lib/api';
+import { ESTADO_PEDIDO, fechaHora, hace, soles } from '@/lib/negocio';
+import type {
+  ConfirmacionVencida,
+  DisputaAbierta,
+  PagoPendiente,
+  ResultadoDni,
+  VerificacionPendiente,
+} from '@/lib/tipos';
+import {
+  Avatar,
   Boton,
+  Cabecera,
   Cargando,
+  Chip,
+  Cifra,
   Dato,
+  Entrada,
+  FilaCifras,
   Micro,
   Parrafo,
+  Seccion,
   Separador,
-  Subtitulo,
   Tarjeta,
   Vacio,
 } from '@/ui/componentes';
 import { avisar, confirmar } from '@/ui/dialogos';
-import { C, E, R } from '@/ui/tema';
+import { VisorImagenes, type ImagenVisor } from '@/ui/VisorImagenes';
+import { C, E, G, R } from '@/ui/tema';
+
+export type Cola = 'verificaciones' | 'pagos' | 'vencidas' | 'disputas';
+
+/**
+ * Motivos de rechazo. La persona los lee en la app para saber qué corregir,
+ * así que dicen qué pasó y qué hacer, no un código interno.
+ */
+const MOTIVOS_RECHAZO = [
+  {
+    valor: 'fotos',
+    etiqueta: 'Fotos borrosas o con reflejos',
+    texto: 'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz, sin reflejos y con el DNI completo en la foto.',
+  },
+  {
+    valor: 'otra_persona',
+    etiqueta: 'El rostro no es el del documento',
+    texto: 'El rostro de la selfie no corresponde al de la foto del DNI. Envía tu propio DNI y una selfie tuya.',
+  },
+  {
+    valor: 'otro_dni',
+    etiqueta: 'El DNI de la foto no es el declarado',
+    texto: 'El número o el nombre del DNI de la foto no coinciden con los de tu cuenta. Revisa el número que escribiste y envía la foto de ese mismo DNI.',
+  },
+  {
+    valor: 'ilegible',
+    etiqueta: 'Documento vencido, incompleto o ilegible',
+    texto: 'El documento está vencido, cortado o no se puede leer. Envía una foto de tu DNI vigente, entero y nítido.',
+  },
+] as const;
+
+/** Lo que dijo RENIEC, como insignia: verde, rojo o gris. */
+function InsigniaReniec({ r }: { r: ResultadoDni | null }) {
+  const conf =
+    r === 'coincide'
+      ? { texto: 'RENIEC: el nombre coincide', color: C.verde, icono: 'checkmark-circle' as const }
+      : r === 'no_coincide'
+        ? { texto: 'RENIEC: el nombre NO coincide', color: C.rojo, icono: 'warning' as const }
+        : r === 'no_existe'
+          ? { texto: 'RENIEC no reconoce este DNI', color: C.rojo, icono: 'close-circle' as const }
+          : { texto: 'Sin validar con RENIEC', color: C.grisTexto, icono: 'help-circle' as const };
+  return <Chip texto={conf.texto} color={conf.color} icono={conf.icono} />;
+}
+
+/** Lo que vio verificar-identidad: rostro, número y nombre impresos. */
+function InsigniasIa({ v }: { v: VerificacionPendiente }) {
+  if (!v.ia_resultado) {
+    return <Chip texto="Sin comparación automática" color={C.grisTexto} icono="help-circle" />;
+  }
+  const sim = v.ia_similitud;
+  const chips = [
+    {
+      texto: sim === null ? 'Rostro: no se pudo comparar' : `Rostro: ${sim.toFixed(1)} % de similitud`,
+      color: sim === null ? C.grisTexto : sim >= 95 ? C.verde : C.naranja,
+      icono: 'scan' as const,
+    },
+    {
+      texto:
+        v.ia_numero_coincide === null
+          ? 'Número: no se leyó'
+          : v.ia_numero_coincide
+            ? 'Número impreso coincide'
+            : 'Número impreso distinto',
+      color: v.ia_numero_coincide ? C.verde : v.ia_numero_coincide === null ? C.grisTexto : C.rojo,
+      icono: 'keypad' as const,
+    },
+    {
+      texto:
+        v.ia_nombre_coincide === null
+          ? 'Nombre: no se leyó'
+          : v.ia_nombre_coincide
+            ? 'Nombre impreso coincide'
+            : 'Nombre impreso distinto',
+      color: v.ia_nombre_coincide ? C.verde : v.ia_nombre_coincide === null ? C.grisTexto : C.rojo,
+      icono: 'text' as const,
+    },
+  ];
+  return (
+    <View style={{ gap: E.xs, alignItems: 'flex-start' }}>
+      {chips.map((c) => (
+        <Chip key={c.texto} texto={c.texto} color={c.color} icono={c.icono} />
+      ))}
+      {!!v.ia_detalle && <Micro>Pendiente: {v.ia_detalle}</Micro>}
+    </View>
+  );
+}
 
 /**
  * Consola del equipo. Existe porque durante el piloto el pago retenido se
  * opera a mano: alguien tiene que mirar el comprobante de Yape y confirmar
  * que el dinero llegó. Cuando entre la pasarela, esta pantalla se apaga.
+ *
+ * Las cuatro cifras de la cabecera son también filtros: tocar una deja solo
+ * esa cola, que es lo que se quiere cuando hay varias cosas esperando.
  */
-export default function Operador() {
+export default function Operador({
+  soloCola,
+  enPanel,
+}: {
+  /** El panel de administración la incrusta mostrando una sola cola. */
+  soloCola?: Cola;
+  /** Dentro del panel, los enlaces abren las páginas del panel y no las de la app. */
+  enPanel?: boolean;
+} = {}) {
+  const { esOperador } = useAuth();
+  const abrirPedido = (id: string) =>
+    router.push(enPanel ? `/admin/pedido/${id}` : `/pedido/${id}`);
+  const abrirPersona = (id: string) =>
+    router.push(enPanel ? `/admin/cuenta/${id}` : `/reputacion/${id}`);
   const [verificaciones, setVerificaciones] = useState<VerificacionPendiente[]>([]);
   const [pagos, setPagos] = useState<PagoPendiente[]>([]);
   const [disputas, setDisputas] = useState<DisputaAbierta[]>([]);
+  const [vencidas, setVencidas] = useState<ConfirmacionVencida[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [cola, setCola] = useState<Cola | null>(soloCola ?? null);
+  // Visor a pantalla completa: con una miniatura no se compara un rostro.
+  const [visor, setVisor] = useState<{ imagenes: ImagenVisor[]; inicial: number } | null>(null);
+  // Rechazo en curso: qué solicitud y con qué motivo.
+  const [rechazo, setRechazo] = useState<{ perfil: string; motivo: string | null } | null>(null);
 
   const cargar = useCallback(async () => {
-    const [v, p, d] = await Promise.all([
+    // Si una cola falla, las demás igual se muestran, y se avisa: una consola
+    // vacía por error diría «Todo al día» cuando no lo está.
+    const r = await Promise.allSettled([
       api.pendientesVerificacion(),
       api.pendientesPago(),
       api.disputasAbiertas(),
+      api.confirmacionesVencidas(),
     ]);
+    const valor = <T,>(x: PromiseSettledResult<T[]>) => (x.status === 'fulfilled' ? x.value : []);
+    const v = valor(r[0]);
+    const p = valor(r[1]);
+    const d = valor(r[2]);
+    const c = valor(r[3]);
+    const fallo = r.find((x): x is PromiseRejectedResult => x.status === 'rejected');
+    if (fallo) avisar('No se cargaron todas las colas', (fallo.reason as Error)?.message ?? '');
     setVerificaciones(v);
     setPagos(p);
     setDisputas(d);
+    setVencidas(c);
 
     // URLs firmadas para poder mirar los documentos sin hacerlos públicos
     const pares: [string, string][] = [];
@@ -57,6 +197,12 @@ export default function Operador() {
       if (x.comprobante_path) {
         const u = await api.urlFirmada('comprobantes', x.comprobante_path);
         if (u) pares.push([x.comprobante_path, u]);
+      }
+    }
+    for (const x of d) {
+      if (x.evidencia_path) {
+        const u = await api.urlFirmada('comprobantes', x.evidencia_path);
+        if (u) pares.push([x.evidencia_path, u]);
       }
     }
     setUrls(Object.fromEntries(pares));
@@ -83,14 +229,28 @@ export default function Operador() {
     }
   }
 
+  // La pestaña está oculta para quien no es del equipo, pero la ruta se podía
+  // abrir escribiéndola: se devuelve a la app (dentro del panel ya se validó).
+  if (!enPanel && !esOperador) return <Redirect href="/(app)/pedidos" />;
   if (cargando) return <Cargando texto="Cargando las colas del equipo…" />;
 
-  const vacio =
-    verificaciones.length === 0 && pagos.length === 0 && disputas.length === 0;
+  const cuantas: Record<Cola, number> = {
+    verificaciones: verificaciones.length,
+    pagos: pagos.length,
+    vencidas: vencidas.length,
+    disputas: disputas.length,
+  };
+  // Vacío según lo que se está mirando: con una cola elegida y vacía, antes
+  // quedaba la pantalla en blanco porque otra cola sí tenía elementos.
+  const vacio = cola ? cuantas[cola] === 0 : Object.values(cuantas).every((n) => n === 0);
+  const ver = (c: Cola) => !cola || cola === c;
+  // Incrustada con una sola cola (Verificaciones del panel), no se cambia de cola.
+  const alternar = (c: Cola) => !soloCola && setCola(cola === c ? null : c);
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: E.lg, paddingBottom: E.xxl }}
+      style={{ backgroundColor: C.fondo }}
+      contentContainerStyle={{ paddingBottom: E.xxl }}
       refreshControl={
         <RefreshControl
           refreshing={refrescando}
@@ -101,225 +261,608 @@ export default function Operador() {
           }}
         />
       }>
-      <Aviso tono="alerta" titulo="Operación manual del piloto">
-        Aquí se valida a mano lo que más adelante hará la pasarela y el proveedor de
-        identidad. Confirma un pago solo después de verlo en la cuenta.
-      </Aviso>
+      <Cabecera
+        antetitulo="Operación manual del piloto"
+        titulo="Consola del equipo"
+        subtitulo="Confirma un pago solo después de verlo en la cuenta."
+        fondo={G.noche}>
+        <FilaCifras>
+          <Cifra
+            claro
+            icono="id-card"
+            valor={String(verificaciones.length)}
+            etiqueta="Identidad"
+            onPress={() => alternar('verificaciones')}
+          />
+          <Cifra
+            claro
+            icono="wallet"
+            valor={String(pagos.length)}
+            etiqueta="Pagos"
+            onPress={() => alternar('pagos')}
+          />
+          <Cifra
+            claro
+            icono="alarm"
+            valor={String(vencidas.length)}
+            etiqueta="Vencidos"
+            onPress={() => alternar('vencidas')}
+          />
+          <Cifra
+            claro
+            icono="flag"
+            valor={String(disputas.length)}
+            etiqueta="Disputas"
+            onPress={() => alternar('disputas')}
+          />
+        </FilaCifras>
+      </Cabecera>
 
-      {vacio && (
-        <Vacio
-          titulo="Todo al día"
-          detalle="No hay verificaciones, pagos ni disputas esperando."
-        />
-      )}
+      <View style={{ padding: E.lg }}>
+        {!!cola && !soloCola && (
+          <View style={s.filtro}>
+            <Ionicons name="funnel" size={14} color={C.azulMedio} />
+            <Text style={s.filtroTexto}>Mostrando solo una cola</Text>
+            <Text style={s.filtroQuitar} onPress={() => setCola(null)}>
+              Ver todas
+            </Text>
+          </View>
+        )}
 
-      {/* ------------------------------------------------ verificaciones */}
-      {verificaciones.length > 0 && (
-        <>
-          <Subtitulo>Verificaciones por revisar ({verificaciones.length})</Subtitulo>
-          {verificaciones.map((v) => (
-            <Tarjeta key={v.perfil_id}>
-              <Parrafo style={{ fontWeight: '700' }}>{v.nombre_completo}</Parrafo>
-              <Dato etiqueta="DNI declarado" valor={v.dni ?? '—'} />
-              <Dato
-                etiqueta="Contraste con RENIEC"
-                valor={
-                  v.dni_validacion === 'coincide'
-                    ? 'El nombre coincide'
-                    : v.dni_validacion === 'no_coincide'
-                      ? '⚠ El nombre NO coincide: revisa el documento'
-                      : v.dni_validacion === 'no_existe'
-                        ? '⚠ RENIEC no reconoce este DNI'
-                        : 'Sin validar automáticamente'
-                }
-              />
-              <Dato etiqueta="Celular" valor={v.telefono ?? '—'} />
+        {vacio && (
+          <Vacio
+            icono="sparkles-outline"
+            titulo={cola ? 'Nada en esta cola' : 'Todo al día'}
+            detalle={
+              cola
+                ? 'No hay nada esperando aquí. Revisa las otras colas en la cabecera.'
+                : 'No hay verificaciones, pagos, disputas ni plazos vencidos esperando.'
+            }
+          />
+        )}
 
-              <View style={{ flexDirection: 'row', gap: E.sm, marginVertical: E.md }}>
-                {[v.dni_frente_path, v.selfie_path].map(
-                  (ruta) =>
-                    ruta &&
-                    urls[ruta] && (
+        {/* ------------------------------------------------ verificaciones */}
+        {verificaciones.length > 0 && ver('verificaciones') && (
+          <>
+            <Seccion
+              titulo="Verificaciones por revisar"
+              icono="id-card-outline"
+              conteo={verificaciones.length}
+            />
+            {verificaciones.map((v, i) => (
+              <Entrada key={v.perfil_id} i={i}>
+                <Tarjeta>
+                  <View style={s.persona}>
+                    <Avatar nombre={v.nombre_completo} tamano={46} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.titulo}>{v.nombre_completo}</Text>
+                      <Text style={s.meta}>Solicitó {hace(v.solicitado_en)}</Text>
+                    </View>
+                  </View>
+                  <View style={{ marginVertical: E.md, gap: E.xs, alignItems: 'flex-start' }}>
+                    <InsigniaReniec r={v.dni_validacion} />
+                    <InsigniasIa v={v} />
+                  </View>
+                  <Dato icono="card-outline" etiqueta="DNI declarado" valor={v.dni ?? '—'} />
+                  <Dato icono="call-outline" etiqueta="Celular" valor={v.telefono ?? '—'} />
+
+                  {(() => {
+                    const fotos: ImagenVisor[] = [
+                      { etiqueta: 'Documento (DNI)', ruta: v.dni_frente_path },
+                      { etiqueta: 'Selfie', ruta: v.selfie_path },
+                    ]
+                      .filter((x) => x.ruta && urls[x.ruta])
+                      .map((x) => ({ uri: urls[x.ruta!], etiqueta: x.etiqueta }));
+                    return (
+                      <>
+                        <View style={s.fotos}>
+                          {fotos.map((f, i) => (
+                            <Pressable
+                              key={f.uri}
+                              style={{ flex: 1 }}
+                              accessibilityRole="button"
+                              accessibilityLabel={'Ampliar ' + f.etiqueta}
+                              onPress={() => setVisor({ imagenes: fotos, inicial: i })}>
+                              <Image source={{ uri: f.uri }} style={s.foto} resizeMode="contain" />
+                              <View style={s.lupa}>
+                                <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                                <Text style={s.lupaTexto}>Ampliar</Text>
+                              </View>
+                              <Micro style={{ textAlign: 'center', marginTop: 4 }}>{f.etiqueta}</Micro>
+                            </Pressable>
+                          ))}
+                        </View>
+                        {fotos.length > 1 && (
+                          <Boton
+                            titulo="Comparar documento y selfie lado a lado"
+                            icono="git-compare-outline"
+                            variante="suave"
+                            chico
+                            style={{ marginBottom: E.sm }}
+                            onPress={() => setVisor({ imagenes: fotos, inicial: 0 })}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                  <Micro>
+                    Compara que el rostro de la selfie corresponda al del documento y que el
+                    número coincida con el declarado.
+                  </Micro>
+
+                  <Separador />
+                  <Boton
+                    titulo="Aprobar verificación"
+                    icono="checkmark-circle"
+                    variante="exito"
+                    cargando={ocupado === `ok-${v.perfil_id}`}
+                    onPress={() =>
+                      accion(`ok-${v.perfil_id}`, async () => {
+                        await api.resolverVerificacion(v.perfil_id, true);
+                        // Retención mínima: la función ya descartó las rutas en la
+                        // base; esto borra los archivos del bucket, que era el paso
+                        // que quedaba a mano en el panel de Supabase.
+                        try {
+                          await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
+                        } catch (e) {
+                          avisar('Verificación aprobada', (e as Error).message);
+                        }
+                      })
+                    }
+                  />
+                  <View style={{ height: E.sm }} />
+                  {rechazo?.perfil !== v.perfil_id ? (
+                    <Boton
+                      titulo="Rechazar"
+                      icono="close"
+                      variante="fantasma"
+                      onPress={() => setRechazo({ perfil: v.perfil_id, motivo: null })}
+                    />
+                  ) : (
+                    <View style={s.rechazo}>
+                      <Text style={s.rechazoTitulo}>¿Por qué se rechaza?</Text>
+                      <Micro>
+                        La persona verá este motivo y podrá volver a enviar sus documentos
+                        desde la app, en esta misma cuenta.
+                      </Micro>
+                      {MOTIVOS_RECHAZO.map((m) => {
+                        const activo = rechazo.motivo === m.valor;
+                        return (
+                          <Pressable
+                            key={m.valor}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: activo }}
+                            onPress={() => setRechazo({ perfil: v.perfil_id, motivo: m.valor })}
+                            style={[s.motivo, activo && s.motivoActivo]}>
+                            <Ionicons
+                              name={activo ? 'radio-button-on' : 'radio-button-off'}
+                              size={18}
+                              color={activo ? C.rojo : C.textoSuave}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text style={s.motivoEtiqueta}>{m.etiqueta}</Text>
+                              {activo && <Micro>{m.texto}</Micro>}
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                      <View style={{ flexDirection: 'row', gap: E.sm }}>
+                        <Boton
+                          titulo="Cancelar"
+                          variante="fantasma"
+                          chico
+                          style={{ flex: 1 }}
+                          onPress={() => setRechazo(null)}
+                        />
+                        <Boton
+                          titulo="Confirmar rechazo"
+                          icono="close-circle"
+                          variante="peligro"
+                          chico
+                          style={{ flex: 1 }}
+                          deshabilitado={!rechazo.motivo}
+                          cargando={ocupado === `no-${v.perfil_id}`}
+                          onPress={() => {
+                            const motivo = MOTIVOS_RECHAZO.find((m) => m.valor === rechazo.motivo);
+                            if (!motivo) return;
+                            accion(`no-${v.perfil_id}`, async () => {
+                              await api.resolverVerificacion(v.perfil_id, false, motivo.texto);
+                              setRechazo(null);
+                              // Retención mínima también al rechazar (Ley N° 29733)
+                              try {
+                                await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
+                              } catch (e) {
+                                avisar('Verificación rechazada', (e as Error).message);
+                              }
+                            });
+                          }}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </Tarjeta>
+              </Entrada>
+            ))}
+          </>
+        )}
+
+        {/* ------------------------------------------------ pagos */}
+        {pagos.length > 0 && ver('pagos') && (
+          <>
+            <Seccion
+              titulo="Pagos por confirmar"
+              icono="wallet-outline"
+              conteo={pagos.length}
+              style={{ marginTop: E.md }}
+            />
+            {pagos.map((p, i) => (
+              <Entrada key={p.pedido_id} i={i}>
+                <Tarjeta>
+                  <Text style={s.titulo}>{p.titulo}</Text>
+                  <Text style={s.monto}>{soles(p.total_cobrado)}</Text>
+                  <Dato icono="person-outline" etiqueta="Cliente" valor={p.cliente} />
+                  <Dato
+                    icono="phone-portrait-outline"
+                    etiqueta="Método"
+                    valor={(p.metodo ?? '—').toUpperCase()}
+                  />
+                  <Dato
+                    icono="barcode-outline"
+                    etiqueta="Código de operación"
+                    valor={p.codigo_operacion ?? '—'}
+                  />
+                  <Dato
+                    icono="time-outline"
+                    etiqueta="Reportado"
+                    valor={fechaHora(p.reportado_en)}
+                  />
+
+                  {p.comprobante_path && urls[p.comprobante_path] && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Ampliar comprobante"
+                      onPress={() =>
+                        setVisor({
+                          imagenes: [{ uri: urls[p.comprobante_path!], etiqueta: 'Comprobante · ' + p.titulo }],
+                          inicial: 0,
+                        })
+                      }>
                       <Image
-                        key={ruta}
-                        source={{ uri: urls[ruta] }}
-                        style={{
-                          flex: 1,
-                          height: 130,
-                          borderRadius: R.sm,
-                          backgroundColor: C.borde,
-                        }}
-                        resizeMode="cover"
+                        source={{ uri: urls[p.comprobante_path] }}
+                        style={s.comprobante}
+                        resizeMode="contain"
                       />
-                    ),
-                )}
-              </View>
-              <Micro>
-                Compara que el rostro de la selfie corresponda al del documento y que el
-                número coincida con el declarado.
-              </Micro>
+                      <View style={[s.lupa, { top: E.md + E.sm }]}>
+                        <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                        <Text style={s.lupaTexto}>Ampliar</Text>
+                      </View>
+                    </Pressable>
+                  )}
 
-              <Separador />
-              <Boton
-                titulo="Aprobar verificación"
-                cargando={ocupado === `ok-${v.perfil_id}`}
-                onPress={() =>
-                  accion(`ok-${v.perfil_id}`, () =>
-                    api.resolverVerificacion(v.perfil_id, true),
-                  )
-                }
-              />
-              <View style={{ height: E.sm }} />
-              <Boton
-                titulo="Rechazar"
-                variante="fantasma"
-                cargando={ocupado === `no-${v.perfil_id}`}
-                onPress={async () => {
-                  const seguro = await confirmar(
-                    'Rechazar verificación',
-                    `Se rechazará la verificación de ${v.nombre_completo} y tendrá que volver a enviar sus documentos.`,
-                    'Rechazar',
-                    true,
-                  );
-                  if (!seguro) return;
-                  accion(`no-${v.perfil_id}`, () =>
-                    api.resolverVerificacion(
-                      v.perfil_id,
-                      false,
-                      'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz y sin reflejos.',
-                    ),
-                  );
-                }}
-              />
-            </Tarjeta>
-          ))}
-        </>
-      )}
+                  <Boton
+                    titulo="El dinero llegó · retener"
+                    icono="lock-closed"
+                    variante="exito"
+                    cargando={ocupado === `pago-${p.pedido_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'Confirmar retención',
+                        `¿Verificaste en la cuenta que llegaron ${soles(
+                          p.total_cobrado,
+                        )} con el código ${p.codigo_operacion}?`,
+                        'Sí, confirmo',
+                      );
+                      if (!seguro) return;
+                      accion(`pago-${p.pedido_id}`, () =>
+                        api.confirmarRetencion(p.pedido_id),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="No llegó · devolver al cliente"
+                    icono="arrow-undo"
+                    variante="fantasma"
+                    cargando={ocupado === `nopago-${p.pedido_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'El pago no llegó',
+                        `El pago vuelve a «pendiente» y ${p.cliente} recibe un aviso para reportarlo de nuevo con el código correcto o cancelar el pedido.`,
+                        'Devolver',
+                        true,
+                      );
+                      if (!seguro) return;
+                      accion(`nopago-${p.pedido_id}`, () =>
+                        api.rechazarPago(
+                          p.pedido_id,
+                          `No encontramos un pago de ${soles(p.total_cobrado)} con el código ${p.codigo_operacion ?? '—'}`,
+                        ),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="Ver el pedido"
+                    variante="fantasma"
+                    onPress={() => abrirPedido(p.pedido_id)}
+                  />
+                </Tarjeta>
+              </Entrada>
+            ))}
+          </>
+        )}
 
-      {/* ------------------------------------------------ pagos */}
-      {pagos.length > 0 && (
-        <>
-          <Subtitulo style={{ marginTop: E.md }}>
-            Pagos por confirmar ({pagos.length})
-          </Subtitulo>
-          {pagos.map((p) => (
-            <Tarjeta key={p.pedido_id}>
-              <Parrafo style={{ fontWeight: '700' }}>{p.titulo}</Parrafo>
-              <Dato etiqueta="Cliente" valor={p.cliente} />
-              <Dato etiqueta="Monto" valor={soles(p.total_cobrado)} fuerte />
-              <Dato etiqueta="Método" valor={p.metodo ?? '—'} />
-              <Dato etiqueta="Código de operación" valor={p.codigo_operacion ?? '—'} />
-              <Dato etiqueta="Reportado" valor={fechaHora(p.reportado_en)} />
+        {/* ------------------------------------------------ plazos vencidos */}
+        {vencidas.length > 0 && ver('vencidas') && (
+          <>
+            <Seccion
+              titulo="Plazos de confirmación vencidos"
+              icono="alarm-outline"
+              conteo={vencidas.length}
+              style={{ marginTop: E.md }}
+            />
+            <Parrafo suave style={{ marginBottom: E.md }}>
+              El comprador externo marcó la entrega y el cliente no confirmó dentro del
+              plazo de config («dias_para_confirmar»). Antes de liberar, revisa el chat del
+              pedido.
+            </Parrafo>
+            {vencidas.map((c, i) => (
+              <Entrada key={c.pedido_id} i={i}>
+                <Tarjeta style={{ borderColor: C.ambar, borderWidth: 1.5 }}>
+                  <Text style={s.titulo}>{c.titulo}</Text>
+                  <View style={{ marginVertical: E.sm }}>
+                    <Chip
+                      texto={`${c.dias_vencido} día${c.dias_vencido === 1 ? '' : 's'} vencido`}
+                      color={C.ambar}
+                      icono="alarm"
+                    />
+                  </View>
+                  <Dato icono="person-outline" etiqueta="Cliente" valor={c.cliente} />
+                  <Dato icono="airplane-outline" etiqueta="Comprador externo" valor={c.comprador} />
+                  <Dato etiqueta="Monto retenido" valor={soles(c.monto)} fuerte />
+                  <Dato icono="cube-outline" etiqueta="Entregado" valor={fechaHora(c.entregado_en)} />
+                  <Dato icono="alarm-outline" etiqueta="Venció" valor={fechaHora(c.vence_en)} />
+                  <Separador />
+                  <Boton
+                    titulo="Liberar el pago al comprador externo"
+                    icono="lock-open"
+                    variante="secundario"
+                    cargando={ocupado === `venc-${c.pedido_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'Liberar por vencimiento',
+                        `¿Revisaste el pedido y el chat? Se liberarán ${soles(
+                          c.monto,
+                        )} y el pedido quedará confirmado.`,
+                        'Sí, liberar',
+                      );
+                      if (!seguro) return;
+                      accion(`venc-${c.pedido_id}`, () =>
+                        api.liberarPorVencimiento(c.pedido_id),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="Abrir el pedido y su chat"
+                    variante="fantasma"
+                    onPress={() => abrirPedido(c.pedido_id)}
+                  />
+                </Tarjeta>
+              </Entrada>
+            ))}
+          </>
+        )}
 
-              {p.comprobante_path && urls[p.comprobante_path] && (
-                <Image
-                  source={{ uri: urls[p.comprobante_path] }}
-                  style={{
-                    height: 220,
-                    borderRadius: R.sm,
-                    marginVertical: E.md,
-                    backgroundColor: C.borde,
-                  }}
-                  resizeMode="contain"
-                />
-              )}
+        {/* ------------------------------------------------ disputas */}
+        {disputas.length > 0 && ver('disputas') && (
+          <>
+            <Seccion
+              titulo="Disputas abiertas"
+              icono="flag-outline"
+              conteo={disputas.length}
+              style={{ marginTop: E.md }}
+            />
+            {disputas.map((d, i) => (
+              <Entrada key={d.disputa_id} i={i}>
+                <Tarjeta style={{ borderColor: C.rojo, borderWidth: 1.5 }}>
+                  <Text style={s.titulo}>{d.titulo}</Text>
+                  <Dato icono="person-outline" etiqueta="La abrió" valor={d.abierta_por} />
+                  <Dato
+                    icono="cube-outline"
+                    etiqueta="Estado del pedido"
+                    valor={ESTADO_PEDIDO[d.estado_pedido]?.etiqueta ?? d.estado_pedido}
+                  />
+                  <Dato etiqueta="Monto retenido" valor={soles(d.monto)} fuerte />
+                  <Dato icono="time-outline" etiqueta="Abierta" valor={fechaHora(d.creado_en)} />
+                  <Separador />
+                  <View style={s.cita}>
+                    <Ionicons name="chatbox-ellipses-outline" size={16} color={C.rojo} />
+                    <Parrafo suave style={{ flex: 1 }}>
+                      “{d.motivo}”
+                    </Parrafo>
+                  </View>
 
-              <Boton
-                titulo="El dinero llegó · retener"
-                cargando={ocupado === `pago-${p.pedido_id}`}
-                onPress={async () => {
-                  const seguro = await confirmar(
-                    'Confirmar retención',
-                    `¿Verificaste en la cuenta que llegaron ${soles(
-                      p.total_cobrado,
-                    )} con el código ${p.codigo_operacion}?`,
-                    'Sí, confirmo',
-                  );
-                  if (!seguro) return;
-                  accion(`pago-${p.pedido_id}`, () =>
-                    api.confirmarRetencion(p.pedido_id),
-                  );
-                }}
-              />
-              <View style={{ height: E.sm }} />
-              <Boton
-                titulo="Ver el pedido"
-                variante="fantasma"
-                onPress={() => router.push(`/pedido/${p.pedido_id}`)}
-              />
-            </Tarjeta>
-          ))}
-        </>
-      )}
+                  {d.evidencia_path && urls[d.evidencia_path] && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Ampliar evidencia"
+                      onPress={() =>
+                        setVisor({
+                          imagenes: [{ uri: urls[d.evidencia_path!], etiqueta: 'Evidencia · ' + d.titulo }],
+                          inicial: 0,
+                        })
+                      }>
+                      <Image
+                        source={{ uri: urls[d.evidencia_path] }}
+                        style={s.comprobante}
+                        resizeMode="contain"
+                      />
+                      <View style={[s.lupa, { top: E.md + E.sm }]}>
+                        <Ionicons name="expand" size={14} color={C.sobreOscuro} />
+                        <Text style={s.lupaTexto}>Ampliar</Text>
+                      </View>
+                    </Pressable>
+                  )}
 
-      {/* ------------------------------------------------ disputas */}
-      {disputas.length > 0 && (
-        <>
-          <Subtitulo style={{ marginTop: E.md }}>
-            Disputas abiertas ({disputas.length})
-          </Subtitulo>
-          {disputas.map((d) => (
-            <Tarjeta key={d.disputa_id} style={{ borderColor: C.rojo, borderWidth: 1.5 }}>
-              <Parrafo style={{ fontWeight: '700' }}>{d.titulo}</Parrafo>
-              <Dato etiqueta="La abrió" valor={d.abierta_por} />
-              <Dato etiqueta="Monto retenido" valor={soles(d.monto)} fuerte />
-              <Separador />
-              <Parrafo suave>“{d.motivo}”</Parrafo>
-              <Separador />
-              <Boton
-                titulo="Reembolsar al cliente"
-                variante="peligro"
-                cargando={ocupado === `dc-${d.disputa_id}`}
-                onPress={() =>
-                  accion(`dc-${d.disputa_id}`, () =>
-                    api.resolverDisputa(
-                      d.disputa_id,
-                      true,
-                      'Resuelta a favor del cliente tras revisar la evidencia.',
-                    ),
-                  )
-                }
-              />
-              <View style={{ height: E.sm }} />
-              <Boton
-                titulo="Liberar al comprador externo"
-                variante="secundario"
-                cargando={ocupado === `db-${d.disputa_id}`}
-                onPress={() =>
-                  accion(`db-${d.disputa_id}`, () =>
-                    api.resolverDisputa(
-                      d.disputa_id,
-                      false,
-                      'Resuelta a favor del comprador externo: la entrega quedó acreditada.',
-                    ),
-                  )
-                }
-              />
-              <View style={{ height: E.sm }} />
-              <Boton
-                titulo="Abrir el chat del pedido"
-                variante="fantasma"
-                onPress={() => router.push(`/pedido/${d.pedido_id}`)}
-              />
-            </Tarjeta>
-          ))}
-        </>
-      )}
+                  <Separador />
+                  <Micro style={{ marginBottom: E.sm }}>
+                    Antes de decidir, lee el chat del pedido: es la única fuente que tienen
+                    las dos partes y queda registrada.
+                  </Micro>
+                  <Boton
+                    titulo="Reembolsar al cliente"
+                    icono="return-down-back"
+                    variante="peligro"
+                    cargando={ocupado === `dc-${d.disputa_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'Reembolsar al cliente',
+                        `Se devolverán ${soles(d.monto)} al cliente y el pedido se cerrará.`,
+                        'Reembolsar',
+                        true,
+                      );
+                      if (!seguro) return;
+                      accion(`dc-${d.disputa_id}`, () =>
+                        api.resolverDisputa(
+                          d.disputa_id,
+                          true,
+                          'Resuelta a favor del cliente tras revisar la evidencia.',
+                        ),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="Liberar al comprador externo"
+                    icono="lock-open"
+                    variante="secundario"
+                    cargando={ocupado === `db-${d.disputa_id}`}
+                    onPress={async () => {
+                      const seguro = await confirmar(
+                        'Liberar al comprador externo',
+                        `Se liberarán ${soles(d.monto)} al comprador externo y el pedido se cerrará.`,
+                        'Liberar',
+                      );
+                      if (!seguro) return;
+                      accion(`db-${d.disputa_id}`, () =>
+                        api.resolverDisputa(
+                          d.disputa_id,
+                          false,
+                          'Resuelta a favor del comprador externo: la entrega quedó acreditada.',
+                        ),
+                      );
+                    }}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="Abrir el chat del pedido"
+                    variante="fantasma"
+                    onPress={() => abrirPedido(d.pedido_id)}
+                  />
+                  <View style={{ height: E.sm }} />
+                  <Boton
+                    titulo="Ver el historial de quien la abrió"
+                    variante="fantasma"
+                    onPress={() => abrirPersona(d.abierta_por_id)}
+                  />
+                </Tarjeta>
+              </Entrada>
+            ))}
+          </>
+        )}
 
-      {verificaciones.length > 0 && (
-        <Micro style={{ marginTop: E.lg, lineHeight: 18 }}>
-          Al aprobar una verificación, la app descarta las rutas de las imágenes. Recuerda
-          borrar los archivos del bucket «documentos» desde el panel de Supabase para
-          completar la retención mínima que exige la Ley N° 29733.
-        </Micro>
-      )}
+        {verificaciones.length > 0 && (
+          <Micro style={{ marginTop: E.lg, lineHeight: 18 }}>
+            Al resolver una verificación, la app descarta las rutas y borra las imágenes del
+            bucket «documentos» en la misma operación. Queda solo el número de DNI, que es
+            la retención mínima que exige la Ley N° 29733.
+          </Micro>
+        )}
 
-      <View style={{ height: E.lg }} />
-      <Boton
-        titulo="Ver la política de datos"
-        variante="fantasma"
-        onPress={() => Linking.openURL('https://encargalo.pe/privacidad')}
+        {!enPanel && <View style={{ height: E.lg }} />}
+        {!enPanel && <Boton
+          titulo="Ver la política de datos"
+          icono="document-text-outline"
+          variante="fantasma"
+          onPress={() => router.push('/legal')}
+        />}
+      </View>
+
+      <VisorImagenes
+        imagenes={visor?.imagenes ?? null}
+        inicial={visor?.inicial ?? 0}
+        onCerrar={() => setVisor(null)}
       />
     </ScrollView>
   );
 }
+
+const s = StyleSheet.create({
+  filtro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: E.sm,
+    backgroundColor: C.azulClaro,
+    paddingHorizontal: E.md,
+    paddingVertical: E.sm + 2,
+    borderRadius: R.md,
+    marginBottom: E.md,
+  },
+  filtroTexto: { flex: 1, color: C.azul, fontWeight: '700', fontSize: 13.5 },
+  filtroQuitar: { color: C.naranjaOscuro, fontWeight: '700', fontSize: 13.5 },
+  persona: { flexDirection: 'row', alignItems: 'center', gap: E.md },
+  titulo: { fontSize: 16, fontWeight: '800', color: C.texto },
+  meta: { fontSize: 12.5, color: C.textoSuave, marginTop: 2 },
+  monto: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: C.verde,
+    letterSpacing: -0.6,
+    marginVertical: E.xs,
+  },
+  fotos: { flexDirection: 'row', gap: E.sm, marginVertical: E.md },
+  // contain y fondo oscuro: la foto entera, sin recortar el número ni el rostro.
+  foto: { height: 240, borderRadius: R.sm, backgroundColor: G.noche },
+  lupa: {
+    position: 'absolute',
+    top: E.sm,
+    right: E.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14,38,31,0.75)',
+  },
+  lupaTexto: { fontSize: 12, fontWeight: '700', color: C.sobreOscuro },
+  rechazo: {
+    gap: E.sm,
+    padding: E.md,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: `${C.rojo}40`,
+    backgroundColor: C.rojoClaro,
+  },
+  rechazoTitulo: { fontSize: 15, fontWeight: '700', color: C.rojoOscuro },
+  motivo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: E.sm,
+    padding: E.sm,
+    borderRadius: R.sm,
+    backgroundColor: C.blanco,
+    borderWidth: 1,
+    borderColor: C.borde,
+  },
+  motivoActivo: { borderColor: C.rojo },
+  motivoEtiqueta: { fontSize: 14, fontWeight: '600', color: C.texto },
+  comprobante: {
+    height: 220,
+    borderRadius: R.sm,
+    marginVertical: E.md,
+    backgroundColor: C.borde,
+  },
+  cita: { flexDirection: 'row', gap: E.sm, alignItems: 'flex-start' },
+});

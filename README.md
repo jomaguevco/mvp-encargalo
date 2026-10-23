@@ -25,7 +25,26 @@ Los nueve módulos que la Unidad 2 definió como imprescindibles, todos operativ
 9. **Mediación de disputas** con reembolso desde el dinero retenido
 
 Más una **consola del equipo** para operar el piloto: cola de verificaciones, cola de
-pagos por confirmar y disputas abiertas.
+pagos por confirmar, disputas abiertas y plazos de confirmación vencidos.
+
+### Lo que se cerró en la última iteración
+
+Los nueve módulos estaban, pero el recorrido tenía huecos por los que un pedido real se
+quedaba trabado. Estos son los que se cerraron:
+
+| Módulo | Qué faltaba | Cómo quedó |
+|---|---|---|
+| **Avisos** | Nada le decía al usuario que tenía una oferta, un pago retenido o un mensaje | Bandeja propia por usuario, escrita por *triggers* de la base sobre los mismos hechos de la bitácora. Globo con el contador en la pestaña |
+| **Cancelar un pedido** | El estado `cancelado` existía y nada podía llegar a él | `cancelar_pedido`: solo el cliente, y solo mientras no haya reportado el pago |
+| **Retirar una oferta** | El comprador externo que ya no podía viajar no tenía salida | `retirar_oferta`, disponible mientras nadie la acepte |
+| **Plazo de confirmación** | `dias_para_confirmar` estaba en `config` sin que nada lo leyera: si el cliente no confirmaba, el dinero quedaba retenido para siempre | El cliente ve su fecha límite; el equipo ve la cola de vencidos y puede liberar con `liberar_por_vencimiento` |
+| **Reseñas públicas** | Solo se veía el promedio, no el comentario | Pantalla de reputación pública con las reseñas de quienes ya operaron con esa persona |
+| **Ofertas enviadas** | Una oferta sin responder no aparecía en ninguna pantalla | Se listan en «Mis entregas», separadas de los pedidos adjudicados |
+| **Disputas** | Solo las abría el cliente y solo al final | Las abren las dos partes, en cualquier estado con dinero retenido, con evidencia adjunta |
+| **Búsqueda** | La lista de pedidos abiertos no se podía filtrar | Buscador sin tildes y filtro por categoría |
+| **Foto del producto** | El bucket `productos` existía sin que nada subiera nada | Foto opcional al publicar, visible en la tarjeta y en el detalle |
+| **Chat** | Había que recargar para ver si te contestaron | Se actualiza solo cada 12 segundos |
+| **Borrado de documentos** | Aprobar una verificación descartaba las rutas, pero los archivos quedaban en el bucket | Al aprobar se borran en la misma operación (Ley N° 29733) |
 
 ## Decisiones que conviene conocer antes de leer el código
 
@@ -43,13 +62,14 @@ es lo que pide el indicador IND3 del sílabo. Cuando entre Culqi o Izipay, solo 
 quién llama a `confirmar_retencion`.
 
 **Las tarifas viven en la tabla `config`, no en el código.** Son las mismas del flujo de
-caja proyectado (`Entregables_Unidad2/Encargalo_Flujo_de_Caja_y_OKR.xlsx`, hoja 1):
+caja proyectado (`Entregables_Unidad2/02_Encargalo_Flujo_de_Caja_y_Medicion.xlsx`, hoja «Supuestos»):
 comisión al cliente 10 %, tarifa al comprador externo 3 %, procesamiento 2.9 %. Si
 cambian ahí, cambian aquí.
 
 **Retención mínima de datos personales.** Solo se guarda el número de DNI. Las imágenes
-del documento van a un bucket privado y, al aprobarse la verificación, la app descarta
-sus rutas para que el equipo pueda borrarlas. Es lo que exige la Ley N° 29733.
+del documento van a un bucket privado y, al aprobarse la verificación, la base descarta
+sus rutas y la app borra los archivos en la misma operación. Es lo que exige la Ley
+N° 29733.
 
 ---
 
@@ -73,7 +93,15 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0003_rls.sql` | Seguridad a nivel de fila y políticas de almacenamiento |
 | `0004_config.sql` | Tarifas del modelo de negocio |
 | `0005_operador.sql` | Consola del equipo |
-| `0006_validacion_dni.sql` | Resultado de la validación del DNI contra RENIEC |
+| `0006_modulos.sql` | Cancelación, retiro de ofertas, reseñas, plazo de confirmación |
+| `0007_avisos.sql` | Bandeja de avisos y sus *triggers* |
+| `0008_validacion_dni.sql` | Resultado de la validación del DNI contra RENIEC |
+| `0009_aviso_cancelacion.sql` | Aviso con motivo a quienes ofertaron cuando el cliente cancela |
+| `0010_biometria.sql` | Resultado de la verificación biométrica y umbrales (ver 6b) |
+| `0011_correcciones_flujo.sql` | Aviso al comprador ganador, `rechazar_pago`, lectura para el equipo, RENIEC al cambiar el nombre |
+| `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
+| `0013_verificacion_reintentos.sql` | Un rechazo ya no reserva el DNI (se puede reintentar), cada verificación se resuelve una sola vez y con motivo, y el panel detecta cuentas duplicadas |
+| `0014_foto_perfil.sql` | Foto de perfil opcional (bucket público `avatares`), visible en ofertas, pedidos y reputación; el administrador puede quitarla |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -119,28 +147,133 @@ on conflict (perfil_id) do nothing;
 
 La pestaña **Equipo** aparecerá en la app solo para ellos.
 
-### 6. Activar la validación del DNI contra RENIEC
+### 5b. Panel de administración y cuenta administrativa
+
+El panel vive en la versión web, en **`/admin`** (por ejemplo `encargalo.vercel.app/app/admin`),
+y solo entra quien está en la tabla `administradores`. Un administrador también es operador.
+
+| Sección | Qué hace |
+|---|---|
+| Resumen | Lo que espera al equipo ahora y el reporte del período: cuentas, filtro biométrico, pedidos, dinero, disputas, actividad diaria. Exporta CSV |
+| Verificaciones | La cola de lo que la biometría dejó «en revisión» (aprobar o rechazar con fotos, similitud y RENIEC) y el historial de cada decisión de la IA y del equipo |
+| Cuentas | Búsqueda por nombre, correo, DNI o celular, filtros, ficha completa, suspender o reactivar |
+| Pedidos y Pagos | Todos los pedidos y todo el escrow, con filtros y exportación |
+| Operación | La misma consola del equipo: pagos por confirmar, plazos vencidos, disputas |
+| Equipo y roles | Dar o quitar los roles de operador y administrador |
+| Configuración | Tarifas, plazo de confirmación y umbrales biométricos, con rangos validados en la base |
+| Bitácora | Quién hizo qué y cuándo; nadie la puede editar |
+
+Para crear la cuenta administrativa, después de aplicar `0012_administracion.sql`,
+ejecuta en el SQL Editor el script local **`supabase/admin_cuenta.local.sql`**. Ese archivo
+está en `.gitignore` porque lleva la contraseña: este repositorio es público. En la pantalla
+de ingreso basta con escribir `admin` como correo si el `.env` define
+`EXPO_PUBLIC_ADMIN_CORREO` con el correo de esa cuenta.
+
+Para nombrar administrador a otra persona, hazlo desde **Equipo y roles** o con:
+
+```sql
+insert into administradores (perfil_id) values ('PEGA-AQUI-EL-UID') on conflict do nothing;
+insert into operadores (perfil_id, nombre) values ('PEGA-AQUI-EL-UID', 'Nombre') on conflict do nothing;
+```
+
+### 6. Activar la consulta y la validación del DNI contra RENIEC
+
+Son dos Edge Functions que usan el mismo token de Decolecta:
+
+| Función | Cuándo se llama | Qué hace |
+|---|---|---|
+| `consultar-dni` | Al escribir los 8 dígitos en el registro y en la verificación | Devuelve el nombre de RENIEC y la app lo completa sola. No guarda nada. Límite de 8 consultas por IP cada 10 minutos y caché de una hora por DNI, para cuidar el cupo |
+| `validar-dni` | Al enviar la verificación | Contrasta DNI y nombre del perfil, y guarda solo el resultado |
+| `verificar-identidad` | Justo después | Compara selfie y foto del DNI, y lee lo impreso (ver 6b) |
+
+Si `consultar-dni` no está desplegada o RENIEC no responde, la app avisa y deja
+escribir el nombre a mano: nadie queda bloqueado.
 
 Al enviar su verificación, la app llama a la Edge Function `validar-dni`, que consulta
 el DNI en la API RENIEC de [Decolecta](https://decolecta.gitbook.io/docs) y compara el
-nombre con el del perfil. El equipo ve el resultado en la consola; la **aprobación sigue
-siendo humana** (la selfie se compara con el documento). Solo se guarda el resultado
+nombre con el del perfil. El equipo ve el resultado en la consola; la comparación del
+rostro y la aprobación automática están en el paso 6b. Solo se guarda el resultado
 (`coincide`, `no_coincide`, `no_existe`), nunca los datos que devuelve RENIEC.
 
 1. Genera un token en [decolecta.com/profile](https://decolecta.com/profile). El plan
    gratuito incluye 100 consultas al mes.
-2. Ejecuta `0006_validacion_dni.sql` en el SQL Editor.
+2. Ejecuta `0008_validacion_dni.sql` en el SQL Editor.
 3. Con la [CLI de Supabase](https://supabase.com/docs/guides/cli) vinculada al proyecto:
 
 ```bash
-supabase secrets set DECOLECTA_TOKEN=tu_token
-supabase functions deploy validar-dni
+npx supabase login
+npx supabase link --project-ref TU_REF      # el ref es lo que va antes de .supabase.co en la URL
+npx supabase secrets set DECOLECTA_TOKEN=tu_token
+npx supabase functions deploy consultar-dni --no-verify-jwt
+npx supabase functions deploy validar-dni --no-verify-jwt
+```
+
+Para comprobarlo sin la app (debe devolver `encontrado: true` y el nombre):
+
+```bash
+curl -X POST "https://TU_REF.supabase.co/functions/v1/consultar-dni" \
+  -H "Authorization: Bearer TU_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"dni":"46027897"}'
 ```
 
 Si la consulta falla (cupo agotado, sin red), la solicitud queda en revisión y se
 resuelve a mano como antes. Opcionalmente, `supabase secrets set RECHAZO_AUTOMATICO=1`
 rechaza los DNI que RENIEC no reconoce; actívalo solo después de comprobar cómo responde
 Decolecta ante un DNI inexistente.
+
+### 6b. Activar la verificación biométrica (AWS)
+
+La Edge Function `verificar-identidad` se llama justo después de `validar-dni`:
+
+| Paso | Servicio | Qué comprueba |
+|---|---|---|
+| Rostro | AWS Rekognition `CompareFaces` | Que la selfie sea la misma persona de la foto impresa en el DNI |
+| Documento | AWS Textract `DetectDocumentText` | Que el número impreso sea el declarado y el nombre impreso el del perfil |
+
+RENIEC (Decolecta) solo devuelve nombres, no la foto: por eso el rostro se compara con
+la foto del documento. La cadena queda cerrada así: nombre impreso = nombre del perfil
+= nombre en RENIEC (`validar-dni`).
+
+Decisión (umbrales en la tabla `config`):
+
+- **Aprobado**: similitud ≥ `umbral_rostro_aprobar` (95), número y nombre leídos
+  coinciden y RENIEC dijo `coincide`. Se verifica al instante y las fotos se borran.
+- **Rechazado**: similitud < `umbral_rostro_rechazar` (50), es otra persona. Se
+  rechaza y las fotos se borran.
+- **Revisar**: cualquier otro caso, incluido un fallo de AWS. Queda en la consola del
+  equipo con la similitud, lo que se leyó y el motivo.
+
+Costo aproximado: US$ 0.001 por comparación y US$ 0.0015 por lectura, con capa
+gratuita los primeros 12 meses.
+
+1. Crea una cuenta en AWS y un usuario IAM con solo esta política:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["rekognition:CompareFaces", "textract:DetectDocumentText"],
+    "Resource": "*"
+  }]
+}
+```
+
+2. Genera una clave de acceso para ese usuario.
+3. **Antes de usar fotos reales**, activa la exclusión de uso de datos de AWS («AI
+   services opt-out policy» en AWS Organizations) para que AWS no use las imágenes
+   para entrenar. Los términos de privacidad de la app lo prometen.
+4. Ejecuta `0010_biometria.sql` en el SQL Editor.
+5. Configura y despliega:
+
+```bash
+npx supabase secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1
+npx supabase functions deploy verificar-identidad --no-verify-jwt
+```
+
+Si los secretos no están, la función no marca nada y todo sigue como antes: revisión
+humana. Las reglas de decisión tienen pruebas:
+`deno test supabase/functions/verificar-identidad`.
 
 ### 7. Generar el APK para repartir
 
@@ -152,6 +285,13 @@ eas build -p android --profile preview
 
 Devuelve un enlace de descarga del `.apk`, que se puede instalar directamente sin pasar
 por Google Play. Es lo que conviene usar para el piloto.
+
+Las variables `EXPO_PUBLIC_*` del `.env` no viajan solas a la compilación en la nube:
+la URL y la clave publicable de Supabase (públicas por diseño) están declaradas en el
+perfil de `eas.json`. Nunca poner ahí la `service_role`. Los datos de Yape no van en
+`eas.json` porque el repositorio es público: viajan en `.env`, que `.easignore` sí sube
+a EAS y `.gitignore` deja fuera de GitHub. `eas.json` no admite comentarios: EAS rechaza
+cualquier campo que no conozca.
 
 ---
 
@@ -170,6 +310,10 @@ Hacen falta **dos cuentas** (usa dos teléfonos, o un teléfono y el emulador):
 7. **Cuenta A** confirma la recepción. El pago se libera.
 8. Ambas se califican. La reputación aparece en el perfil y en las próximas ofertas.
 
+Cada uno de esos pasos deja un aviso en la pestaña **Avisos** de la otra parte, con el
+globo del contador en la barra inferior. Es la forma más rápida de mostrar en la
+demostración que las dos cuentas están viendo lo mismo desde los dos lados.
+
 Ese recorrido es exactamente la demostración de cinco minutos del informe
 (sección 1.9).
 
@@ -184,11 +328,13 @@ src/
     registro.tsx          Alta de cuenta
     verificacion.tsx      DNI + selfie
     publicar.tsx          Nuevo pedido
-    pedido/[id].tsx       Detalle: ofertas, pago, seguimiento, chat, calificación
+    pedido/[id].tsx       Detalle: ofertas, pago, seguimiento, chat, disputa, calificación
+    reputacion/[id].tsx   Perfil público: métricas y reseñas
     (app)/                Pestañas para sesión iniciada
       pedidos.tsx         Mis pedidos (lado cliente)
-      explorar.tsx        Pedidos abiertos (lado comprador externo)
-      entregas.tsx        Pedidos que estoy trayendo
+      explorar.tsx        Pedidos abiertos, con buscador y filtro
+      entregas.tsx        Ofertas enviadas y pedidos que estoy trayendo
+      avisos.tsx          Bandeja de avisos
       operador.tsx        Consola del equipo (solo operadores)
       perfil.tsx          Perfil y reputación
   ctx/auth.tsx            Sesión, perfil y rol de operador
@@ -199,7 +345,7 @@ src/
     negocio.ts            Estados, etiquetas y formato
   ui/                     Componentes y paleta
 supabase/migrations/      Esquema, funciones, RLS y configuración
-supabase/functions/       Edge Functions (validar-dni: consulta a RENIEC vía Decolecta)
+supabase/functions/       Edge Functions: consultar-dni (nombre desde RENIEC), validar-dni (contraste) y verificar-identidad (rostro + lectura del DNI)
 ```
 
 ## Estado actual y qué falta
@@ -207,8 +353,20 @@ supabase/functions/       Edge Functions (validar-dni: consulta a RENIEC vía De
 | Módulo | Estado |
 |---|---|
 | Registro, verificación, pedidos, ofertas, escrow, seguimiento, chat, calificación, disputas | Operativo |
-| Consola del equipo | Operativa |
+| Cancelación, retiro de ofertas, reseñas públicas, plazo de confirmación, búsqueda | Operativo |
+| Avisos dentro de la app | Operativo |
+| Consola del equipo | Operativa: verificaciones, pagos, disputas y plazos vencidos |
 | Validación de DNI contra RENIEC | Automática (existencia y nombre, vía Decolecta). La aprobación final, con la selfie, es manual |
 | Pasarela de pagos | Manual. Requiere RUC y afiliación comercial |
-| Notificaciones push | Pendiente |
+| Envío push de los avisos | Pendiente. La bandeja ya existe y los *triggers* ya registran el hecho: falta el *build* nativo con Expo Notifications y guardar el token del dispositivo. En Expo Go no hay push |
+| Publicación en Google Play | Pendiente. El piloto se reparte por APK |
 | Versión iOS | Fuera del alcance del MVP, prevista para T1 2027 |
+
+### Por qué los avisos no son push todavía
+
+El pendiente que decía «notificaciones push» era en realidad dos cosas: registrar el
+hecho y transportarlo al teléfono. Lo primero es lo que importa y es lo que ahora hace la
+base de datos: cada oferta, cada movimiento de dinero, cada mensaje y cada calificación
+crean una fila en `avisos`, con el mismo *trigger* que ya alimentaba la bitácora. El
+transporte push exige un *build* nativo —Expo Go dejó de recibir notificaciones remotas—
+y cuando ese *build* exista no hay que rehacer nada: el mismo `insert` dispara el envío.

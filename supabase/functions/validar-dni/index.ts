@@ -6,7 +6,7 @@
 //
 // El token de Decolecta vive en los secretos de Supabase, no en la app:
 //   supabase secrets set DECOLECTA_TOKEN=...
-//   supabase functions deploy validar-dni
+//   supabase functions deploy validar-dni --no-verify-jwt   (ver supabase/config.toml)
 //
 // Esta función NO aprueba verificaciones. Eso sigue haciéndolo un operador con
 // resolver_verificacion(). Aquí solo se deja constancia de qué dijo RENIEC.

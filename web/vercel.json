@@ -1,0 +1,30 @@
+{
+  "redirects": [
+    {
+      "source": "/descargar",
+      "destination": "https://expo.dev/artifacts/eas/pLtiV9gkuWb-aLWHcAoQkmr9qZA5zODIrY36AJmmI5Y.apk",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    { "source": "/app/:ruta*", "destination": "/app/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/app/_expo/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/app((?!/_expo/|/assets/).*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    }
+  ]
+}

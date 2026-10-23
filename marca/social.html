@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* Imagen para compartir en redes (1200 × 630). La genera marca/generar.py.
+     Plana, como la hoja de marca: Monte de fondo, Arena y Trigo encima. */
+  body { margin: 0; width: 1200px; height: 630px; overflow: hidden;
+    font-family: 'Instrument Sans', sans-serif; color: #F2EBE1; background: #14352B; }
+  .caja { position: absolute; left: 80px; top: 86px; width: 720px; }
+  .marca { display: flex; align-items: center; gap: 16px;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 42px; letter-spacing: -.025em; }
+  .marca div { width: 64px; height: 64px; }
+  h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 62px; line-height: 1.06;
+    letter-spacing: -.03em; margin: 48px 0 0; font-weight: 800; }
+  h1 em { font-style: normal; color: #D9B45A; }
+  .chips { display: flex; gap: 14px; margin-top: 40px; }
+  .chip { font-weight: 600; font-size: 22px; padding: 10px 20px; border-radius: 99px;
+    color: #F2EBE1; border: 1px solid rgba(242,235,225,.28); }
+  .iso { position: absolute; right: 70px; top: 140px; width: 340px; height: 340px; }
+</style></head>
+<body>
+  <div class="caja">
+    <div class="marca"><div>{{SIMBOLO_OSCURO}}</div>Encárgalo</div>
+    <h1>Lo que quieres del extranjero, <em>sin miedo a perder tu plata</em></h1>
+    <div class="chips"><span class="chip">Identidad verificada</span><span class="chip">Pago retenido</span><span class="chip">Reputación</span></div>
+  </div>
+  <div class="iso">{{SIMBOLO_OSCURO}}</div>
+</body></html>

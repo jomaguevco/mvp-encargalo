@@ -1,0 +1,18 @@
+# Configuración mínima para la CLI de Supabase: fija cómo se despliegan las
+# Edge Functions, para que un `supabase functions deploy` sin banderas no las rompa.
+project_id = "encargalo"
+
+# Ninguna deja que la pasarela verifique el JWT:
+#  - consultar-dni se llama en el registro, sin sesión, y la clave publicable
+#    (sb_publishable_...) no es un JWT. Se protege sola: límite por IP y caché.
+#  - validar-dni y verificar-identidad comprueban al usuario dentro, con
+#    auth.getUser(). La verificación de la pasarela no funciona con las claves
+#    de firma JWT nuevas de Supabase y devolvía 401 sin llegar al código.
+[functions.consultar-dni]
+verify_jwt = false
+
+[functions.validar-dni]
+verify_jwt = false
+
+[functions.verificar-identidad]
+verify_jwt = false

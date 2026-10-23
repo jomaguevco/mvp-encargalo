@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícono de aplicación de Encárgalo (hoja de marca, encargalo/branding):
+       la bolsa del encargo, llena en Arena, y el check Terracota que sale de
+       ella, sobre Monte. En el ícono la bolsa va llena y no de contorno: a 48
+       píxeles el contorno se cierra solo. Mismos colores que src/ui/tema.ts. -->
+  <rect width="512" height="512" rx="116" fill="#14352B"/>
+  <g transform="translate(93 93) scale(2.7167)">
+    <path d="M30 50 h60 l5 50 a7 7 0 0 1 -7 8 h-56 a7 7 0 0 1 -7 -8 Z" fill="#F2EBE1"/>
+    <path d="M38 56 L54 74 L88 24" fill="none" stroke="#C65A3A" stroke-width="11"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

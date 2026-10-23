@@ -45,3 +45,18 @@ example
 # Variables de entorno
 .env
 .env.local
+
+# Temporales de la CLI de Supabase
+supabase/.temp/
+
+# Sitio armado para Vercel (scripts/construir-web.mjs)
+publico/
+dist-web/
+.vercel
+.vercel-publico
+
+# Fotos descargadas para los datos de prueba (pruebas/descargar_imagenes.py)
+pruebas/imagenes/
+
+# Scripts SQL con credenciales (cuenta administrativa)
+supabase/*.local.sql
