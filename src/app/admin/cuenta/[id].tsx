@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
 import { fecha, fechaHora, hace, soles } from '@/lib/negocio';
-import type { FichaCuenta } from '@/lib/tipos';
+import type { CuentaParecida, FichaCuenta } from '@/lib/tipos';
 import {
   ACCION_BITACORA,
   Bloque,
@@ -31,6 +31,7 @@ export default function FichaCuentaAdmin() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { perfil: yo } = useAuth();
   const [ficha, setFicha] = useState<FichaCuenta | null>(null);
+  const [parecidas, setParecidas] = useState<CuentaParecida[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const { es: escritorio } = useEscritorio();
@@ -39,7 +40,12 @@ export default function FichaCuentaAdmin() {
     if (!id) return;
     try {
       setError(null);
-      setFicha(await api.fichaCuenta(id));
+      const [f, p] = await Promise.all([
+        api.fichaCuenta(id),
+        api.cuentasParecidas(id).catch(() => [] as CuentaParecida[]),
+      ]);
+      setFicha(f);
+      setParecidas(p);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -162,6 +168,24 @@ export default function FichaCuentaAdmin() {
         </Aviso>
       )}
 
+      {/* En qué punto está la verificación y qué puede hacer el equipo. */}
+      {p.verificacion === 'pendiente' && (
+        <Aviso tono="info" titulo="Todavía no envió sus documentos">
+          Por eso no aparece en la cola de verificaciones: no hay DNI ni selfie que aprobar o rechazar.
+          La persona debe entrar a la app y tocar «Verificar identidad».
+        </Aviso>
+      )}
+      {p.verificacion === 'en_revision' && (
+        <Aviso tono="alerta" titulo="Esperando la decisión del equipo">
+          La biometría no pudo decidir sola. Revísala en Verificaciones, donde están el DNI y la selfie.
+        </Aviso>
+      )}
+      {p.verificacion === 'rechazado' && (
+        <Aviso tono="error" titulo="Verificación rechazada: puede volver a intentarlo">
+          {`Motivo que ve la persona: «${p.motivo_rechazo ?? 'sin motivo'}». Desde la app, en esta misma cuenta, puede enviar sus documentos otra vez; su DNI no queda reservado por el rechazo.`}
+        </Aviso>
+      )}
+
       <View style={[s.cabecera, !escritorio && { flexDirection: 'column', alignItems: 'flex-start' }]}>
         <Avatar nombre={p.nombre_completo} tamano={64} verificado={p.verificacion === 'verificado'} />
         <View style={{ flex: 1, gap: 6 }}>
@@ -208,6 +232,27 @@ export default function FichaCuentaAdmin() {
           <FilaDato etiqueta="Similitud facial al verificarse" valor={p.ia_similitud != null ? `${Number(p.ia_similitud).toFixed(1)} %` : '—'} />
         </Bloque>
       </View>
+
+      {parecidas.length > 0 && (
+        <Bloque titulo={`Cuentas parecidas (${parecidas.length})`} icono="copy-outline">
+          <Text style={s.meta}>
+            Mismo DNI o mismo nombre: casi siempre es alguien que se volvió a registrar. Conviene que use
+            una sola cuenta.
+          </Text>
+          <Tabla
+            columnas={[
+              { clave: 'nombre_completo', titulo: 'Cuenta', ancho: 2 },
+              { clave: 'correo', titulo: 'Correo', ancho: 2, render: (x) => x.correo ?? '—' },
+              { clave: 'verificacion', titulo: 'Identidad', ancho: 1.3, render: (x) => <ChipVerificacion estado={x.verificacion} /> },
+              { clave: 'motivo', titulo: 'Coincide en', ancho: 1.1 },
+              { clave: 'fecha', titulo: 'Registro', render: (x) => fecha(x.creado_en) },
+            ]}
+            filas={parecidas}
+            clave={(x) => x.perfil_id}
+            onFila={(x) => router.push(`/admin/cuenta/${x.perfil_id}`)}
+          />
+        </Bloque>
+      )}
 
       <Bloque titulo={`Pedidos como cliente (${ficha.pedidos.length})`} icono="cube-outline">
         <Tabla

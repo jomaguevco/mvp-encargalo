@@ -100,6 +100,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0010_biometria.sql` | Resultado de la verificación biométrica y umbrales (ver 6b) |
 | `0011_correcciones_flujo.sql` | Aviso al comprador ganador, `rechazar_pago`, lectura para el equipo, RENIEC al cambiar el nombre |
 | `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
+| `0013_verificacion_reintentos.sql` | Un rechazo ya no reserva el DNI (se puede reintentar), cada verificación se resuelve una sola vez y con motivo, y el panel detecta cuentas duplicadas |
 
 Para comprobar que quedó bien, ejecuta:
 

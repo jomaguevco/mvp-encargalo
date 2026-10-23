@@ -120,6 +120,7 @@ export default function CuentasAdmin() {
       render: (c) => (
         <View style={{ gap: 4, alignItems: 'flex-start' }}>
           {c.suspendido && <Chip texto="Suspendida" color={C.rojo} icono="ban" />}
+          {c.parecidas > 0 && <Chip texto="Posible duplicado" color={C.ambar} icono="copy" />}
           {c.es_admin ? (
             <Chip texto="Administrador" color={C.azul} icono="shield-checkmark" />
           ) : c.es_operador ? (

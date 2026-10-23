@@ -7,6 +7,7 @@ import type {
   ConfigItem,
   ConfirmacionVencida,
   CuentaAdmin,
+  CuentaParecida,
   DesglosePrecio,
   DisputaAbierta,
   EntradaBitacora,
@@ -96,7 +97,15 @@ export async function enviarVerificacion(opts: {
     throw new Error('El DNI debe tener exactamente 8 dígitos');
   }
 
-  // El DNI primero: si ya lo usa otra cuenta, falla aquí y no se suben fotos.
+  // El DNI primero: si otra cuenta lo está verificando o ya lo verificó, se
+  // avisa aquí y no se suben fotos. Una cuenta rechazada no lo reserva
+  // (0013_verificacion_reintentos.sql), así que reintentar siempre es posible.
+  const { data: libre, error: errorDni } = await supabase.rpc('dni_disponible', { p_dni: opts.dni });
+  if (!errorDni && libre === false) {
+    throw new Error(
+      'Ese DNI ya está verificado o en revisión en otra cuenta de Encárgalo. Si es tuyo, escríbenos.',
+    );
+  }
   await actualizarPerfil({ dni: opts.dni });
 
   const dniPath = `${uid}/dni-${Date.now()}.jpg`;
@@ -743,6 +752,13 @@ export async function fichaCuenta(perfilId: string): Promise<FichaCuenta> {
   const { data, error } = await supabase.rpc('admin_ficha_cuenta', { p_perfil: perfilId });
   revienta(error);
   return data as FichaCuenta;
+}
+
+/** Cuentas con el mismo DNI o el mismo nombre: casi siempre, alguien que se registró de nuevo. */
+export async function cuentasParecidas(perfilId: string): Promise<CuentaParecida[]> {
+  const { data, error } = await supabase.rpc('admin_cuentas_parecidas', { p_perfil: perfilId });
+  revienta(error);
+  return (data ?? []) as CuentaParecida[];
 }
 
 export async function suspenderCuenta(perfilId: string, suspender: boolean, motivo?: string) {

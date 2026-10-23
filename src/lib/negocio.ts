@@ -147,7 +147,7 @@ export const ESTADO_VERIFICACION: Record<EstadoVerificacion, Info> = {
   },
   rechazado: {
     etiqueta: 'Verificación rechazada',
-    detalle: 'No pudimos validar tus documentos',
+    detalle: 'No pudimos validar tus documentos. Toca aquí para enviarlos de nuevo',
     color: '#A8322A',
   },
 };

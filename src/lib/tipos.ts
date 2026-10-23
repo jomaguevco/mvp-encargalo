@@ -344,7 +344,19 @@ export type CuentaAdmin = {
   calificacion: number | null;
   creado_en: string;
   ultimo_ingreso: string | null;
+  /** Otras cuentas con el mismo DNI o el mismo nombre */
+  parecidas: number;
   total: number;
+};
+
+export type CuentaParecida = {
+  perfil_id: string;
+  nombre_completo: string;
+  correo: string | null;
+  verificacion: EstadoVerificacion;
+  dni: string | null;
+  creado_en: string;
+  motivo: 'Mismo DNI' | 'Mismo nombre';
 };
 
 export type FichaCuenta = {

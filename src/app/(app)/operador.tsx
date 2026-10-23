@@ -42,6 +42,33 @@ import { C, E, G, R } from '@/ui/tema';
 
 export type Cola = 'verificaciones' | 'pagos' | 'vencidas' | 'disputas';
 
+/**
+ * Motivos de rechazo. La persona los lee en la app para saber qué corregir,
+ * así que dicen qué pasó y qué hacer, no un código interno.
+ */
+const MOTIVOS_RECHAZO = [
+  {
+    valor: 'fotos',
+    etiqueta: 'Fotos borrosas o con reflejos',
+    texto: 'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz, sin reflejos y con el DNI completo en la foto.',
+  },
+  {
+    valor: 'otra_persona',
+    etiqueta: 'El rostro no es el del documento',
+    texto: 'El rostro de la selfie no corresponde al de la foto del DNI. Envía tu propio DNI y una selfie tuya.',
+  },
+  {
+    valor: 'otro_dni',
+    etiqueta: 'El DNI de la foto no es el declarado',
+    texto: 'El número o el nombre del DNI de la foto no coinciden con los de tu cuenta. Revisa el número que escribiste y envía la foto de ese mismo DNI.',
+  },
+  {
+    valor: 'ilegible',
+    etiqueta: 'Documento vencido, incompleto o ilegible',
+    texto: 'El documento está vencido, cortado o no se puede leer. Envía una foto de tu DNI vigente, entero y nítido.',
+  },
+] as const;
+
 /** Lo que dijo RENIEC, como insignia: verde, rojo o gris. */
 function InsigniaReniec({ r }: { r: ResultadoDni | null }) {
   const conf =
@@ -123,6 +150,8 @@ export default function Operador({
   const [cola, setCola] = useState<Cola | null>(soloCola ?? null);
   // Visor a pantalla completa: con una miniatura no se compara un rostro.
   const [visor, setVisor] = useState<{ imagenes: ImagenVisor[]; inicial: number } | null>(null);
+  // Rechazo en curso: qué solicitud y con qué motivo.
+  const [rechazo, setRechazo] = useState<{ perfil: string; motivo: string | null } | null>(null);
 
   const cargar = useCallback(async () => {
     // Si una cola falla, las demás igual se muestran, y se avisa: una consola
@@ -361,34 +390,75 @@ export default function Operador({
                     }
                   />
                   <View style={{ height: E.sm }} />
-                  <Boton
-                    titulo="Rechazar"
-                    icono="close"
-                    variante="fantasma"
-                    cargando={ocupado === `no-${v.perfil_id}`}
-                    onPress={async () => {
-                      const seguro = await confirmar(
-                        'Rechazar verificación',
-                        `Se rechazará la verificación de ${v.nombre_completo} y tendrá que volver a enviar sus documentos.`,
-                        'Rechazar',
-                        true,
-                      );
-                      if (!seguro) return;
-                      accion(`no-${v.perfil_id}`, async () => {
-                        await api.resolverVerificacion(
-                          v.perfil_id,
-                          false,
-                          'Las imágenes no permiten validar tu identidad. Vuelve a enviarlas con buena luz y sin reflejos.',
+                  {rechazo?.perfil !== v.perfil_id ? (
+                    <Boton
+                      titulo="Rechazar"
+                      icono="close"
+                      variante="fantasma"
+                      onPress={() => setRechazo({ perfil: v.perfil_id, motivo: null })}
+                    />
+                  ) : (
+                    <View style={s.rechazo}>
+                      <Text style={s.rechazoTitulo}>¿Por qué se rechaza?</Text>
+                      <Micro>
+                        La persona verá este motivo y podrá volver a enviar sus documentos
+                        desde la app, en esta misma cuenta.
+                      </Micro>
+                      {MOTIVOS_RECHAZO.map((m) => {
+                        const activo = rechazo.motivo === m.valor;
+                        return (
+                          <Pressable
+                            key={m.valor}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: activo }}
+                            onPress={() => setRechazo({ perfil: v.perfil_id, motivo: m.valor })}
+                            style={[s.motivo, activo && s.motivoActivo]}>
+                            <Ionicons
+                              name={activo ? 'radio-button-on' : 'radio-button-off'}
+                              size={18}
+                              color={activo ? C.rojo : C.textoSuave}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text style={s.motivoEtiqueta}>{m.etiqueta}</Text>
+                              {activo && <Micro>{m.texto}</Micro>}
+                            </View>
+                          </Pressable>
                         );
-                        // Retención mínima también al rechazar (Ley N° 29733)
-                        try {
-                          await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
-                        } catch (e) {
-                          avisar('Verificación rechazada', (e as Error).message);
-                        }
-                      });
-                    }}
-                  />
+                      })}
+                      <View style={{ flexDirection: 'row', gap: E.sm }}>
+                        <Boton
+                          titulo="Cancelar"
+                          variante="fantasma"
+                          chico
+                          style={{ flex: 1 }}
+                          onPress={() => setRechazo(null)}
+                        />
+                        <Boton
+                          titulo="Confirmar rechazo"
+                          icono="close-circle"
+                          variante="peligro"
+                          chico
+                          style={{ flex: 1 }}
+                          deshabilitado={!rechazo.motivo}
+                          cargando={ocupado === `no-${v.perfil_id}`}
+                          onPress={() => {
+                            const motivo = MOTIVOS_RECHAZO.find((m) => m.valor === rechazo.motivo);
+                            if (!motivo) return;
+                            accion(`no-${v.perfil_id}`, async () => {
+                              await api.resolverVerificacion(v.perfil_id, false, motivo.texto);
+                              setRechazo(null);
+                              // Retención mínima también al rechazar (Ley N° 29733)
+                              try {
+                                await api.borrarDocumentos([v.dni_frente_path, v.selfie_path]);
+                              } catch (e) {
+                                avisar('Verificación rechazada', (e as Error).message);
+                              }
+                            });
+                          }}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </Tarjeta>
               </Entrada>
             ))}
@@ -746,6 +816,27 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(14,38,31,0.75)',
   },
   lupaTexto: { fontSize: 12, fontWeight: '700', color: C.sobreOscuro },
+  rechazo: {
+    gap: E.sm,
+    padding: E.md,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: `${C.rojo}40`,
+    backgroundColor: C.rojoClaro,
+  },
+  rechazoTitulo: { fontSize: 15, fontWeight: '700', color: C.rojoOscuro },
+  motivo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: E.sm,
+    padding: E.sm,
+    borderRadius: R.sm,
+    backgroundColor: C.blanco,
+    borderWidth: 1,
+    borderColor: C.borde,
+  },
+  motivoActivo: { borderColor: C.rojo },
+  motivoEtiqueta: { fontSize: 14, fontWeight: '600', color: C.texto },
   comprobante: {
     height: 220,
     borderRadius: R.sm,
