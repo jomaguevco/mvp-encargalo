@@ -17,6 +17,7 @@ import {
   Avatar,
   Boton,
   Cabecera,
+  Aviso,
   Cargando,
   Entrada,
   Opciones,
@@ -196,6 +197,16 @@ export default function MisPedidos() {
                     )}
                   </Pressable>
                 </Entrada>
+              )}
+
+              {perfil?.suspendido && (
+                <View style={{ marginTop: E.md }}>
+                  <Aviso tono="error" titulo="Tu cuenta está suspendida">
+                    {`No puedes publicar pedidos, ofertar ni escribir en el chat. ${
+                      perfil.suspendido_motivo ? `Motivo: ${perfil.suspendido_motivo}. ` : ''
+                    }Si tienes dinero retenido, aún puedes abrir una disputa. Escríbenos para revisarla.`}
+                  </Aviso>
+                </View>
               )}
 
               <Banners />

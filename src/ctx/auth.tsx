@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { avisosNoLeidos, miPerfil, soyOperador } from '@/lib/api';
+import { avisosNoLeidos, miPerfil, soyAdmin, soyOperador } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { Perfil } from '@/lib/tipos';
 
@@ -17,6 +17,8 @@ type Ctx = {
   cargando: boolean;
   verificado: boolean;
   esOperador: boolean;
+  /** Administrador: entra al panel /admin. Siempre es también operador. */
+  esAdmin: boolean;
   /** Avisos sin leer. Alimenta el globo de la pestaña. */
   avisosPendientes: number;
   refrescarPerfil: () => Promise<void>;
@@ -43,12 +45,16 @@ export type DatosRegistro = {
   versionTerminos: string;
 };
 
+/** Correo de la cuenta administrativa (supabase/admin_cuenta.local.sql). */
+const CORREO_ADMIN = process.env.EXPO_PUBLIC_ADMIN_CORREO ?? 'admin@gmail.com';
+
 const AuthCtx = createContext<Ctx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [esOperador, setEsOperador] = useState(false);
+  const [esAdmin, setEsAdmin] = useState(false);
   const [avisosPendientes, setAvisosPendientes] = useState(0);
   const [cargando, setCargando] = useState(true);
 
@@ -63,11 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refrescarPerfil = useCallback(async () => {
     try {
       setPerfil(await miPerfil());
-      setEsOperador(await soyOperador());
+      const [operador, admin] = await Promise.all([soyOperador(), soyAdmin()]);
+      setEsOperador(operador || admin);
+      setEsAdmin(admin);
       await refrescarAvisos();
     } catch {
       setPerfil(null);
       setEsOperador(false);
+      setEsAdmin(false);
       setAvisosPendientes(0);
     }
   }, [refrescarAvisos]);
@@ -90,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setPerfil(null);
         setEsOperador(false);
+        setEsAdmin(false);
         setAvisosPendientes(0);
       }
       setCargando(false);
@@ -102,8 +112,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refrescarPerfil]);
 
   const entrar = useCallback(async (correo: string, clave: string) => {
+    // La cuenta administrativa entra con «admin» a secas.
+    const limpio = correo.trim().toLowerCase();
+    const email = limpio === 'admin' ? CORREO_ADMIN : limpio;
     const { error } = await supabase.auth.signInWithPassword({
-      email: correo.trim().toLowerCase(),
+      email,
       password: clave,
     });
     if (error) {
@@ -158,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSesion(null);
       setPerfil(null);
       setEsOperador(false);
+      setEsAdmin(false);
       setAvisosPendientes(0);
     }
   }, []);
@@ -169,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cargando,
       verificado: perfil?.verificacion === 'verificado',
       esOperador,
+      esAdmin,
       avisosPendientes,
       refrescarPerfil,
       refrescarAvisos,
@@ -181,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       perfil,
       cargando,
       esOperador,
+      esAdmin,
       avisosPendientes,
       refrescarPerfil,
       refrescarAvisos,

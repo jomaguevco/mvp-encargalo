@@ -11,6 +11,7 @@ import {
 import { Text } from '@/ui/Texto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/ctx/auth';
+import { soyAdmin } from '@/lib/api';
 import { Aviso, Boton, Campo, Entrada } from '@/ui/componentes';
 import { useEscritorio } from '@/ui/escritorio';
 import { Simbolo } from '@/ui/Logo';
@@ -64,7 +65,9 @@ export default function Entrar() {
     setCargando(true);
     try {
       await entrar(correo, clave);
-      router.replace('/(app)/pedidos');
+      // El administrador va directo a su panel. Se pregunta aquí y no en el
+      // contexto porque el permiso llega un instante después de la sesión.
+      router.replace((await soyAdmin()) ? '/admin' : '/(app)/pedidos');
     } catch (e) {
       setError((e as Error).message);
     } finally {

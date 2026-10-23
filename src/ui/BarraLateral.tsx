@@ -25,7 +25,7 @@ export function BarraLateral({
 }: BottomTabBarProps & {
   iconos: Record<string, { apagado: Icono; encendido: Icono }>;
 }) {
-  const { perfil, verificado, avisosPendientes } = useAuth();
+  const { perfil, verificado, avisosPendientes, esAdmin } = useAuth();
   const enRevision = perfil?.verificacion === 'en_revision';
 
   return (
@@ -107,6 +107,16 @@ export function BarraLateral({
           );
         })}
       </View>
+
+      {esAdmin && (
+        <Pressable
+          onPress={() => router.push('/admin')}
+          accessibilityRole="link"
+          style={({ hovered }: { hovered?: boolean }) => [s.item, hovered && s.itemEncima, { marginBottom: E.sm }]}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={C.trigo} />
+          <Text style={[s.itemTexto, { color: C.trigo }]}>Panel de administración</Text>
+        </Pressable>
+      )}
 
       <Pressable onPress={() => router.push('/(app)/perfil')} style={s.usuario}>
         <Avatar

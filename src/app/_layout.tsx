@@ -79,6 +79,8 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="reputacion/[id]" options={{ title: 'Reputación' }} />
+        {/* Panel de administración: trae su propia barra lateral */}
+        <Stack.Screen name="admin" options={{ headerShown: false, ...sinMargen }} />
       </Stack>
     </AuthProvider>
   );

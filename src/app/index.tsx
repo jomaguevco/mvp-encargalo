@@ -5,7 +5,7 @@ import { Cargando } from '@/ui/componentes';
 import { C } from '@/ui/tema';
 
 export default function Entrada() {
-  const { sesion, cargando } = useAuth();
+  const { sesion, cargando, esAdmin } = useAuth();
 
   if (cargando) {
     return (
@@ -15,5 +15,6 @@ export default function Entrada() {
     );
   }
 
-  return <Redirect href={sesion ? '/(app)/pedidos' : '/entrar'} />;
+    // El administrador aterriza en su panel; desde ahí puede ir a la app.
+  return <Redirect href={!sesion ? '/entrar' : esAdmin ? '/admin' : '/(app)/pedidos'} />;
 }

@@ -57,3 +57,6 @@ dist-web/
 
 # Fotos descargadas para los datos de prueba (pruebas/descargar_imagenes.py)
 pruebas/imagenes/
+
+# Scripts SQL con credenciales (cuenta administrativa)
+supabase/*.local.sql

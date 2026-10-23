@@ -6,7 +6,7 @@ import type {
 } from './tipos';
 
 export const soles = (n: number | null | undefined) =>
-  n == null ? '—' : `S/ ${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
+  n == null ? '—' : `S/ ${Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
 
 export const fecha = (iso: string | null | undefined) => {
   if (!iso) return '—';

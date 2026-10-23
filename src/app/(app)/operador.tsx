@@ -38,7 +38,7 @@ import {
 import { avisar, confirmar } from '@/ui/dialogos';
 import { C, E, G, R } from '@/ui/tema';
 
-type Cola = 'verificaciones' | 'pagos' | 'vencidas' | 'disputas';
+export type Cola = 'verificaciones' | 'pagos' | 'vencidas' | 'disputas';
 
 /** Lo que dijo RENIEC, como insignia: verde, rojo o gris. */
 function InsigniaReniec({ r }: { r: ResultadoDni | null }) {
@@ -104,7 +104,12 @@ function InsigniasIa({ v }: { v: VerificacionPendiente }) {
  * Las cuatro cifras de la cabecera son también filtros: tocar una deja solo
  * esa cola, que es lo que se quiere cuando hay varias cosas esperando.
  */
-export default function Operador() {
+export default function Operador({
+  soloCola,
+}: {
+  /** El panel de administración la incrusta mostrando una sola cola. */
+  soloCola?: Cola;
+} = {}) {
   const [verificaciones, setVerificaciones] = useState<VerificacionPendiente[]>([]);
   const [pagos, setPagos] = useState<PagoPendiente[]>([]);
   const [disputas, setDisputas] = useState<DisputaAbierta[]>([]);
@@ -113,7 +118,7 @@ export default function Operador() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
-  const [cola, setCola] = useState<Cola | null>(null);
+  const [cola, setCola] = useState<Cola | null>(soloCola ?? null);
 
   const cargar = useCallback(async () => {
     // Si una cola falla, las demás igual se muestran, y se avisa: una consola

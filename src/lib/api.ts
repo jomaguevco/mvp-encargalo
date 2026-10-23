@@ -4,25 +4,35 @@ import { supabase } from './supabase';
 import type {
   Aviso,
   Calificacion,
+  ConfigItem,
   ConfirmacionVencida,
+  CuentaAdmin,
   DesglosePrecio,
   DisputaAbierta,
+  EntradaBitacora,
   EstadoPedido,
   EventoPedido,
+  FichaCuenta,
+  FiltroCuentas,
+  FiltroVerificaciones,
   Mensaje,
   MetodoPago,
   Oferta,
   OfertaConReputacion,
   OfertaEnviada,
   Pago,
+  PagoAdmin,
   PagoPendiente,
   Pedido,
+  PedidoAdmin,
   Perfil,
   PersonaReniec,
   Reputacion,
   Resena,
   ResultadoDni,
   ResultadoIa,
+  ResumenAdmin,
+  VerificacionHistorial,
   VerificacionPendiente,
 } from './tipos';
 
@@ -686,4 +696,132 @@ export async function borrarDocumentos(rutas: (string | null)[]) {
   const { error } = await supabase.storage.from('documentos').remove(limpias);
   // Si falla, la verificación ya quedó resuelta: se avisa pero no se revierte.
   if (error) throw new Error(`Se aprobó, pero no se pudieron borrar las imágenes: ${error.message}`);
+}
+
+
+// ---------------------------------------------------------------- administración
+// Todo pasa por las funciones admin_* de 0012_administracion.sql, que rechazan
+// a quien no esté en la tabla administradores. La app solo pide y muestra.
+
+export async function soyAdmin(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('soy_admin');
+  // Si la migración 0012 aún no está aplicada la función no existe: no es admin.
+  if (error) return false;
+  return !!data;
+}
+
+/** Fecha local en formato AAAA-MM-DD, que es lo que esperan las funciones. */
+export const diaIso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+export async function resumenAdmin(desde: Date, hasta: Date): Promise<ResumenAdmin> {
+  const { data, error } = await supabase.rpc('admin_resumen', {
+    p_desde: diaIso(desde),
+    p_hasta: diaIso(hasta),
+  });
+  revienta(error);
+  return data as ResumenAdmin;
+}
+
+export async function cuentasAdmin(opts: {
+  busqueda?: string;
+  filtro?: FiltroCuentas;
+  limite?: number;
+  desde?: number;
+}): Promise<CuentaAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_cuentas', {
+    p_busqueda: opts.busqueda ?? null,
+    p_filtro: opts.filtro ?? 'todas',
+    p_limite: opts.limite ?? 50,
+    p_desde: opts.desde ?? 0,
+  });
+  revienta(error);
+  return (data ?? []) as CuentaAdmin[];
+}
+
+export async function fichaCuenta(perfilId: string): Promise<FichaCuenta> {
+  const { data, error } = await supabase.rpc('admin_ficha_cuenta', { p_perfil: perfilId });
+  revienta(error);
+  return data as FichaCuenta;
+}
+
+export async function suspenderCuenta(perfilId: string, suspender: boolean, motivo?: string) {
+  const { error } = await supabase.rpc('admin_suspender_cuenta', {
+    p_perfil: perfilId,
+    p_suspender: suspender,
+    p_motivo: motivo ?? null,
+  });
+  revienta(error);
+}
+
+export async function asignarRol(perfilId: string, rol: 'operador' | 'admin', activo: boolean) {
+  const { error } = await supabase.rpc('admin_asignar_rol', {
+    p_perfil: perfilId,
+    p_rol: rol,
+    p_activo: activo,
+  });
+  revienta(error);
+}
+
+export async function historialVerificaciones(
+  filtro: FiltroVerificaciones = 'todas',
+  limite = 150,
+): Promise<VerificacionHistorial[]> {
+  const { data, error } = await supabase.rpc('admin_verificaciones', {
+    p_filtro: filtro,
+    p_limite: limite,
+  });
+  revienta(error);
+  return (data ?? []) as VerificacionHistorial[];
+}
+
+export async function pedidosAdmin(opts: {
+  estado?: string | null;
+  busqueda?: string;
+  limite?: number;
+  desde?: number;
+}): Promise<PedidoAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_pedidos', {
+    p_estado: opts.estado ?? null,
+    p_busqueda: opts.busqueda ?? null,
+    p_limite: opts.limite ?? 50,
+    p_desde: opts.desde ?? 0,
+  });
+  revienta(error);
+  return (data ?? []) as PedidoAdmin[];
+}
+
+export async function pagosAdmin(estado?: string | null, limite = 200): Promise<PagoAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_pagos', {
+    p_estado: estado ?? null,
+    p_limite: limite,
+  });
+  revienta(error);
+  return (data ?? []) as PagoAdmin[];
+}
+
+export async function configuracion(): Promise<ConfigItem[]> {
+  const { data, error } = await supabase.from('config').select('*').order('clave');
+  revienta(error);
+  return (data ?? []) as ConfigItem[];
+}
+
+export async function actualizarConfig(clave: string, valor: number) {
+  const { error } = await supabase.rpc('admin_actualizar_config', {
+    p_clave: clave,
+    p_valor: valor,
+  });
+  revienta(error);
+}
+
+export async function bitacoraAdmin(
+  limite = 200,
+  tipo?: string | null,
+): Promise<EntradaBitacora[]> {
+  const { data, error } = await supabase.rpc('admin_bitacora', {
+    p_limite: limite,
+    p_tipo: tipo ?? null,
+  });
+  revienta(error);
+  return (data ?? []) as EntradaBitacora[];
 }

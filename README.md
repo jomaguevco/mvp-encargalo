@@ -99,6 +99,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0009_aviso_cancelacion.sql` | Aviso con motivo a quienes ofertaron cuando el cliente cancela |
 | `0010_biometria.sql` | Resultado de la verificación biométrica y umbrales (ver 6b) |
 | `0011_correcciones_flujo.sql` | Aviso al comprador ganador, `rechazar_pago`, lectura para el equipo, RENIEC al cambiar el nombre |
+| `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -143,6 +144,34 @@ on conflict (perfil_id) do nothing;
 ```
 
 La pestaña **Equipo** aparecerá en la app solo para ellos.
+
+### 5b. Panel de administración y cuenta administrativa
+
+El panel vive en la versión web, en **`/admin`** (por ejemplo `encargalo.vercel.app/app/admin`),
+y solo entra quien está en la tabla `administradores`. Un administrador también es operador.
+
+| Sección | Qué hace |
+|---|---|
+| Resumen | Lo que espera al equipo ahora y el reporte del período: cuentas, filtro biométrico, pedidos, dinero, disputas, actividad diaria. Exporta CSV |
+| Verificaciones | La cola de lo que la biometría dejó «en revisión» (aprobar o rechazar con fotos, similitud y RENIEC) y el historial de cada decisión de la IA y del equipo |
+| Cuentas | Búsqueda por nombre, correo, DNI o celular, filtros, ficha completa, suspender o reactivar |
+| Pedidos y Pagos | Todos los pedidos y todo el escrow, con filtros y exportación |
+| Operación | La misma consola del equipo: pagos por confirmar, plazos vencidos, disputas |
+| Equipo y roles | Dar o quitar los roles de operador y administrador |
+| Configuración | Tarifas, plazo de confirmación y umbrales biométricos, con rangos validados en la base |
+| Bitácora | Quién hizo qué y cuándo; nadie la puede editar |
+
+Para crear la cuenta administrativa, después de aplicar `0012_administracion.sql`,
+ejecuta en el SQL Editor el script local **`supabase/admin_cuenta.local.sql`**. Ese archivo
+está en `.gitignore` porque lleva la contraseña: este repositorio es público. En la pantalla
+de ingreso basta con escribir `admin` como correo.
+
+Para nombrar administrador a otra persona, hazlo desde **Equipo y roles** o con:
+
+```sql
+insert into administradores (perfil_id) values ('PEGA-AQUI-EL-UID') on conflict do nothing;
+insert into operadores (perfil_id, nombre) values ('PEGA-AQUI-EL-UID', 'Nombre') on conflict do nothing;
+```
 
 ### 6. Activar la consulta y la validación del DNI contra RENIEC
 

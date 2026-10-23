@@ -20,6 +20,11 @@ puesta en marcha.
   variables. Mantén ese criterio.
 - Ninguna funcionalidad entra si no refuerza **verificación, pago protegido o
   reputación**: es el criterio de producto acordado por el equipo fundador.
+- **Roles: administrador > operador.** `soy_operador()` también es verdadero para los
+  administradores. Todo lo del panel `/admin` pasa por funciones `admin_*`
+  (`0012_administracion.sql`) que llaman a `exigir_admin()` y registran en `bitacora_admin`.
+- **Nunca subas credenciales.** Los scripts SQL con contraseñas van como
+  `supabase/*.local.sql`, que está en `.gitignore`: el repositorio es público.
 
 ## Diseño
 
