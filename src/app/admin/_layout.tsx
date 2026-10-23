@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/ctx/auth';
 import * as api from '@/lib/api';
-import { Cargando, Vacio } from '@/ui/componentes';
+import { Avatar, Cargando, Vacio } from '@/ui/componentes';
 import { useEscritorio, ANCHO_LATERAL } from '@/ui/escritorio';
 import { Logo } from '@/ui/Logo';
 import { Text } from '@/ui/Texto';
@@ -40,6 +40,9 @@ export default function AdminLayout() {
   // no mostrar «sin permiso» a un administrador que acaba de entrar.
   const [confirmado, setConfirmado] = useState<boolean | null>(null);
   const [colas, setColas] = useState({ identidad: 0, operacion: 0 });
+  // Menú de la cuenta (pie de la barra): se cierra al cambiar de sección.
+  const [menu, setMenu] = useState(false);
+  useEffect(() => setMenu(false), [ruta]);
 
   useEffect(() => {
     if (!sesion) return;
@@ -149,22 +152,58 @@ export default function AdminLayout() {
         </ScrollView>
 
         <View style={s.pie}>
+          {menu && (
+            <View style={s.menu}>
+              {[
+                {
+                  icono: 'id-card-outline' as Icono,
+                  texto: 'Mi ficha de administrador',
+                  accion: () => perfil && router.push(`/admin/cuenta/${perfil.id}`),
+                },
+                {
+                  icono: 'key-outline' as Icono,
+                  texto: 'Equipo y roles',
+                  accion: () => router.push('/admin/equipo'),
+                },
+                {
+                  icono: 'settings-outline' as Icono,
+                  texto: 'Configuración',
+                  accion: () => router.push('/admin/configuracion'),
+                },
+              ].map((op) => (
+                <Pressable
+                  key={op.texto}
+                  onPress={op.accion}
+                  accessibilityRole="menuitem"
+                  style={({ hovered }: { hovered?: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
+                  <Ionicons name={op.icono} size={17} color={C.sobreOscuro} />
+                  <Text style={s.menuTexto}>{op.texto}</Text>
+                </Pressable>
+              ))}
+              <View style={s.menuLinea} />
+              <Pressable
+                onPress={salir}
+                accessibilityRole="menuitem"
+                style={({ hovered }: { hovered?: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
+                <Ionicons name="log-out-outline" size={17} color={C.naranjaClaro} />
+                <Text style={[s.menuTexto, { color: C.naranjaClaro }]}>Cerrar sesión</Text>
+              </Pressable>
+            </View>
+          )}
           <Pressable
-            onPress={() => perfil && router.push(`/admin/cuenta/${perfil.id}`)}
-            accessibilityRole="link"
-            accessibilityLabel="Mi cuenta en el panel"
-            style={({ hovered }: { hovered?: boolean }) => [s.yo, hovered && s.itemEncima]}>
-            <Ionicons name="person-circle-outline" size={20} color={C.sobreOscuroSuave} />
+            onPress={() => setMenu((m) => !m)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: menu }}
+            accessibilityLabel="Opciones de la cuenta"
+            style={({ hovered }: { hovered?: boolean }) => [s.yo, (hovered || menu) && s.itemEncima]}>
+            <Avatar nombre={perfil?.nombre_completo} foto={api.urlFoto(perfil?.foto_path)} tamano={34} />
             <View style={{ flex: 1 }}>
               <Text style={s.pieNombre} numberOfLines={1}>
                 {perfil?.nombre_completo || 'Administración'}
               </Text>
               <Text style={s.pieRol}>Administrador</Text>
             </View>
-          </Pressable>
-          <Pressable onPress={salir} style={s.salir}>
-            <Ionicons name="log-out-outline" size={17} color={C.sobreOscuroSuave} />
-            <Text style={s.salirTexto}>Cerrar sesión</Text>
+            <Ionicons name={menu ? 'chevron-down' : 'chevron-up'} size={16} color={C.sobreOscuroSuave} />
           </Pressable>
         </View>
       </View>
@@ -228,7 +267,23 @@ const s = StyleSheet.create({
   pie: { gap: E.sm, borderTopWidth: 1, borderColor: 'rgba(242,235,225,0.12)', paddingTop: E.md },
   pieNombre: { fontSize: 13.5, fontWeight: '700', color: C.sobreOscuro },
   pieRol: { fontSize: 12, color: C.sobreOscuroSuave },
-  yo: { flexDirection: 'row', alignItems: 'center', gap: E.sm, padding: E.xs, borderRadius: R.sm },
+  yo: { flexDirection: 'row', alignItems: 'center', gap: E.sm, padding: E.sm, borderRadius: R.md },
+  menu: {
+    backgroundColor: '#1E4A3C',
+    borderRadius: R.md,
+    padding: E.xs,
+    gap: 2,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: E.sm,
+    paddingHorizontal: E.sm,
+    height: 38,
+    borderRadius: R.sm,
+  },
+  menuTexto: { fontSize: 14, fontWeight: '600', color: C.sobreOscuro },
+  menuLinea: { height: 1, backgroundColor: 'rgba(242,235,225,0.15)', marginVertical: 2 },
   salir: { flexDirection: 'row', alignItems: 'center', gap: E.sm, padding: E.xs },
   salirTexto: { fontSize: 13.5, color: C.sobreOscuroSuave },
   superior: { backgroundColor: C.azul, paddingTop: E.lg, paddingBottom: E.sm, gap: E.sm },

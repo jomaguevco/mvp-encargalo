@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Text } from '@/ui/Texto';
 import { useAuth } from '@/ctx/auth';
-import { actualizarPerfil } from '@/lib/api';
 import { ORIGENES, VERSION_TERMINOS } from '@/lib/negocio';
 import {
   Aviso,
@@ -99,6 +98,8 @@ export default function Registro() {
         origen: origen as string,
         codigoReferido: codigo,
         versionTerminos: VERSION_TERMINOS,
+        dni,
+        dniConsultado: estadoDni.tipo === 'encontrado',
       });
       // Si el proyecto no exige confirmación por correo, la sesión ya queda abierta.
       let conSesion = false;
@@ -112,13 +113,9 @@ export default function Registro() {
         router.replace('/entrar');
         return;
       }
-      // El DNI se guarda en el perfil para que la verificación ya lo traiga
-      // escrito. No va en los metadatos de auth: así hay una sola copia.
-      try {
-        await actualizarPerfil({ dni });
-      } catch {
-        /* se vuelve a pedir en la verificación */
-      }
+      // El DNI ya quedó en el perfil: lo copió el trigger del alta (0015) desde
+      // los metadatos, así que la verificación lo trae escrito y no lo consulta
+      // otra vez en RENIEC.
       router.replace('/(app)/pedidos');
       router.push('/verificacion');
     } catch (e) {

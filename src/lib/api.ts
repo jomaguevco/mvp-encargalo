@@ -124,13 +124,25 @@ export async function enviarVerificacion(opts: {
   // Si una consulta falla (sin red, cupo agotado, etc.) no se bloquea a la
   // persona: la solicitud queda en revisión y la resuelve un operador.
   // El orden importa: verificar-identidad usa el resultado de validar-dni.
+  // Si este mismo DNI y nombre ya se validaron (una verificación anterior
+  // rechazada por las fotos, por ejemplo), el resultado sigue en el perfil: el
+  // trigger solo lo borra si cambia el DNI o el nombre. No se consulta otra vez.
   let dni: ResultadoDni | null = null;
-  try {
-    const { data } = await supabase.functions.invoke('validar-dni');
-    const r = data?.resultado as string | undefined;
-    if (r === 'coincide' || r === 'no_coincide' || r === 'no_existe') dni = r;
-  } catch {
-    /* sigue sin validar */
+  const { data: actual } = await supabase
+    .from('profiles')
+    .select('dni_validacion')
+    .eq('id', uid)
+    .maybeSingle();
+  if (actual?.dni_validacion === 'coincide') {
+    dni = 'coincide';
+  } else {
+    try {
+      const { data } = await supabase.functions.invoke('validar-dni');
+      const r = data?.resultado as string | undefined;
+      if (r === 'coincide' || r === 'no_coincide' || r === 'no_existe') dni = r;
+    } catch {
+      /* sigue sin validar */
+    }
   }
 
   let identidad: ResultadoIa | null = null;

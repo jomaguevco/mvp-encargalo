@@ -48,6 +48,13 @@
           "cameraPermission": "Encargalo usa la camara para tomar la foto de tu DNI y tu selfie de verificacion.",
           "photosPermission": "Encargalo accede a tus fotos para que subas el comprobante de tu pago."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Encargalo usa la camara para tomar la foto de tu DNI y tu selfie de verificacion.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

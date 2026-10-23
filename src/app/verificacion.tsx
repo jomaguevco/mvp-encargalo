@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -22,6 +21,7 @@ import {
   TarjetaDegradada,
   type NombreIcono,
 } from '@/ui/componentes';
+import { CamaraGuiada } from '@/ui/CamaraGuiada';
 import { CampoDni, type EstadoDni } from '@/ui/CampoDni';
 import { avisar } from '@/ui/dialogos';
 import { C, E, G, R } from '@/ui/tema';
@@ -99,7 +99,7 @@ function Capturador({
 }
 
 export default function Verificacion() {
-  const { perfil, refrescarPerfil } = useAuth();
+  const { perfil, sesion, refrescarPerfil } = useAuth();
   const [dni, setDni] = useState(perfil?.dni ?? '');
   const [estadoDni, setEstadoDni] = useState<EstadoDni>({ tipo: 'vacio' });
   const [frente, setFrente] = useState<Captura>(null);
@@ -109,35 +109,46 @@ export default function Verificacion() {
   const [corrigiendo, setCorrigiendo] = useState(false);
 
   const nombrePerfil = perfil?.nombre_completo ?? '';
+
+  // ¿Este DNI y este nombre ya se contrastaron con RENIEC? Pasa si el nombre se
+  // completó desde RENIEC al registrarse (y no se cambió), o si una verificación
+  // anterior ya lo validó. En ese caso no se gasta otra consulta.
+  const meta = (sesion?.user.user_metadata ?? {}) as {
+    dni?: string;
+    dni_consultado?: boolean;
+    nombre_completo?: string;
+  };
+  const previo =
+    perfil?.dni &&
+    (perfil.dni_validacion === 'coincide' ||
+      (meta.dni_consultado &&
+        meta.dni === perfil.dni &&
+        (meta.nombre_completo ?? '').trim() === nombrePerfil.trim()))
+      ? { dni: perfil.dni, nombre: nombrePerfil }
+      : null;
+
   const coincide =
-    estadoDni.tipo === 'encontrado' && coincideConReniec(nombrePerfil, estadoDni.persona);
+    estadoDni.tipo === 'previo' ||
+    (estadoDni.tipo === 'encontrado' && coincideConReniec(nombrePerfil, estadoDni.persona));
   const dniListo =
     /^[0-9]{8}$/.test(dni) &&
-    (estadoDni.tipo === 'encontrado' ? coincide : estadoDni.tipo === 'sin_servicio');
+    (estadoDni.tipo === 'encontrado' || estadoDni.tipo === 'previo'
+      ? coincide
+      : estadoDni.tipo === 'sin_servicio');
   const hechos = (dniListo ? 1 : 0) + (frente ? 1 : 0) + (selfie ? 1 : 0);
 
-  async function tomar(destino: 'frente' | 'selfie') {
-    const permiso = await ImagePicker.requestCameraPermissionsAsync();
-    const usarCamara = permiso.granted;
+  // Cámara con guía: marco del DNI con los recuadros del número y los nombres,
+  // u óvalo para la selfie (ui/CamaraGuiada). Ofrece también la galería.
+  const [camara, setCamara] = useState<'frente' | 'selfie' | null>(null);
 
-    const res = usarCamara
-      ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          quality: 0.6,
-          cameraType:
-            destino === 'selfie'
-              ? ImagePicker.CameraType.front
-              : ImagePicker.CameraType.back,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.6,
-        });
+  function tomar(destino: 'frente' | 'selfie') {
+    setCamara(destino);
+  }
 
-    if (res.canceled || !res.assets?.[0]) return;
-    const captura = { uri: res.assets[0].uri };
-    if (destino === 'frente') setFrente(captura);
-    else setSelfie(captura);
+  function alTomar(uri: string) {
+    if (camara === 'frente') setFrente({ uri });
+    else if (camara === 'selfie') setSelfie({ uri });
+    setCamara(null);
   }
 
   /** Reemplaza el nombre del perfil por el de RENIEC: el error más común. */
@@ -309,7 +320,7 @@ export default function Verificacion() {
 
       <Entrada i={1}>
         <Paso n={1} titulo="Tu número de DNI" hecho={dniListo}>
-          <CampoDni valor={dni} onCambiar={setDni} onEstado={setEstadoDni} />
+          <CampoDni valor={dni} onCambiar={setDni} onEstado={setEstadoDni} previo={previo} />
           {estadoDni.tipo === 'encontrado' && !coincide && (
             <View style={s.diferencia}>
               <Text style={s.diferenciaTitulo}>El nombre de tu perfil es distinto</Text>
@@ -371,6 +382,13 @@ export default function Verificacion() {
       />
       <View style={{ height: E.sm }} />
       <Boton titulo="Ahora no" variante="fantasma" onPress={() => router.back()} />
+
+      <CamaraGuiada
+        modo={camara === 'selfie' ? 'selfie' : 'dni'}
+        visible={camara !== null}
+        onCancelar={() => setCamara(null)}
+        onFoto={alTomar}
+      />
     </ScrollView>
   );
 }

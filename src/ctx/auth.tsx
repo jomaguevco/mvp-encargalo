@@ -43,6 +43,10 @@ export type DatosRegistro = {
   origen: string;
   codigoReferido?: string;
   versionTerminos: string;
+  /** El DNI del registro. Un trigger lo copia al perfil al crear la cuenta (0015). */
+  dni?: string;
+  /** El nombre salió de RENIEC con ese DNI: la verificación no vuelve a consultar. */
+  dniConsultado?: boolean;
 };
 
 /**
@@ -144,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             codigo_referido: d.codigoReferido?.trim().toUpperCase() || null,
             terminos_version: d.versionTerminos,
             terminos_aceptados_en: new Date().toISOString(),
+            dni: d.dni ?? null,
+            dni_consultado: !!d.dniConsultado,
           },
         },
       });

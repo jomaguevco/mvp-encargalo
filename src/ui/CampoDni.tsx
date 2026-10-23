@@ -13,7 +13,9 @@ export type EstadoDni =
   | { tipo: 'buscando' }
   | { tipo: 'encontrado'; persona: PersonaReniec; nombre: string }
   | { tipo: 'no_existe' }
-  | { tipo: 'sin_servicio'; mensaje: string };
+  | { tipo: 'sin_servicio'; mensaje: string }
+  /** Ya se consultó en RENIEC con este DNI y este nombre: no se gasta otra consulta. */
+  | { tipo: 'previo'; nombre: string };
 
 /**
  * Campo de DNI que consulta RENIEC solo.
@@ -32,11 +34,18 @@ export function CampoDni({
   onCambiar,
   onEstado,
   error,
+  previo,
 }: {
   valor: string;
   onCambiar: (v: string) => void;
   onEstado: (e: EstadoDni) => void;
   error?: string | null;
+  /**
+   * DNI y nombre ya contrastados con RENIEC (en el registro o en una
+   * verificación anterior). Mientras el campo tenga ese mismo DNI no se
+   * consulta de nuevo; si la persona lo cambia, sí.
+   */
+  previo?: { dni: string; nombre: string } | null;
 }) {
   const [estado, setEstado] = useState<EstadoDni>({ tipo: 'vacio' });
   // El callback puede cambiar en cada render de la pantalla; se guarda en una
@@ -51,6 +60,10 @@ export function CampoDni({
     };
     if (!/^[0-9]{8}$/.test(valor)) {
       cambiar({ tipo: 'vacio' });
+      return;
+    }
+    if (previo && previo.dni === valor) {
+      cambiar({ tipo: 'previo', nombre: previo.nombre });
       return;
     }
     let vivo = true;
@@ -74,7 +87,9 @@ export function CampoDni({
       vivo = false;
       clearTimeout(reloj);
     };
-  }, [valor]);
+    // previo se compara por valor: un objeto nuevo en cada render no debe consultar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor, previo?.dni, previo?.nombre]);
 
   return (
     <View>
@@ -91,7 +106,7 @@ export function CampoDni({
         derecha={
           estado.tipo === 'buscando' ? (
             <ActivityIndicator size="small" color={C.azulMedio} />
-          ) : estado.tipo === 'encontrado' ? (
+          ) : estado.tipo === 'encontrado' || estado.tipo === 'previo' ? (
             <Ionicons name="checkmark-circle" size={22} color={C.verde} />
           ) : estado.tipo === 'no_existe' ? (
             <Ionicons name="close-circle" size={22} color={C.rojo} />
@@ -112,6 +127,18 @@ export function CampoDni({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.resultadoEtiqueta}>Según RENIEC</Text>
+            <Text style={s.resultadoNombre}>{estado.nombre}</Text>
+          </View>
+        </View>
+      )}
+
+      {estado.tipo === 'previo' && (
+        <View style={[s.resultado, { backgroundColor: C.verdeClaro, borderColor: `${C.verde}40` }]}>
+          <View style={s.sello}>
+            <Ionicons name="shield-checkmark" size={18} color={C.blanco} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.resultadoEtiqueta}>Ya validado con RENIEC</Text>
             <Text style={s.resultadoNombre}>{estado.nombre}</Text>
           </View>
         </View>
