@@ -22,12 +22,12 @@ import {
   TarjetaDegradada,
   type NombreIcono,
 } from '@/ui/componentes';
-import { CamaraGuiada } from '@/ui/CamaraGuiada';
+import { CamaraGuiada, type RecortesDni } from '@/ui/CamaraGuiada';
 import { CampoDni, type EstadoDni } from '@/ui/CampoDni';
 import { avisar } from '@/ui/dialogos';
 import { C, E, G, R } from '@/ui/tema';
 
-type Captura = { uri: string } | null;
+type Captura = { uri: string; recortes?: RecortesDni } | null;
 
 function Paso({
   n,
@@ -146,8 +146,8 @@ function Verificacion() {
     setCamara(destino);
   }
 
-  function alTomar(uri: string) {
-    if (camara === 'frente') setFrente({ uri });
+  function alTomar(uri: string, recortes?: RecortesDni) {
+    if (camara === 'frente') setFrente({ uri, recortes });
     else if (camara === 'selfie') setSelfie({ uri });
     setCamara(null);
   }
@@ -184,6 +184,7 @@ function Verificacion() {
       const resultado = await enviarVerificacion({
         dni: dni.trim(),
         dniFrenteUri: frente.uri,
+        recortes: frente.recortes,
         selfieUri: selfie.uri,
       });
       await refrescarPerfil();

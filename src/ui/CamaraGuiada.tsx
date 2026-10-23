@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from 'react';
 import {
@@ -12,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { AjusteRecuadros, type Rect, type Recuadros } from './AjusteRecuadros';
 import { Text } from './Texto';
 import { C, E, R } from './tema';
 
@@ -31,6 +33,63 @@ const RECUADROS = [
   { etiqueta: 'Apellidos y nombres', x: 0.32, y: 0.2, w: 0.4, h: 0.44 },
   { etiqueta: 'Foto', x: 0.03, y: 0.18, w: 0.27, h: 0.58 },
 ];
+const [GUIA_NUMERO, GUIA_NOMBRES] = RECUADROS;
+
+/** Recortes del número y de los nombres que acompañan a la foto del DNI. */
+export type RecortesDni = { numero: string; nombres: string };
+
+type Vista = { uri: string; ancho: number; alto: number };
+
+const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+const rect = (g: Rect): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h });
+
+/**
+ * Dónde quedaron los recuadros de la guía dentro de la foto tomada. La vista
+ * previa de la cámara llena la pantalla recortando lo que sobra de la foto
+ * («cover»), así que se deshace esa escala y ese desplazamiento.
+ */
+function guiaEnFoto(
+  pantalla: { w: number; h: number },
+  foto: { w: number; h: number },
+  marco: { w: number; h: number },
+): Recuadros {
+  if (!pantalla.w || !pantalla.h) return { numero: rect(GUIA_NUMERO), nombres: rect(GUIA_NOMBRES) };
+  const escala = Math.max(pantalla.w / foto.w, pantalla.h / foto.h);
+  const ox = (foto.w * escala - pantalla.w) / 2;
+  const oy = (foto.h * escala - pantalla.h) / 2;
+  const fx = (pantalla.w - marco.w) / 2;
+  const fy = (pantalla.h - marco.h) / 2;
+  const enFoto = (g: Rect): Rect => {
+    const w = limitar((g.w * marco.w) / escala / foto.w, 0.08, 1);
+    const h = limitar((g.h * marco.h) / escala / foto.h, 0.05, 1);
+    return {
+      x: limitar((fx + g.x * marco.w + ox) / escala / foto.w, 0, 1 - w),
+      y: limitar((fy + g.y * marco.h + oy) / escala / foto.h, 0, 1 - h),
+      w,
+      h,
+    };
+  };
+  return { numero: enFoto(GUIA_NUMERO), nombres: enFoto(GUIA_NOMBRES) };
+}
+
+/** Recorta un rectángulo de la foto y lo agranda: el texto chico se lee mejor. */
+async function recortar(v: Vista, r: Rect): Promise<string> {
+  const originX = Math.round(limitar(r.x, 0, 1) * v.ancho);
+  const originY = Math.round(limitar(r.y, 0, 1) * v.alto);
+  const width = Math.max(1, Math.min(v.ancho - originX, Math.round(r.w * v.ancho)));
+  const height = Math.max(1, Math.min(v.alto - originY, Math.round(r.h * v.alto)));
+  const ctx = ImageManipulator.manipulate(v.uri).crop({ originX, originY, width, height });
+  if (width < 1000) ctx.resize({ width: 1000 });
+  const imagen = await ctx.renderAsync();
+  const guardada = await imagen.saveAsync({ compress: 0.9, format: SaveFormat.JPEG });
+  return guardada.uri;
+}
+
+/** Tamaño real en píxeles, ya con la orientación aplicada. */
+async function medir(uri: string): Promise<Vista> {
+  const imagen = await ImageManipulator.manipulate(uri).renderAsync();
+  return { uri, ancho: imagen.width, alto: imagen.height };
+}
 
 /**
  * Cámara con guía para la verificación de identidad.
@@ -49,14 +108,18 @@ export function CamaraGuiada({
   modo: ModoCamara;
   visible: boolean;
   onCancelar: () => void;
-  onFoto: (uri: string) => void;
+  /** En modo DNI llegan también los recortes del número y de los nombres. */
+  onFoto: (uri: string, recortes?: RecortesDni) => void;
 }) {
   const [permiso, pedirPermiso] = useCameraPermissions();
   const camara = useRef<CameraView>(null);
   const [lado, setLado] = useState<CameraType>(modo === 'selfie' ? 'front' : 'back');
   const [lista, setLista] = useState(false);
   const [tomando, setTomando] = useState(false);
-  const [vista, setVista] = useState<string | null>(null);
+  const [vista, setVista] = useState<Vista | null>(null);
+  const [recuadros, setRecuadros] = useState<Recuadros | null>(null);
+  const [preparando, setPreparando] = useState(false);
+  const [pantalla, setPantalla] = useState({ w: 0, h: 0 });
   const { width, height } = useWindowDimensions();
 
   // Marco del DNI: lo más ancho posible dejando margen.
@@ -68,8 +131,11 @@ export function CamaraGuiada({
     if (!camara.current || tomando) return;
     setTomando(true);
     try {
-      const foto = await camara.current.takePictureAsync({ quality: 0.7, skipProcessing: false });
-      if (foto?.uri) setVista(foto.uri);
+      const foto = await camara.current.takePictureAsync({ quality: 0.8, skipProcessing: false });
+      if (!foto?.uri) return;
+      const v = await medir(foto.uri).catch(() => ({ uri: foto.uri, ancho: foto.width, alto: foto.height }));
+      setRecuadros(guiaEnFoto(pantalla, { w: v.ancho, h: v.alto }, { w: anchoMarco, h: altoMarco }));
+      setVista(v);
     } finally {
       setTomando(false);
     }
@@ -82,11 +148,41 @@ export function CamaraGuiada({
       allowsEditing: true,
       aspect: modo === 'dni' ? [86, 54] : [1, 1],
     });
-    if (!res.canceled && res.assets?.[0]) setVista(res.assets[0].uri);
+    const a = res.canceled ? null : res.assets?.[0];
+    if (!a) return;
+    const v = await medir(a.uri).catch(() => ({ uri: a.uri, ancho: a.width, alto: a.height }));
+    // De la galería llega recortada a la forma del DNI: la guía va tal cual.
+    setRecuadros({ numero: rect(GUIA_NUMERO), nombres: rect(GUIA_NOMBRES) });
+    setVista(v);
+  }
+
+  async function usar() {
+    if (!vista) return;
+    const v = vista;
+    let recortes: RecortesDni | undefined;
+    if (modo === 'dni' && recuadros) {
+      setPreparando(true);
+      try {
+        const [numero, nombres] = await Promise.all([
+          recortar(v, recuadros.numero),
+          recortar(v, recuadros.nombres),
+        ]);
+        recortes = { numero, nombres };
+      } catch {
+        // Sin recortes la foto sirve igual: se lee completa y lo dudoso va al operador.
+      } finally {
+        setPreparando(false);
+      }
+    }
+    setVista(null);
+    setRecuadros(null);
+    setLista(false);
+    onFoto(v.uri, recortes);
   }
 
   function cerrar() {
     setVista(null);
+    setRecuadros(null);
     setLista(false);
     onCancelar();
   }
@@ -100,21 +196,37 @@ export function CamaraGuiada({
         {vista ? (
           <View style={s.previa}>
             <Text style={s.titulo}>{modo === 'dni' ? '¿Se leen el número y tu nombre?' : '¿Se ve bien tu rostro?'}</Text>
-            <Image source={{ uri: vista }} style={s.previaImagen} resizeMode="contain" />
+            {modo === 'dni' && recuadros ? (
+              <>
+                <Text style={s.ayuda}>
+                  Mueve cada recuadro sobre su dato y ajústalo desde la esquina. Así lo leemos aunque la
+                  foto haya salido torcida.
+                </Text>
+                <AjusteRecuadros
+                  uri={vista.uri}
+                  ancho={vista.ancho}
+                  alto={vista.alto}
+                  valor={recuadros}
+                  onCambio={setRecuadros}
+                />
+              </>
+            ) : (
+              <Image source={{ uri: vista.uri }} style={s.previaImagen} resizeMode="contain" />
+            )}
             <View style={s.botonesFila}>
               <Pressable style={[s.boton, s.botonSecundario]} onPress={() => setVista(null)}>
                 <Ionicons name="refresh" size={18} color={C.sobreOscuro} />
                 <Text style={s.botonTexto}>Repetir</Text>
               </Pressable>
               <Pressable
-                style={[s.boton, s.botonPrimario]}
-                onPress={() => {
-                  const uri = vista;
-                  setVista(null);
-                  setLista(false);
-                  onFoto(uri);
-                }}>
-                <Ionicons name="checkmark" size={18} color={C.blanco} />
+                style={[s.boton, s.botonPrimario, preparando && { opacity: 0.6 }]}
+                disabled={preparando}
+                onPress={usar}>
+                {preparando ? (
+                  <ActivityIndicator color={C.blanco} />
+                ) : (
+                  <Ionicons name="checkmark" size={18} color={C.blanco} />
+                )}
                 <Text style={s.botonTexto}>Usar esta foto</Text>
               </Pressable>
             </View>
@@ -150,7 +262,9 @@ export function CamaraGuiada({
           </View>
         ) : (
           /* ----------------------------------------- cámara con guía */
-          <View style={{ flex: 1 }}>
+          <View
+            style={{ flex: 1 }}
+            onLayout={(e) => setPantalla({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
             <CameraView
               ref={camara}
               style={StyleSheet.absoluteFill}

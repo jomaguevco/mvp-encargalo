@@ -1,6 +1,12 @@
 // deno test supabase/functions/verificar-identidad
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { decidir, nombreEnDocumento, numeroEnDocumento, type Evaluacion } from './decidir.ts';
+import {
+  decidir,
+  nombreEnDocumento,
+  numeroEnDocumento,
+  rutasRecortes,
+  type Evaluacion,
+} from './decidir.ts';
 
 // Líneas como las devuelve Textract para el frente de un DNI
 const DNI = [
@@ -65,4 +71,10 @@ Deno.test('casos dudosos van al operador, nunca se rechazan', () => {
     assertEquals(d.resultado, 'revisar', JSON.stringify(c));
     assert(d.motivos.length > 0);
   }
+});
+
+Deno.test('los recortes van junto a la foto del DNI y solo a ella', () => {
+  assertEquals(rutasRecortes('abc/dni-123.jpg'), ['abc/dni-123-numero.jpg', 'abc/dni-123-nombres.jpg']);
+  assertEquals(rutasRecortes('abc/selfie-123.jpg'), []);
+  assertEquals(rutasRecortes('abc/dni-123-numero.jpg'), []);
 });

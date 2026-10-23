@@ -13,6 +13,7 @@
 // Opcional: RECHAZO_AUTOMATICO=1 rechaza solo los DNI que RENIEC no reconoce.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { rutasRecortes } from '../verificar-identidad/decidir.ts';
 import { coincideNombre } from './nombres.ts';
 
 type Resultado = 'coincide' | 'no_coincide' | 'no_existe' | 'sin_validar';
@@ -108,6 +109,7 @@ Deno.serve(async (req) => {
   // 5. Rechazo automático, solo si el equipo lo activó
   if (resultado === 'no_existe' && Deno.env.get('RECHAZO_AUTOMATICO') === '1') {
     const rutas = [perfil.dni_frente_path, perfil.selfie_path].filter(Boolean) as string[];
+    if (perfil.dni_frente_path) rutas.push(...rutasRecortes(perfil.dni_frente_path));
     if (rutas.length) await admin.storage.from('documentos').remove(rutas);
     await admin
       .from('profiles')

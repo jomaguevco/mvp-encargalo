@@ -88,6 +88,8 @@ export async function enviarVerificacion(opts: {
   dni: string;
   dniFrenteUri: string;
   selfieUri: string;
+  /** Recortes del número y de los nombres que la persona encuadró a mano. */
+  recortes?: { numero: string; nombres: string };
 }): Promise<{ dni: ResultadoDni | null; identidad: ResultadoIa | null }> {
   const { data: sesion } = await supabase.auth.getUser();
   const uid = sesion.user?.id;
@@ -112,6 +114,17 @@ export async function enviarVerificacion(opts: {
   const selfiePath = `${uid}/selfie-${Date.now()}.jpg`;
   await subirArchivo('documentos', dniPath, opts.dniFrenteUri);
   await subirArchivo('documentos', selfiePath, opts.selfieUri);
+  // Los recortes van junto a la foto, con el mismo nombre y un sufijo: así
+  // verificar-identidad los encuentra y se borran con ella (rutasRecortes).
+  if (opts.recortes) {
+    const [numero, nombres] = rutasRecortes(dniPath);
+    try {
+      await subirArchivo('documentos', numero, opts.recortes.numero);
+      await subirArchivo('documentos', nombres, opts.recortes.nombres);
+    } catch {
+      /* son un respaldo: sin ellos se lee la foto completa */
+    }
+  }
 
   await actualizarPerfil({
     dni: opts.dni,
@@ -207,6 +220,16 @@ async function leerImagen(uri: string): Promise<{ bytes: Uint8Array; tipo: strin
     };
   }
   return { bytes: await new File(uri).bytes(), tipo: 'image/jpeg' };
+}
+
+/**
+ * Rutas de los recortes del número y de los nombres de una foto del DNI
+ * (`uid/dni-123.jpg` → `uid/dni-123-numero.jpg`, `uid/dni-123-nombres.jpg`).
+ * Para otra imagen no hay recortes. Mismo criterio en verificar-identidad.
+ */
+export function rutasRecortes(ruta: string): string[] {
+  if (!/\/dni-\d+\.jpg$/.test(ruta)) return [];
+  return [ruta.replace(/\.jpg$/, '-numero.jpg'), ruta.replace(/\.jpg$/, '-nombres.jpg')];
 }
 
 export async function subirArchivo(bucket: string, ruta: string, uri: string) {
@@ -745,7 +768,7 @@ export async function liberarPorVencimiento(pedidoId: string) {
  * (retención mínima, Ley N° 29733).
  */
 export async function borrarDocumentos(rutas: (string | null)[]) {
-  const limpias = rutas.filter((r): r is string => !!r);
+  const limpias = rutas.filter((r): r is string => !!r).flatMap((r) => [r, ...rutasRecortes(r)]);
   if (limpias.length === 0) return;
   const { error } = await supabase.storage.from('documentos').remove(limpias);
   // Si falla, la verificación ya quedó resuelta: se avisa pero no se revierte.
