@@ -53,3 +53,6 @@ supabase/.temp/
 publico/
 dist-web/
 .vercel
+
+# Scripts SQL con credenciales (cuenta administrativa): nunca a la compilación
+supabase/*.local.sql
