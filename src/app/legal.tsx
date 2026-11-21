@@ -34,7 +34,12 @@ const TERMINOS: [string, string][] = [
    'cuando el cliente confirma la recepción o, si vence el plazo de confirmación sin ' +
    'que el cliente haya abierto una disputa, cuando Encárgalo revisa el caso y lo ' +
    'libera. Al comprador externo se le descuenta ' +
-   'la tarifa de servicio que también figura en el desglose.'],
+   'la tarifa de servicio que también figura en el desglose. Ese dinero no es un ' +
+   'depósito ni una inversión: Encárgalo no lo presta ni le da otro uso ni genera ' +
+   'rentabilidad con él. Una vez que envías tu comprobante de Yape, lo validamos y ' +
+   'confirmamos la retención en un máximo de 2 horas hábiles. Durante el piloto, el ' +
+   'total de un pedido no puede superar S/ 150. Si el pedido no puede cumplirse, ' +
+   'te devolvemos el monto retenido por el mismo medio de pago.'],
   ['4. Disputas y reembolsos',
    'Si el producto no llega o no corresponde a lo pedido, cualquiera de las dos partes ' +
    'puede abrir una disputa mientras el dinero esté retenido, adjuntando evidencia. ' +

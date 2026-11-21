@@ -233,7 +233,7 @@ export const ORIGENES = [
 ] as const;
 
 /** Versión de los términos que el usuario acepta. Cambia cuando cambia el texto. */
-export const VERSION_TERMINOS = '2026-10-borrador';
+export const VERSION_TERMINOS = '2026-11-borrador';
 
 /**
  * Código de referido de un usuario (requisito R18): las seis primeras letras de
