@@ -49,12 +49,6 @@ export type DatosRegistro = {
   dniConsultado?: boolean;
 };
 
-/**
- * Correo de la cuenta administrativa. Vive en el .env (EXPO_PUBLIC_ADMIN_CORREO) y
- * no aquí porque el repositorio es público. Sin él, «admin» no es un atajo.
- */
-const CORREO_ADMIN = process.env.EXPO_PUBLIC_ADMIN_CORREO ?? null;
-
 const AuthCtx = createContext<Ctx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -119,11 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refrescarPerfil]);
 
   const entrar = useCallback(async (correo: string, clave: string) => {
-    // La cuenta administrativa entra con «admin» a secas.
-    const limpio = correo.trim().toLowerCase();
-    const email = limpio === 'admin' && CORREO_ADMIN ? CORREO_ADMIN : limpio;
+    // Sin atajos: el antiguo «admin» leía EXPO_PUBLIC_ADMIN_CORREO, y toda
+    // variable EXPO_PUBLIC_ queda escrita en el código público de la app y de
+    // la web, así que el correo administrativo quedaba a la vista de cualquiera.
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: correo.trim().toLowerCase(),
       password: clave,
     });
     if (error) {

@@ -58,13 +58,11 @@ export default function Registro() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
-  // Con el nombre de RENIEC el campo queda fijo: es lo que hace que la
-  // verificación posterior coincida sola. Si RENIEC no respondió, se escribe a mano.
-  const nombreFijo = estadoDni.tipo === 'encontrado';
-
+  // Sin sesión, RENIEC no revela nombres: la persona escribe el suyo y el campo
+  // del DNI confirma si coincide (modo confirmar de CampoDni). Si coincide, la
+  // verificación posterior pasa sola.
   function alCambiarEstado(e: EstadoDni) {
     setEstadoDni(e);
-    if (e.tipo === 'encontrado') setNombre(e.nombre);
   }
 
   function validar(): string | null {
@@ -72,6 +70,8 @@ export default function Registro() {
     if (estadoDni.tipo === 'no_existe') return 'RENIEC no reconoce ese DNI. Revísalo';
     if (estadoDni.tipo === 'buscando') return 'Espera un segundo: estamos consultando RENIEC';
     if (nombre.trim().length < 5) return 'Escribe tu nombre y apellidos completos';
+    if (estadoDni.tipo === 'no_coincide')
+      return 'Tu nombre no coincide con el de tu DNI en RENIEC. Escríbelo como figura en tu documento';
     if (!/^9\d{8}$/.test(telefono.trim()))
       return 'El celular debe tener 9 dígitos y empezar en 9';
     if (!/^\S+@\S+\.\S+$/.test(correo.trim())) return 'Revisa tu correo electrónico';
@@ -100,7 +100,7 @@ export default function Registro() {
         codigoReferido: codigo,
         versionTerminos: VERSION_TERMINOS,
         dni,
-        dniConsultado: estadoDni.tipo === 'encontrado',
+        dniConsultado: estadoDni.tipo === 'coincide',
       });
       // Si el proyecto no exige confirmación por correo, la sesión ya queda abierta.
       let conSesion = false;
@@ -158,24 +158,17 @@ export default function Registro() {
             <Bloque
               n={1}
               titulo="Tu identidad"
-              detalle="Escribe tu DNI y completamos tu nombre con los datos de RENIEC."
+              detalle="Escribe tu DNI y tu nombre como figuran en tu documento: los validamos con RENIEC."
             />
-            <CampoDni valor={dni} onCambiar={setDni} onEstado={alCambiarEstado} />
+            <CampoDni valor={dni} onCambiar={setDni} onEstado={alCambiarEstado} nombre={nombre} />
             <Campo
               etiqueta="Nombre y apellidos"
               icono="person-outline"
               value={nombre}
               onChangeText={setNombre}
-              editable={!nombreFijo}
-              placeholder={
-                estadoDni.tipo === 'sin_servicio' ? 'Como figura en tu DNI' : 'Se completa con tu DNI'
-              }
+              placeholder="Como figura en tu DNI"
               autoComplete="name"
-              ayuda={
-                nombreFijo
-                  ? 'Tomado de RENIEC. Si no es tuyo, revisa el número de DNI.'
-                  : undefined
-              }
+              ayuda="Nombres y los dos apellidos, como en tu documento"
             />
           </Tarjeta>
         </Entrada>

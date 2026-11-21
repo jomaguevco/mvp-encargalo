@@ -18,6 +18,12 @@
  *   .env.pruebas.local   A_CORREO, A_CLAVE (cliente y operador), B_CORREO, B_CLAVE (comprador)
  *
  * Uso:  node pruebas/sembrar.mjs
+ *
+ * NO lo corras contra el proyecto de producción: crea pagos retenidos,
+ * liberados y disputas que se mezclan con las ventas reales del piloto (las
+ * que cuentan para el IND3 y el Pitch Deck). Si el .env apunta a la URL de
+ * producción de eas.json, el script se niega. Usa un proyecto de Supabase
+ * aparte para las pruebas.
  */
 import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
@@ -39,6 +45,29 @@ function leerEnv(nombre) {
 const env = { ...leerEnv('.env'), ...leerEnv('.env.pruebas.local') };
 for (const clave of ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY', 'A_CORREO', 'A_CLAVE', 'B_CORREO', 'B_CLAVE']) {
   if (!env[clave]) throw new Error(`Falta ${clave} en .env o .env.pruebas.local`);
+}
+
+// ------------------------------------------------------------ nunca en producción
+// La URL de producción es la que usan los APK (eas.json, perfiles preview y
+// production). Si el .env apunta ahí, se detiene antes de tocar nada.
+function urlsDeProduccion() {
+  try {
+    const eas = JSON.parse(readFileSync(new URL('../eas.json', AQUI), 'utf8'));
+    return Object.values(eas.build ?? {})
+      .map((perfil) => perfil?.env?.EXPO_PUBLIC_SUPABASE_URL)
+      .filter(Boolean)
+      .map((u) => u.replace(/\/+$/, ''));
+  } catch {
+    return [];
+  }
+}
+if (urlsDeProduccion().includes(env.EXPO_PUBLIC_SUPABASE_URL.replace(/\/+$/, ''))) {
+  console.error(
+    `El .env apunta al proyecto de PRODUCCIÓN (${env.EXPO_PUBLIC_SUPABASE_URL}).\n` +
+      'Este script crea pagos y disputas de prueba que se mezclarían con las ventas reales\n' +
+      'del piloto. Crea un proyecto de Supabase aparte para pruebas y apunta el .env ahí.',
+  );
+  process.exit(1);
 }
 
 async function sesion(correo, clave) {

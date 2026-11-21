@@ -82,7 +82,7 @@ export function BarraLateral({
                 });
                 if (!activo && !evento.defaultPrevented) navigation.navigate(ruta.name);
               }}
-              style={({ hovered }: { hovered?: boolean }) => [
+              style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [
                 s.item,
                 activo ? s.itemActivo : hovered && s.itemEncima,
               ]}>
@@ -111,7 +111,7 @@ export function BarraLateral({
         <Pressable
           onPress={() => router.push('/admin')}
           accessibilityRole="link"
-          style={({ hovered }: { hovered?: boolean }) => [s.item, hovered && s.itemEncima, { marginBottom: E.sm }]}>
+          style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [s.item, hovered && s.itemEncima, { marginBottom: E.sm }]}>
           <Ionicons name="shield-checkmark-outline" size={20} color={C.trigo} />
           <Text style={[s.itemTexto, { color: C.trigo }]}>Panel de administración</Text>
         </Pressable>

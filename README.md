@@ -104,6 +104,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0014_foto_perfil.sql` | Foto de perfil opcional (bucket público `avatares`), visible en ofertas, pedidos y reputación; el administrador puede quitarla |
 | `0015_dni_en_registro.sql` | El DNI escrito en el registro se copia al perfil al crear la cuenta |
 | `0016_seguridad.sql` | Cierra huecos de seguridad: nombre y DNI fijos una vez en revisión o verificado, fotos solo de la carpeta propia y distintas entre sí, nadie oferta ni acepta en su propio pedido, avisos solo desde los *triggers*, aprobación biométrica automática apagada (ver 6b) |
+| `0017_limite_consultas_dni.sql` | Límites persistentes de `consultar-dni` por IP, por usuario y por día (ver 6) |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -167,9 +168,11 @@ y solo entra quien está en la tabla `administradores`. Un administrador tambié
 
 Para crear la cuenta administrativa, después de aplicar `0012_administracion.sql`,
 ejecuta en el SQL Editor el script local **`supabase/admin_cuenta.local.sql`**. Ese archivo
-está en `.gitignore` porque lleva la contraseña: este repositorio es público. En la pantalla
-de ingreso basta con escribir `admin` como correo si el `.env` define
-`EXPO_PUBLIC_ADMIN_CORREO` con el correo de esa cuenta.
+está en `.gitignore` porque lleva la contraseña: este repositorio es público. Se entra con
+el correo completo de esa cuenta. Ya no existe el atajo `admin`: usaba
+`EXPO_PUBLIC_ADMIN_CORREO`, y toda variable `EXPO_PUBLIC_` queda escrita en el código
+público de la app y de la web. Si tu `.env` la tiene, bórrala, y usa para esa cuenta
+una contraseña larga y única.
 
 Para nombrar administrador a otra persona, hazlo desde **Equipo y roles** o con:
 
@@ -184,7 +187,7 @@ Son dos Edge Functions que usan el mismo token de Decolecta:
 
 | Función | Cuándo se llama | Qué hace |
 |---|---|---|
-| `consultar-dni` | Al escribir los 8 dígitos en el registro y en la verificación | Devuelve el nombre de RENIEC y la app lo completa sola. No guarda nada. Límite de 8 consultas por IP cada 10 minutos y caché de una hora por DNI, para cuidar el cupo |
+| `consultar-dni` | En el registro (sin sesión) y en la verificación (con sesión) | **Sin sesión** recibe el DNI y el nombre escrito y responde solo si coinciden: nunca revela un nombre, para que nadie la use como buscador de personas. **Con sesión** devuelve el nombre de RENIEC para corregir el propio. No guarda el DNI ni la respuesta. Límites persistentes en la base (`0017`): 10 por IP cada hora y 150 al día sin sesión; 6 por usuario al día y 300 al día con sesión |
 | `validar-dni` | Al enviar la verificación | Contrasta DNI y nombre del perfil, y guarda solo el resultado |
 | `verificar-identidad` | Justo después | Compara selfie y foto del DNI, y lee lo impreso (ver 6b) |
 
@@ -210,13 +213,20 @@ npx supabase functions deploy consultar-dni --no-verify-jwt
 npx supabase functions deploy validar-dni --no-verify-jwt
 ```
 
-Para comprobarlo sin la app (debe devolver `encontrado: true` y el nombre):
+Ejecuta también `0017_limite_consultas_dni.sql`: sin esa tabla, `consultar-dni`
+responde que no está disponible (prefiere cerrarse a consultar sin límite).
+
+Para comprobarlo sin la app, sin sesión (debe devolver `encontrado: true` y
+`coincide: true` o `false`, nunca el nombre):
 
 ```bash
 curl -X POST "https://TU_REF.supabase.co/functions/v1/consultar-dni" \
   -H "Authorization: Bearer TU_ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"dni":"46027897"}'
+  -d '{"dni":"46027897","nombre":"Mariano Guevara"}'
 ```
+
+En la web, la función solo acepta llamadas desde `encargalo.vercel.app` y `localhost`.
+Si la web vive en otro dominio: `npx supabase secrets set CORS_ORIGENES=https://otro-dominio`.
 
 Si la consulta falla (cupo agotado, sin red), la solicitud queda en revisión y se
 resuelve a mano como antes. Opcionalmente, `supabase secrets set RECHAZO_AUTOMATICO=1`
