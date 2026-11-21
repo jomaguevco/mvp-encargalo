@@ -23,6 +23,7 @@ import {
   Tarjeta,
 } from '@/ui/componentes';
 import { CampoDni, type EstadoDni } from '@/ui/CampoDni';
+import { empezarEn } from '@/ui/navegacion';
 import { C, E } from '@/ui/tema';
 
 type Origen = (typeof ORIGENES)[number]['valor'];
@@ -111,13 +112,15 @@ export default function Registro() {
       }
       if (!conSesion) {
         // El proyecto pide confirmar el correo: se avisa en la pantalla de ingreso.
-        router.replace({ pathname: '/entrar', params: { confirmar: '1' } });
+        empezarEn({ pathname: '/entrar', params: { confirmar: '1' } });
         return;
       }
       // El DNI ya quedó en el perfil: lo copió el trigger del alta (0015) desde
       // los metadatos, así que la verificación lo trae escrito y no lo consulta
       // otra vez en RENIEC.
-      router.replace('/(app)/pedidos');
+      // Mis pedidos queda como la base del historial: atrás desde la
+      // verificación vuelve ahí, nunca al formulario de registro.
+      empezarEn('/(app)/pedidos');
       router.push('/verificacion');
     } catch (e) {
       setError((e as Error).message);

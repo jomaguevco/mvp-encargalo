@@ -102,6 +102,8 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
 | `0013_verificacion_reintentos.sql` | Un rechazo ya no reserva el DNI (se puede reintentar), cada verificación se resuelve una sola vez y con motivo, y el panel detecta cuentas duplicadas |
 | `0014_foto_perfil.sql` | Foto de perfil opcional (bucket público `avatares`), visible en ofertas, pedidos y reputación; el administrador puede quitarla |
+| `0015_dni_en_registro.sql` | El DNI escrito en el registro se copia al perfil al crear la cuenta |
+| `0016_seguridad.sql` | Cierra huecos de seguridad: nombre y DNI fijos una vez en revisión o verificado, fotos solo de la carpeta propia y distintas entre sí, nadie oferta ni acepta en su propio pedido, avisos solo desde los *triggers*, aprobación biométrica automática apagada (ver 6b) |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -229,6 +231,7 @@ La Edge Function `verificar-identidad` se llama justo después de `validar-dni`:
 |---|---|---|
 | Rostro | AWS Rekognition `CompareFaces` | Que la selfie sea la misma persona de la foto impresa en el DNI |
 | Documento | AWS Textract `DetectDocumentText` | Que el número impreso sea el declarado y el nombre impreso el del perfil |
+| Selfie | AWS Rekognition `DetectText` | Que la selfie no sea la foto de un documento |
 
 RENIEC (Decolecta) solo devuelve nombres, no la foto: por eso el rostro se compara con
 la foto del documento. La cadena queda cerrada así: nombre impreso = nombre del perfil
@@ -237,7 +240,12 @@ la foto del documento. La cadena queda cerrada así: nombre impreso = nombre del
 Decisión (umbrales en la tabla `config`):
 
 - **Aprobado**: similitud ≥ `umbral_rostro_aprobar` (95), número y nombre leídos
-  coinciden y RENIEC dijo `coincide`. Se verifica al instante y las fotos se borran.
+  coinciden, RENIEC dijo `coincide`, la selfie no es la misma imagen que el DNI y en
+  ella no se lee un documento. Con `aprobacion_automatica = 0` (lo predeterminado
+  desde `0016_seguridad.sql`) queda como **recomendación** en la consola y un operador
+  confirma; con `1` se verifica al instante y las fotos se borran. Encenderla solo
+  cuando haya prueba de vida: sin ella, una foto del DNI de otra persona subida como
+  selfie podía aprobarse.
 - **Rechazado**: similitud < `umbral_rostro_rechazar` (50), es otra persona. Se
   rechaza y las fotos se borran.
 - **Revisar**: cualquier otro caso, incluido un fallo de AWS. Queda en la consola del
@@ -253,7 +261,7 @@ gratuita los primeros 12 meses.
   "Version": "2012-10-17",
   "Statement": [{
     "Effect": "Allow",
-    "Action": ["rekognition:CompareFaces", "textract:DetectDocumentText"],
+    "Action": ["rekognition:CompareFaces", "rekognition:DetectText", "textract:DetectDocumentText"],
     "Resource": "*"
   }]
 }
@@ -274,6 +282,29 @@ npx supabase functions deploy verificar-identidad --no-verify-jwt
 Si los secretos no están, la función no marca nada y todo sigue como antes: revisión
 humana. Las reglas de decisión tienen pruebas:
 `deno test supabase/functions/verificar-identidad`.
+
+### 6c. Recuperar la contraseña
+
+La pantalla de ingreso tiene «¿Olvidaste tu contraseña?». Envía un **código** al
+correo (no un enlace, para que funcione igual en el APK y en la web sin configurar
+enlaces profundos). La persona escribe el código y su contraseña nueva, y entra.
+
+Hay que hacer un cambio una sola vez en Supabase: **Authentication → Emails →
+Reset Password** y reemplazar la plantilla por algo como:
+
+```html
+<h2>Recupera tu contraseña de Encárgalo</h2>
+<p>Tu código es:</p>
+<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+<p>Escríbelo en la app junto con tu nueva contraseña. Vence en una hora.</p>
+<p>Si no lo pediste, ignora este correo.</p>
+```
+
+Sin `{{ .Token }}` el correo solo trae un enlace y la app no tiene dónde usarlo.
+
+El servidor de correo de prueba de Supabase envía muy pocos correos por hora. Para
+el piloto conviene configurar un SMTP propio (Resend, Brevo, Gmail) en
+**Authentication → Emails → SMTP Settings**.
 
 ### 7. Generar el APK para repartir
 

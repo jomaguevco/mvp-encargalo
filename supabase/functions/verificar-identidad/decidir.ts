@@ -15,6 +15,14 @@ export type Evaluacion = {
   nombreCoincide: boolean | null;
   /** Lo que guardó validar-dni: el nombre del perfil contra RENIEC. */
   dniValidacion: string | null;
+  /** La selfie es byte a byte el mismo archivo que la foto del DNI. */
+  mismaImagen: boolean;
+  /**
+   * En la selfie se lee texto de un documento (el número declarado o palabras
+   * como «DNI» o «Identidad»): es una foto del DNI, no de una persona.
+   * Null = no se pudo leer la selfie.
+   */
+  selfieConDocumento: boolean | null;
 };
 
 export type Umbrales = { aprobar: number; rechazar: number };
@@ -44,6 +52,24 @@ export function nombreEnDocumento(nombrePerfil: string, lineas: string[]): boole
   return mias.every((p) => impresas.has(p));
 }
 
+/** Palabras impresas en un DNI peruano que no aparecen en una selfie normal. */
+const PALABRAS_DE_DOCUMENTO = /IDENTIDAD|REPUBLICA|DOCUMENTO NACIONAL|RENIEC|\bDNI\b|APELLIDO|PRE ?NOMBRES|NACIMIENTO/;
+
+/**
+ * ¿La «selfie» es en realidad la foto de un documento? Sin prueba de vida, la
+ * forma más simple de suplantar a alguien es subir su DNI dos veces, o una foto
+ * de su DNI como selfie: el rostro impreso coincide consigo mismo.
+ */
+export function pareceDocumento(dni: string, lineasSelfie: string[]): boolean {
+  if (numeroEnDocumento(dni, lineasSelfie)) return true;
+  const texto = lineasSelfie
+    .join(' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+  return PALABRAS_DE_DOCUMENTO.test(texto);
+}
+
 /**
  * Aprobado: todo coincide. Rechazado: hay dos rostros y claramente no son la
  * misma persona. Todo lo demás, incluido cualquier fallo del servicio, queda
@@ -58,6 +84,15 @@ export function decidir(e: Evaluacion, u: Umbrales): Decision {
   }
 
   const motivos: string[] = [];
+  // Primero lo que delata una suplantación: ni la similitud más alta vale si
+  // la selfie es el propio documento.
+  if (e.mismaImagen) motivos.push('La selfie es la misma imagen que la foto del DNI');
+  if (e.selfieConDocumento === true) {
+    motivos.push('La selfie parece la foto de un documento, no de una persona');
+  } else if (e.selfieConDocumento === null) {
+    motivos.push('No se pudo revisar la selfie');
+  }
+
   if (e.sinRostro === 'selfie') motivos.push('No se detectó un rostro en la selfie');
   else if (e.sinRostro === 'dni') motivos.push('No se detectó el rostro en la foto del DNI');
   else if (e.similitud === null) motivos.push('No se pudo comparar los rostros');
