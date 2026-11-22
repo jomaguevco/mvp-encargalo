@@ -200,6 +200,23 @@ export default function Entrar() {
                 <Ionicons name="person-add-outline" size={18} color={C.azul} />
                 <Text style={s.crearTexto}>Crear una cuenta gratis</Text>
               </Pressable>
+
+              {/* Públicas por ley: no piden sesión (Ley N° 29571, Google Play). */}
+              <View style={s.legales}>
+                <Text
+                  accessibilityRole="link"
+                  style={s.legalesTexto}
+                  onPress={() => router.push('/reclamaciones' as never)}>
+                  Libro de reclamaciones
+                </Text>
+                <Text style={[s.legalesTexto, { textDecorationLine: 'none' }]}>·</Text>
+                <Text
+                  accessibilityRole="link"
+                  style={s.legalesTexto}
+                  onPress={() => router.push('/eliminar-cuenta' as never)}>
+                  Eliminar mi cuenta
+                </Text>
+              </View>
             </View>
           </Entrada>
 
@@ -211,6 +228,8 @@ export default function Entrar() {
 }
 
 const s = StyleSheet.create({
+  legales: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: E.lg, flexWrap: 'wrap' },
+  legalesTexto: { fontSize: 13, color: C.textoSuave, textDecorationLine: 'underline' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: E.xl },
   marca: { alignItems: 'center', marginBottom: E.xl + E.sm, marginTop: E.xl },
   filaEscritorio: {

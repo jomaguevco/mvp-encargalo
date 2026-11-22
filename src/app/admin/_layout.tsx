@@ -14,7 +14,7 @@ import { C, E, R } from '@/ui/tema';
 type Icono = keyof typeof Ionicons.glyphMap;
 
 /** Las secciones del panel, en el orden en que se usan en el día a día. */
-type ColaAdmin = 'identidad' | 'operacion' | 'reforzada' | 'reclamos';
+type ColaAdmin = 'identidad' | 'operacion' | 'reforzada' | 'reclamos' | 'eliminaciones';
 
 const SECCIONES: { ruta: string; titulo: string; icono: Icono; cola?: ColaAdmin }[] = [
   { ruta: '/admin', titulo: 'Resumen', icono: 'stats-chart' },
@@ -25,6 +25,7 @@ const SECCIONES: { ruta: string; titulo: string; icono: Icono; cola?: ColaAdmin 
   { ruta: '/admin/operacion', titulo: 'Operación', icono: 'shield-checkmark', cola: 'operacion' },
   { ruta: '/admin/reforzadas', titulo: 'Verificación reforzada', icono: 'videocam', cola: 'reforzada' },
   { ruta: '/admin/reclamaciones', titulo: 'Reclamaciones', icono: 'book', cola: 'reclamos' },
+  { ruta: '/admin/eliminaciones', titulo: 'Eliminación de cuentas', icono: 'trash', cola: 'eliminaciones' },
   { ruta: '/admin/equipo', titulo: 'Equipo y roles', icono: 'key' },
   { ruta: '/admin/configuracion', titulo: 'Configuración', icono: 'settings' },
   { ruta: '/admin/bitacora', titulo: 'Bitácora', icono: 'document-text' },
@@ -50,6 +51,7 @@ export default function AdminLayout() {
     operacion: 0,
     reforzada: 0,
     reclamos: 0,
+    eliminaciones: 0,
   });
   // Menú de la cuenta (pie de la barra): se cierra al cambiar de sección.
   const [menu, setMenu] = useState(false);
@@ -74,9 +76,10 @@ export default function AdminLayout() {
       api.confirmacionesVencidas(),
       api.reforzadasAdmin('pendiente'),
       api.reclamacionesAdmin('pendiente'),
+      api.eliminacionesAdmin('pendiente'),
     ]).then((r) => {
       const n = (i: number) => (r[i].status === 'fulfilled' ? (r[i] as PromiseFulfilledResult<unknown[]>).value.length : 0);
-      setColas({ identidad: n(0), operacion: n(1) + n(2) + n(3), reforzada: n(4), reclamos: n(5) });
+      setColas({ identidad: n(0), operacion: n(1) + n(2) + n(3), reforzada: n(4), reclamos: n(5), eliminaciones: n(6) });
     });
   }, [confirmado, ruta]);
 

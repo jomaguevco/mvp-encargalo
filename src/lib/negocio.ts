@@ -234,7 +234,7 @@ export const ORIGENES = [
 ] as const;
 
 /** Versión de los términos que el usuario acepta. Cambia cuando cambia el texto. */
-export const VERSION_TERMINOS = '2026-11-borrador';
+export const VERSION_TERMINOS = '2026-11-22-borrador';
 
 /**
  * Código de referido de un usuario (requisito R18): las seis primeras letras de
@@ -282,6 +282,25 @@ export const TIPO_RECLAMACION = {
       'Malestar con la atención recibida, o una disconformidad que no tiene que ver con el producto o el servicio.',
   },
 } as const;
+
+/**
+ * Lo que pasa con cada dato al eliminar la cuenta (Google Play, Ley N° 29733).
+ * Tiene que coincidir con admin_resolver_eliminacion en 0019_eliminacion_cuenta.
+ */
+export const SE_BORRA = [
+  'Tu nombre, celular y número de DNI',
+  'Tu foto de perfil y cualquier imagen de tu DNI o selfie que quedara pendiente',
+  'Tus avisos dentro de la aplicación',
+  'Tu acceso: la cuenta deja de poder entrar, publicar u ofertar',
+  'Los pedidos que publicaste y todavía no tenían comprador, y tus ofertas sin responder',
+];
+
+export const SE_CONSERVA = [
+  'Los pedidos, pagos y comprobantes ya cerrados, sin tu nombre: la ley tributaria y contable obliga a conservarlos',
+  'Los mensajes y calificaciones de esos pedidos, para que la otra persona mantenga su historial y su reputación',
+  'Las disputas y las hojas del libro de reclamaciones, mientras dure el plazo legal para atenderlas',
+  'El registro interno de las acciones del equipo (bitácora)',
+];
 
 /** Umbral desde el que un envío paga impuestos de importación (US$). */
 export const UMBRAL_IMPUESTO_USD = 200;

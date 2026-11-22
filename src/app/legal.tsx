@@ -86,6 +86,9 @@ const PRIVACIDAD: [string, string][] = [
   ['Tus derechos',
    'Puedes pedir acceder a tus datos, corregirlos, cancelarlos u oponerte a su ' +
    'tratamiento (derechos ARCO, Ley N° 29733) escribiendo al correo de soporte. ' +
+   'También puedes pedir que eliminemos tu cuenta desde Perfil → «Eliminar mi cuenta» o, ' +
+   'sin la aplicación, en la página «Eliminar mi cuenta»: borramos tus datos personales y ' +
+   'conservamos sin tu nombre solo los pedidos y pagos que la ley contable obliga a guardar. ' +
    'Respondemos en los plazos que fija la ley.'],
   ['Seguridad',
    'Las comunicaciones viajan cifradas, las imágenes se guardan en almacenamiento ' +
@@ -126,6 +129,14 @@ export default function Legal() {
       {PRIVACIDAD.map(([t, x]) => (
         <Bloque key={t} titulo={t} texto={x} />
       ))}
+
+      <Boton
+        titulo="Eliminar mi cuenta"
+        icono="trash-outline"
+        variante="fantasma"
+        onPress={() => router.push('/eliminar-cuenta' as never)}
+        style={{ marginBottom: E.lg }}
+      />
 
       <Micro>Versión {VERSION_TERMINOS}</Micro>
     </ScrollView>

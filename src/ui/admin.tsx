@@ -542,6 +542,9 @@ export const ACCION_BITACORA: Record<string, string> = {
   reforzada_aprobada: 'Verificación reforzada aprobada (videollamada)',
   reforzada_rechazada: 'Verificación reforzada no aprobada',
   reclamacion_respondida: 'Hoja de reclamación respondida',
+  eliminacion_en_espera: 'Eliminación de cuenta en espera',
+  eliminacion_completada: 'Cuenta eliminada (anonimizada) a pedido del titular',
+  eliminacion_rechazada: 'Solicitud de eliminación rechazada',
 };
 
 // ------------------------------------------------------------------ exportar

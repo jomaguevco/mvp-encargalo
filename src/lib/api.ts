@@ -11,6 +11,7 @@ import type {
   CuentaParecida,
   DesglosePrecio,
   DisputaAbierta,
+  EliminacionAdmin,
   EntradaBitacora,
   EstadoPedido,
   EventoPedido,
@@ -38,6 +39,7 @@ import type {
   ResultadoDni,
   ResultadoIa,
   ResumenAdmin,
+  SolicitudEliminacion,
   VerificacionHistorial,
   VerificacionPendiente,
 } from './tipos';
@@ -1050,4 +1052,61 @@ export async function responderReclamacion(id: string, respuesta: string) {
     p_respuesta: respuesta,
   });
   revienta(error);
+}
+
+// ---------------------------------------------------------------- eliminación de cuenta (0019)
+/** La solicitud abierta de la cuenta con sesión, si hay una. */
+export async function miSolicitudEliminacion(): Promise<SolicitudEliminacion | null> {
+  const { data, error } = await supabase
+    .from('solicitudes_eliminacion')
+    .select('*')
+    .in('estado', ['pendiente', 'en_espera'])
+    .order('creado_en', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  revienta(error);
+  return (data as SolicitudEliminacion | null) ?? null;
+}
+
+export async function solicitarEliminacionCuenta(motivo?: string): Promise<SolicitudEliminacion> {
+  const { data, error } = await supabase.rpc('solicitar_eliminacion_cuenta', {
+    p_motivo: motivo?.trim() || null,
+  });
+  revienta(error);
+  return data as SolicitudEliminacion;
+}
+
+/** Formulario web, sin sesión. No revela si la cuenta existe. */
+export async function solicitarEliminacionPublica(correo: string, dni: string, motivo?: string) {
+  const { error } = await supabase.rpc('solicitar_eliminacion_publica', {
+    p_correo: correo.trim(),
+    p_dni: dni.trim(),
+    p_motivo: motivo?.trim() || null,
+  });
+  revienta(error);
+}
+
+export async function eliminacionesAdmin(estado?: string | null): Promise<EliminacionAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_solicitudes_eliminacion', {
+    p_estado: estado ?? null,
+  });
+  revienta(error);
+  return (data ?? []) as EliminacionAdmin[];
+}
+
+/** Al completarla, la base anonimiza la cuenta y aquí se borra la foto del bucket. */
+export async function resolverEliminacion(
+  id: string,
+  estado: 'en_espera' | 'completada' | 'rechazada',
+  nota: string,
+) {
+  const { data, error } = await supabase.rpc('admin_resolver_eliminacion', {
+    p_id: id,
+    p_estado: estado,
+    p_nota: nota,
+  });
+  revienta(error);
+  if (typeof data === 'string' && data) {
+    await supabase.storage.from('avatares').remove([data]).catch(() => undefined);
+  }
 }

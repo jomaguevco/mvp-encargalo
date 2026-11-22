@@ -8,14 +8,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/ctx/auth';
 import {
   actualizarPerfil,
+  miSolicitudEliminacion,
   misPedidos,
   quitarFotoPerfil,
   reputacionDe,
+  solicitarEliminacionCuenta,
   subirFotoPerfil,
   urlFoto,
 } from '@/lib/api';
 import { codigoReferidoDe, ESTADO_VERIFICACION, fecha } from '@/lib/negocio';
-import type { Pedido, Reputacion } from '@/lib/tipos';
+import type { Pedido, Reputacion, SolicitudEliminacion } from '@/lib/tipos';
 import {
   Avatar,
   Boton,
@@ -173,7 +175,48 @@ export default function Perfil() {
   const [rep, setRep] = useState<Reputacion | null>(null);
   const [recientes, setRecientes] = useState<Pedido[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [eliminacion, setEliminacion] = useState<SolicitudEliminacion | null>(null);
   const insets = useSafeAreaInsets();
+
+  // Eliminar la cuenta (Google Play, Ley N° 29733). No borra al instante: deja
+  // una solicitud que el equipo revisa para no cortar un pedido o un pago en curso.
+  async function pedirEliminacion() {
+    if (eliminacion) {
+      avisar(
+        'Tu solicitud está en curso',
+        `La recibimos el ${fecha(eliminacion.creado_en)}.` +
+          (eliminacion.estado === 'en_espera'
+            ? ' Tienes un pedido o un pago en curso: la completaremos en cuanto se cierre.'
+            : ' El equipo la revisa y te escribirá al correo de tu cuenta.'),
+      );
+      return;
+    }
+    const entiende = await confirmar(
+      'Eliminar mi cuenta',
+      'Borraremos tu nombre, celular, DNI y foto, y ya no podrás entrar. Los pedidos y pagos ya ' +
+        'cerrados se conservan sin tu nombre, porque la ley contable lo exige. Si tienes un pedido ' +
+        'o un pago en curso, esperamos a que se cierre.',
+      'Continuar',
+      true,
+    );
+    if (!entiende) return;
+    const seguro = await confirmar(
+      '¿Seguro?',
+      'Esta acción no se puede deshacer una vez que el equipo la completa.',
+      'Sí, eliminar mi cuenta',
+      true,
+    );
+    if (!seguro) return;
+    try {
+      setEliminacion(await solicitarEliminacionCuenta());
+      avisar(
+        'Solicitud enviada',
+        'El equipo la revisará en un máximo de 10 días hábiles y te escribirá al correo de tu cuenta.',
+      );
+    } catch (e) {
+      avisar('No se pudo enviar la solicitud', (e as Error).message);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -182,6 +225,9 @@ export default function Perfil() {
       misPedidos()
         .then(setRecientes)
         .catch(() => setRecientes([]));
+      miSolicitudEliminacion()
+        .then(setEliminacion)
+        .catch(() => setEliminacion(null));
     }, [perfil?.id, refrescarPerfil]),
   );
 
@@ -373,6 +419,13 @@ export default function Perfil() {
         />
         <View style={s.linea} />
         <Opcion
+          icono="book"
+          titulo="Libro de reclamaciones"
+          detalle="Registra un reclamo o una queja"
+          onPress={() => router.push('/reclamaciones' as Href)}
+        />
+        <View style={s.linea} />
+        <Opcion
           icono="log-out"
           color={C.rojo}
           titulo="Cerrar sesión"
@@ -387,6 +440,28 @@ export default function Perfil() {
             await salir();
             router.replace('/entrar');
           }}
+        />
+      </Tarjeta>
+
+      <Tarjeta style={{ padding: 0 }}>
+        <Opcion
+          icono="trash"
+          color={C.rojo}
+          titulo="Eliminar mi cuenta"
+          detalle={
+            eliminacion
+              ? eliminacion.estado === 'en_espera'
+                ? 'Solicitud en espera: tienes un pedido o un pago en curso'
+                : `Solicitud enviada el ${fecha(eliminacion.creado_en)}`
+              : 'Borra tus datos personales y tu acceso'
+          }
+          onPress={pedirEliminacion}
+        />
+        <View style={s.linea} />
+        <Opcion
+          icono="information-circle"
+          titulo="Qué se borra y qué se conserva"
+          onPress={() => router.push('/eliminar-cuenta' as Href)}
         />
       </Tarjeta>
 

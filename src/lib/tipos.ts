@@ -563,3 +563,29 @@ export type ReclamacionAdmin = Omit<NuevaReclamacion, 'acepta_tratamiento'> & {
   respondido_en: string | null;
   respondido_por: string | null;
 };
+
+// ---------------------------------------------------------------- eliminación de cuenta (Google Play)
+export type EstadoEliminacion = 'pendiente' | 'en_espera' | 'completada' | 'rechazada';
+
+export type SolicitudEliminacion = {
+  id: string;
+  creado_en: string;
+  origen: 'app' | 'web';
+  perfil_id: string | null;
+  correo: string;
+  dni: string | null;
+  motivo: string | null;
+  estado: EstadoEliminacion;
+  nota: string | null;
+  resuelta_en: string | null;
+};
+
+export type EliminacionAdmin = Omit<SolicitudEliminacion, 'perfil_id'> & {
+  resuelta_por: string | null;
+  /** La cuenta que corresponde (la que la pidió, o la que tiene ese correo y DNI). */
+  cuenta_id: string | null;
+  cuenta_nombre: string | null;
+  pedidos_en_curso: number;
+  pagos_en_curso: number;
+  disputas_abiertas: number;
+};
