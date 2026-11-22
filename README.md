@@ -102,6 +102,10 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0012_administracion.sql` | Rol de administrador, suspensión de cuentas, bitácora del equipo y funciones del panel `/admin` (ver 5b) |
 | `0013_verificacion_reintentos.sql` | Un rechazo ya no reserva el DNI (se puede reintentar), cada verificación se resuelve una sola vez y con motivo, y el panel detecta cuentas duplicadas |
 | `0014_foto_perfil.sql` | Foto de perfil opcional (bucket público `avatares`), visible en ofertas, pedidos y reputación; el administrador puede quitarla |
+| `0015_dni_en_registro.sql` | El DNI se guarda desde el registro |
+| `0016_tope_piloto.sql` | Tope de S/ 150 por pedido (total cobrado) mientras dure el piloto |
+| `0017_limites_cuentas_nuevas.sql` | ES-17: máximo de S/ 500 por pedido para cuentas con menos de 3 pedidos completados y verificación reforzada (videollamada) sobre S/ 1 500; convive con el tope del piloto (vale el menor) |
+| `0018_libro_reclamaciones.sql` | ES-15: libro de reclamaciones virtual público con número correlativo `LR-AAAA-000001`, plazo de 15 días hábiles (con feriados) y respuesta desde `/admin` |
 
 Para comprobar que quedó bien, ejecuta:
 

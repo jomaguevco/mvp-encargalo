@@ -73,6 +73,9 @@ export type Pedido = {
   oferta_aceptada_id: string | null;
   creado_en: string;
   actualizado_en: string;
+  /** Verificación reforzada (0017): solo existe en pedidos de monto alto. */
+  reforzada_estado?: EstadoReforzada | null;
+  reforzada_monto?: number | null;
 };
 
 export type Oferta = {
@@ -489,4 +492,74 @@ export type EntradaBitacora = {
   detalle: Record<string, unknown>;
   actor: string;
   creado_en: string;
+};
+
+// ---------------------------------------------------------------- límites (ES-17)
+/** null = el pedido no necesita verificación reforzada. */
+export type EstadoReforzada = 'pendiente' | 'aprobada' | 'rechazada';
+
+/** Lo que devuelve mis_limites_pedido(): null = esa regla no aplica. */
+export type LimitesPedido = {
+  completados: number;
+  pedidos_necesarios: number;
+  cuenta_nueva: boolean;
+  limite_cuenta_nueva: number | null;
+  tope_piloto: number | null;
+  maximo: number | null;
+  umbral_reforzada: number | null;
+};
+
+export type ReforzadaAdmin = {
+  pedido_id: string;
+  titulo: string;
+  estado_pedido: EstadoPedido;
+  cliente_id: string;
+  cliente: string;
+  telefono: string | null;
+  completados: number;
+  monto: number | null;
+  total_cobrado: number | null;
+  reforzada: EstadoReforzada;
+  marcada_en: string | null;
+  resuelta_en: string | null;
+  resuelta_por: string | null;
+  nota: string | null;
+};
+
+// ---------------------------------------------------------------- libro de reclamaciones (ES-15)
+export type TipoReclamacion = 'reclamo' | 'queja';
+export type EstadoReclamacion = 'pendiente' | 'respondido';
+
+export type NuevaReclamacion = {
+  nombre: string;
+  tipo_documento: 'DNI' | 'CE' | 'Pasaporte';
+  numero_documento: string;
+  domicilio: string;
+  telefono: string | null;
+  correo: string;
+  menor_de_edad: boolean;
+  apoderado: string | null;
+  bien_tipo: 'producto' | 'servicio';
+  bien_descripcion: string;
+  monto: number | null;
+  codigo_pedido: string | null;
+  tipo: TipoReclamacion;
+  detalle: string;
+  pedido_consumidor: string;
+  acepta_tratamiento: boolean;
+};
+
+export type ConstanciaReclamacion = { numero: string; creado_en: string; vence_en: string };
+
+export type ReclamacionAdmin = Omit<NuevaReclamacion, 'acepta_tratamiento'> & {
+  id: string;
+  numero: string;
+  creado_en: string;
+  vence_en: string;
+  /** Días hábiles que quedan; negativo = vencido. */
+  dias_restantes: number;
+  estado: EstadoReclamacion;
+  respuesta: string | null;
+  respondido_en: string | null;
+  respondido_por: string | null;
 };

@@ -174,9 +174,10 @@ export const SIGUIENTE_PASO_COMPRADOR: Partial<
 
 /** Cómo se muestra cada aviso en la bandeja. */
 export const TIPO_AVISO: Record<
-  'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion',
+  'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion' | 'reforzada',
   { etiqueta: string; color: string }
 > = {
+  reforzada: { etiqueta: 'Verificación', color: '#9C6B12' },
   oferta: { etiqueta: 'Oferta', color: '#2E6A55' },
   pedido: { etiqueta: 'Pedido', color: '#C65A3A' },
   pago: { etiqueta: 'Dinero', color: '#3B7F4C' },
@@ -255,6 +256,32 @@ export const PROHIBIDOS = [
   'Dinero, joyas de alto valor y bienes de origen dudoso',
   'Drogas y productos con sustancias controladas',
 ];
+
+/**
+ * Libro de reclamaciones virtual (acción ES-15, Ley N° 29571 y D.S. N°
+ * 011-2011-PCM). El formato oficial pide identificar al proveedor.
+ * TODO(ES-15): completar razón social, RUC y domicilio fiscal cuando la
+ * empresa esté constituida; hasta entonces se muestra «en trámite».
+ */
+export const PROVEEDOR = {
+  nombre: 'Encárgalo',
+  razonSocial: null as string | null,
+  ruc: null as string | null,
+  domicilio: 'Chiclayo, Lambayeque, Perú',
+};
+
+/** Las dos clases de hoja que distingue el reglamento. */
+export const TIPO_RECLAMACION = {
+  reclamo: {
+    etiqueta: 'Reclamo',
+    detalle: 'Disconformidad con el producto o el servicio que contrataste.',
+  },
+  queja: {
+    etiqueta: 'Queja',
+    detalle:
+      'Malestar con la atención recibida, o una disconformidad que no tiene que ver con el producto o el servicio.',
+  },
+} as const;
 
 /** Umbral desde el que un envío paga impuestos de importación (US$). */
 export const UMBRAL_IMPUESTO_USD = 200;

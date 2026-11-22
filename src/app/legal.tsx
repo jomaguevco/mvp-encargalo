@@ -1,6 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { VERSION_TERMINOS } from '@/lib/negocio';
-import { Aviso, Micro, Parrafo, Subtitulo } from '@/ui/componentes';
+import { router } from 'expo-router';
+import { Aviso, Boton, Micro, Parrafo, Subtitulo } from '@/ui/componentes';
 import { E } from '@/ui/tema';
 
 /**
@@ -61,8 +62,9 @@ const TERMINOS: [string, string][] = [
   ['8. Reclamos',
    'Los reclamos se presentan por el chat de soporte o por correo, y se responden en ' +
    'un plazo máximo de 15 días hábiles, según el Código de Protección y Defensa del ' +
-   'Consumidor (Ley N° 29571). El libro de reclamaciones virtual estará disponible ' +
-   'dentro de la aplicación.'],
+   'Consumidor (Ley N° 29571). También puedes registrar una hoja en nuestro libro de ' +
+   'reclamaciones virtual, con o sin cuenta: recibes un número correlativo como ' +
+   'constancia.'],
 ];
 
 const PRIVACIDAD: [string, string][] = [
@@ -111,6 +113,14 @@ export default function Legal() {
       {TERMINOS.map(([t, x]) => (
         <Bloque key={t} titulo={t} texto={x} />
       ))}
+
+      <Boton
+        titulo="Abrir el libro de reclamaciones"
+        icono="book-outline"
+        variante="fantasma"
+        onPress={() => router.push('/reclamaciones' as never)}
+        style={{ marginBottom: E.xl }}
+      />
 
       <Subtitulo>Política de privacidad</Subtitulo>
       {PRIVACIDAD.map(([t, x]) => (

@@ -65,6 +65,7 @@ export default function RootLayout() {
         <Stack.Screen name="entrar" options={{ headerShown: false, ...sinMargen }} />
         <Stack.Screen name="registro" options={{ title: 'Crear cuenta' }} />
         <Stack.Screen name="legal" options={{ title: 'Términos y privacidad' }} />
+        <Stack.Screen name="reclamaciones" options={{ title: 'Libro de reclamaciones' }} />
         <Stack.Screen name="(app)" options={{ headerShown: false, ...sinMargen }} />
         <Stack.Screen name="verificacion" options={{ title: 'Verificar identidad' }} />
         <Stack.Screen name="publicar" options={{ title: 'Nuevo pedido' }} />
