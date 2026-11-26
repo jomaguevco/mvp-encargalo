@@ -23,6 +23,7 @@ import type {
   NuevaReclamacion,
   ReclamacionAdmin,
   ReclamacionRegistrada,
+  SolicitudEliminacion,
   Oferta,
   OfertaConReputacion,
   OfertaEnviada,
@@ -1059,4 +1060,36 @@ export async function reenviarRespuestaReclamacion(id: string): Promise<boolean>
   } catch {
     return false;
   }
+}
+
+// ------------------------------------------------------- eliminar la cuenta
+/** El usuario pide eliminar su cuenta (requisito de Google Play). */
+export async function solicitarEliminacionCuenta(motivo?: string) {
+  const { error } = await supabase.rpc('solicitar_eliminacion_cuenta', { p_motivo: motivo ?? null });
+  revienta(error);
+}
+
+/** Si ya pidió eliminarla y está pendiente, desde cuándo. */
+export async function miSolicitudEliminacion(): Promise<string | null> {
+  const { data } = await supabase
+    .from('solicitudes_eliminacion')
+    .select('creado_en, resuelta_en')
+    .maybeSingle();
+  return data && !data.resuelta_en ? (data.creado_en as string) : null;
+}
+
+export async function solicitudesEliminacion(): Promise<SolicitudEliminacion[]> {
+  const { data, error } = await supabase.rpc('admin_solicitudes_eliminacion');
+  if (error) return []; // sin la migración 0020 el panel sigue funcionando
+  return (data ?? []) as SolicitudEliminacion[];
+}
+
+/** Anonimiza la cuenta y borra sus imágenes del Storage. */
+export async function eliminarCuenta(perfilId: string): Promise<{ accesoBloqueado: boolean }> {
+  const { data, error } = await supabase.rpc('admin_eliminar_cuenta', { p_perfil: perfilId });
+  revienta(error);
+  const r = data as { documentos: string[]; avatares: string[]; acceso_bloqueado: boolean };
+  if (r.documentos?.length) await supabase.storage.from('documentos').remove(r.documentos).catch(() => undefined);
+  if (r.avatares?.length) await supabase.storage.from('avatares').remove(r.avatares).catch(() => undefined);
+  return { accesoBloqueado: r.acceso_bloqueado };
 }

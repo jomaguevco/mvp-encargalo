@@ -558,3 +558,12 @@ export type IndicadorReclamaciones = {
   pendientes: number;
   vencidas: number;
 };
+
+/** Solicitud de eliminación de cuenta pendiente (0020). */
+export type SolicitudEliminacion = {
+  perfil_id: string;
+  nombre: string;
+  motivo: string | null;
+  creado_en: string;
+  pedidos_en_curso: number;
+};

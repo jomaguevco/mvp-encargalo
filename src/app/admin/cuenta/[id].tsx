@@ -139,6 +139,29 @@ export default function FichaCuentaAdmin() {
           }}
         />
       )}
+      {!soyYo && p.nombre_completo !== 'Cuenta eliminada' && (
+        <BotonAdmin
+          titulo="Eliminar cuenta"
+          icono="trash-outline"
+          variante="peligro"
+          deshabilitado={ocupado}
+          onPress={async () => {
+            const ok = await confirmar(
+              'Eliminar cuenta',
+              `Se anonimiza a ${p.nombre_completo}: nombre, DNI, teléfono, correo y fotos. Sus pedidos y pagos quedan sin su nombre. No se puede deshacer.`,
+              'Eliminar',
+              true,
+            );
+            if (!ok) return;
+            hacer(async () => {
+              const r = await api.eliminarCuenta(p.id);
+              if (!r.accesoBloqueado) {
+                avisar('Cuenta anonimizada', 'Falta borrar su correo en Supabase → Authentication → Users (este proyecto no deja hacerlo desde SQL).');
+              }
+            });
+          }}
+        />
+      )}
       {!!p.foto_path && (
         <BotonAdmin
           titulo="Quitar foto"

@@ -107,6 +107,7 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0017_limite_consultas_dni.sql` | Límites persistentes de `consultar-dni` por IP, por usuario y por día (ver 6) |
 | `0018_comision_y_limites.sql` | Comisión activa (10 % / 3 %) con 0 % en el primer pedido de los clientes del piloto, límite de S/ 500 para cuentas nuevas y videollamada para pedidos de más de S/ 1,500 (ver 6d) |
 | `0019_libro_reclamaciones.sql` | Libro de reclamaciones virtual: hojas con número correlativo, plazo de 15 días hábiles y respuesta desde `/admin` (ver 6e) |
+| `0020_eliminar_cuenta.sql` | Eliminar la cuenta (requisito de Google Play): solicitud desde la app o `/app/eliminar-cuenta`, anonimización desde `/admin` |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -360,6 +361,16 @@ persona ve la constancia en pantalla.
 
 Antes de publicar, cambia la razón social y el RUC en `PROVEEDOR`
 (`src/lib/negocio.ts` y `supabase/functions/libro-reclamaciones/plantilla.ts`).
+
+### 6f. Eliminar la cuenta (requisito de Google Play)
+
+Google Play exige que una app que deja crear cuentas deje pedir su eliminación desde la
+app y desde un enlace web. La persona la pide en **Perfil → Eliminar mi cuenta** o en
+`https://encargalo.vercel.app/app/eliminar-cuenta` (ese es el enlace que va en la
+sección «Seguridad de los datos» de Play Console). La solicitud aparece en el resumen
+de `/admin`, y el administrador la resuelve en **Cuentas → la cuenta → Eliminar
+cuenta** dentro de 7 días: nombre, DNI, teléfono, correo y fotos se borran, y los
+pedidos y pagos quedan sin datos personales. No se puede con un pedido en curso.
 
 ### Indicadores de las tareas
 

@@ -67,6 +67,7 @@ export default function RootLayout() {
         <Stack.Screen name="recuperar" options={{ title: 'Recuperar contraseña' }} />
         <Stack.Screen name="legal" options={{ title: 'Términos y privacidad' }} />
         <Stack.Screen name="reclamaciones" options={{ title: 'Libro de reclamaciones' }} />
+        <Stack.Screen name="eliminar-cuenta" options={{ title: 'Eliminar mi cuenta' }} />
         <Stack.Screen name="(app)" options={{ headerShown: false, ...sinMargen }} />
         <Stack.Screen name="verificacion" options={{ title: 'Verificar identidad' }} />
         <Stack.Screen name="publicar" options={{ title: 'Nuevo pedido' }} />
