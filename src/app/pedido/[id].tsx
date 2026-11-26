@@ -718,6 +718,19 @@ function DetallePedido() {
           />
         )}
   
+        {/* ------------------------------------ libro de reclamaciones */}
+        {participo && (
+          <Pressable
+            onPress={() => router.push(`/reclamaciones?pedido=${pedido.id}`)}
+            accessibilityRole="link"
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: E.sm }}>
+            <Ionicons name="book-outline" size={16} color={C.textoSuave} />
+            <Text style={{ fontSize: 13, color: C.textoSuave, fontWeight: '600' }}>
+              ¿Un reclamo sobre Encárgalo? Libro de reclamaciones
+            </Text>
+          </Pressable>
+        )}
+
         {/* ------------------------------------ cancelar */}
         {soyCliente && CANCELABLES.includes(pedido.estado) && pago?.estado !== 'en_revision' && (
           <Tarjeta>
@@ -1091,7 +1104,7 @@ function PanelPago({
         />
         <Dato
           icono="briefcase-outline"
-          etiqueta="Comisión de servicio"
+          etiqueta={pago.beneficio_piloto ? 'Comisión de servicio (beneficio del piloto)' : 'Comisión de servicio'}
           valor={soles(pago.comision_cliente)}
         />
         <Dato

@@ -35,6 +35,7 @@ export default function FichaCuentaAdmin() {
   const [parecidas, setParecidas] = useState<CuentaParecida[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [videollamada, setVideollamada] = useState<string | null>(null);
   const { es: escritorio } = useEscritorio();
 
   const cargar = useCallback(async () => {
@@ -47,6 +48,7 @@ export default function FichaCuentaAdmin() {
       ]);
       setFicha(f);
       setParecidas(p);
+      setVideollamada(await api.videollamadaDe(id).catch(() => null));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -123,6 +125,20 @@ export default function FichaCuentaAdmin() {
             }}
           />
         ))}
+      {!soyYo && p.verificacion === 'verificado' && (
+        <BotonAdmin
+          titulo={videollamada ? `Videollamada ${hace(videollamada)}` : 'Registrar videollamada'}
+          icono="videocam-outline"
+          deshabilitado={ocupado}
+          onPress={() => {
+            const nota = pedirTexto(
+              `Videollamada con ${p.nombre_completo}`,
+              'Confirma que hiciste la videollamada: viste su cara y su DNI en cámara y coinciden con la cuenta. Desde ahora podrá aceptar pedidos de monto alto. Anota algo breve (queda en la bitácora).',
+            );
+            if (nota) hacer(() => api.registrarVideollamada(p.id, nota));
+          }}
+        />
+      )}
       {!!p.foto_path && (
         <BotonAdmin
           titulo="Quitar foto"

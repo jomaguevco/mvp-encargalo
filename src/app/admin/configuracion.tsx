@@ -21,6 +21,9 @@ const META: Record<string, { titulo: string; unidad: string; porcentaje?: boolea
   dias_para_confirmar: { titulo: 'Días para confirmar la recepción', unidad: 'días', grupo: 'Plazos' },
   umbral_rostro_aprobar: { titulo: 'Similitud mínima para aprobar sola', unidad: '%', grupo: 'Filtro biométrico' },
   umbral_rostro_rechazar: { titulo: 'Similitud por debajo de la cual se rechaza', unidad: '%', grupo: 'Filtro biométrico' },
+  limite_cuenta_nueva: { titulo: 'Monto máximo por pedido en cuentas nuevas', unidad: 'S/', grupo: 'Límites de cuentas nuevas' },
+  pedidos_para_quitar_limite: { titulo: 'Pedidos completados para quitar el límite', unidad: 'pedidos', grupo: 'Límites de cuentas nuevas' },
+  monto_videollamada: { titulo: 'Pedidos que exigen videollamada (más de)', unidad: 'S/', grupo: 'Límites de cuentas nuevas' },
 };
 
 const aPantalla = (c: ConfigItem) =>

@@ -98,6 +98,8 @@ export type Pago = {
   total_cobrado: number;
   tarifa_comprador: number;
   monto_liberado: number;
+  /** No pagó comisión por haber participado en el piloto (0018). */
+  beneficio_piloto?: boolean;
   metodo: MetodoPago | null;
   codigo_operacion: string | null;
   comprobante_path: string | null;
@@ -149,6 +151,18 @@ export type Reputacion = {
   total_calificaciones: number;
   antiguedad_dias: number;
   foto_path?: string | null;
+};
+
+/** Límites de la cuenta del cliente (mis_limites, 0018). */
+export type MisLimites = {
+  /** Monto máximo por pedido; null si ya no tiene límite de cuenta nueva. */
+  limite: number | null;
+  completados: number;
+  requeridos: number;
+  monto_videollamada: number | null;
+  videollamada: boolean;
+  /** Su próximo pedido no paga comisión (cliente del piloto). */
+  beneficio_piloto: boolean;
 };
 
 export type DesglosePrecio = {
@@ -489,4 +503,58 @@ export type EntradaBitacora = {
   detalle: Record<string, unknown>;
   actor: string;
   creado_en: string;
+};
+
+/** Libro de reclamaciones (0019). */
+export type TipoReclamacion = 'reclamo' | 'queja';
+
+export type NuevaReclamacion = {
+  tipo: TipoReclamacion;
+  nombre: string;
+  documento_tipo: 'DNI' | 'CE' | 'Pasaporte';
+  documento_numero: string;
+  domicilio: string;
+  telefono: string | null;
+  correo: string;
+  menor_de_edad: boolean;
+  apoderado: string | null;
+  bien_tipo: 'producto' | 'servicio';
+  monto: number | null;
+  bien_descripcion: string;
+  pedido_id: string | null;
+  detalle: string;
+  pedido_consumidor: string;
+};
+
+export type ReclamacionRegistrada = {
+  id: string;
+  correlativo: string;
+  creado_en: string;
+  plazo_vence: string;
+  /** Si la copia llegó al correo; false si hay que guardarla desde la pantalla. */
+  copiaEnviada: boolean;
+};
+
+export type ReclamacionAdmin = Omit<NuevaReclamacion, 'tipo'> & {
+  id: string;
+  tipo: TipoReclamacion;
+  correlativo: string;
+  creado_en: string;
+  plazo_vence: string;
+  /** Días hábiles que faltan; negativo si venció; null si ya se respondió. */
+  dias_restantes: number | null;
+  estado: 'recibido' | 'respondido';
+  respuesta: string | null;
+  respondido_en: string | null;
+  respondido_por_nombre: string | null;
+  copia_enviada_en: string | null;
+  respuesta_enviada_en: string | null;
+};
+
+export type IndicadorReclamaciones = {
+  recibidas: number;
+  respondidas: number;
+  en_plazo: number;
+  pendientes: number;
+  vencidas: number;
 };

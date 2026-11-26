@@ -367,3 +367,7 @@ p { margin: 0; }
   .tarifa { flex-direction: column; gap: 2px; }
   .tarifa strong { text-align: left; }
 }
+
+/* Libro de reclamaciones: visible en el pie (Ley N° 29571) */
+.pie-rejilla a.libro-reclamaciones { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(242, 235, 225, .28); border-radius: 10px; color: var(--arena); }
+.pie-rejilla a.libro-reclamaciones:hover { border-color: var(--arena); }

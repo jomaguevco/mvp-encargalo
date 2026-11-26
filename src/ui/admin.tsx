@@ -538,6 +538,8 @@ export const ACCION_BITACORA: Record<string, string> = {
   disputa_resuelta_cliente: 'Disputa resuelta a favor del cliente',
   disputa_resuelta_comprador: 'Disputa resuelta a favor del comprador',
   config_actualizada: 'Configuración cambiada',
+  videollamada_verificada: 'Videollamada de verificación',
+  reclamacion_respondida: 'Reclamación respondida',
   foto_quitada: 'Foto de perfil quitada por moderación',
 };
 

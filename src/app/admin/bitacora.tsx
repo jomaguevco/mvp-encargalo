@@ -14,13 +14,14 @@ import {
 } from '@/ui/admin';
 import { Aviso, Cargando } from '@/ui/componentes';
 
-type Tipo = 'todos' | 'perfil' | 'pago' | 'disputa' | 'config';
+type Tipo = 'todos' | 'perfil' | 'pago' | 'disputa' | 'reclamacion' | 'config';
 
 const TIPOS: { valor: Tipo; etiqueta: string }[] = [
   { valor: 'todos', etiqueta: 'Todo' },
   { valor: 'perfil', etiqueta: 'Cuentas y verificaciones' },
   { valor: 'pago', etiqueta: 'Pagos' },
   { valor: 'disputa', etiqueta: 'Disputas' },
+  { valor: 'reclamacion', etiqueta: 'Reclamaciones' },
   { valor: 'config', etiqueta: 'Configuración' },
 ];
 
@@ -76,6 +77,7 @@ export default function BitacoraAdmin() {
     if (!e.objetivo_id) return;
     if (e.objetivo_tipo === 'perfil') router.push(`/admin/cuenta/${e.objetivo_id}`);
     else if (e.objetivo_tipo === 'pago') router.push(`/admin/pedido/${e.objetivo_id}`);
+    else if (e.objetivo_tipo === 'reclamacion') router.push('/admin/reclamaciones');
     else if (e.objetivo_tipo === 'disputa' && typeof e.detalle?.pedido_id === 'string') {
       router.push(`/admin/pedido/${e.detalle.pedido_id}`);
     }
