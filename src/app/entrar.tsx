@@ -185,6 +185,14 @@ export default function Entrar() {
                 }
               />
 
+              <Pressable
+                onPress={() => router.push('/recuperar-clave')}
+                accessibilityRole="link"
+                hitSlop={8}
+                style={({ pressed }) => [s.olvide, pressed && { opacity: 0.7 }]}>
+                <Text style={s.olvideTexto}>¿Olvidaste tu contraseña?</Text>
+              </Pressable>
+
               <Boton titulo="Entrar" icono="log-in-outline" onPress={enviar} cargando={cargando} />
 
               <View style={s.separador}>
@@ -228,6 +236,8 @@ export default function Entrar() {
 }
 
 const s = StyleSheet.create({
+  olvide: { alignSelf: 'flex-end', marginTop: -E.xs, marginBottom: E.md, paddingVertical: 2 },
+  olvideTexto: { fontSize: 13.5, color: C.naranjaOscuro, fontWeight: '600' },
   legales: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: E.lg, flexWrap: 'wrap' },
   legalesTexto: { fontSize: 13, color: C.textoSuave, textDecorationLine: 'underline' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: E.xl },
