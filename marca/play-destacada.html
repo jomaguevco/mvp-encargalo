@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* Imagen destacada de Google Play (1024 × 500). La genera marca/generar.py.
+     Lo importante va en el centro: Play recorta los bordes en algunas vistas. */
+  body { margin: 0; width: 1024px; height: 500px; overflow: hidden;
+    font-family: 'Instrument Sans', sans-serif; color: #F2EBE1; background: #14352B; }
+  .caja { position: absolute; left: 72px; top: 108px; width: 600px; }
+  .marca { display: flex; align-items: center; gap: 14px;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 34px; letter-spacing: -.025em; }
+  .marca div { width: 52px; height: 52px; }
+  h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 46px; line-height: 1.06;
+    letter-spacing: -.03em; margin: 36px 0 0; font-weight: 800; }
+  h1 em { font-style: normal; color: #D9B45A; }
+  .chips { display: flex; gap: 12px; margin-top: 34px; }
+  .chip { font-weight: 600; font-size: 19px; padding: 9px 18px; border-radius: 99px;
+    color: #F2EBE1; border: 1px solid rgba(242,235,225,.28); }
+  .iso { position: absolute; right: 64px; top: 110px; width: 280px; height: 280px; }
+</style></head>
+<body>
+  <div class="caja">
+    <div class="marca"><div>{{SIMBOLO_OSCURO}}</div>Encárgalo</div>
+    <h1>Encargos de EE. UU. a Perú<br><em>con tu pago protegido</em></h1>
+    <div class="chips"><span class="chip">Identidad verificada</span><span class="chip">Pago retenido</span><span class="chip">Reputación</span></div>
+  </div>
+  <div class="iso">{{SIMBOLO_OSCURO}}</div>
+</body></html>

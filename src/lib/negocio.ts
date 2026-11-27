@@ -309,3 +309,14 @@ export function coincideConReniec(
   );
   return mias.every((p) => suyas.has(p));
 }
+
+/**
+ * Datos del proveedor en la hoja de reclamación (Ley N° 29571). Mantenerlos
+ * iguales a PROVEEDOR en supabase/functions/libro-reclamaciones/plantilla.ts.
+ * Cambiar la razón social y el RUC en cuanto la empresa esté inscrita.
+ */
+export const PROVEEDOR = {
+  razonSocial: 'Encárgalo (razón social en trámite)',
+  ruc: 'En trámite',
+  domicilio: 'Chiclayo, Lambayeque, Perú',
+};

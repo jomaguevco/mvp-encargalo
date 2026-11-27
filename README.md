@@ -105,6 +105,9 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0015_dni_en_registro.sql` | El DNI escrito en el registro se copia al perfil al crear la cuenta |
 | `0016_seguridad.sql` | Cierra huecos de seguridad: nombre y DNI fijos una vez en revisión o verificado, fotos solo de la carpeta propia y distintas entre sí, nadie oferta ni acepta en su propio pedido, avisos solo desde los *triggers*, aprobación biométrica automática apagada (ver 6b) |
 | `0017_limite_consultas_dni.sql` | Límites persistentes de `consultar-dni` por IP, por usuario y por día (ver 6) |
+| `0018_comision_y_limites.sql` | Comisión activa (10 % / 3 %) con 0 % en el primer pedido de los clientes del piloto, límite de S/ 500 para cuentas nuevas y videollamada para pedidos de más de S/ 1,500 (ver 6d) |
+| `0019_libro_reclamaciones.sql` | Libro de reclamaciones virtual: hojas con número correlativo, plazo de 15 días hábiles y respuesta desde `/admin` (ver 6e) |
+| `0020_eliminar_cuenta.sql` | Eliminar la cuenta (requisito de Google Play): solicitud desde la app o `/app/eliminar-cuenta`, anonimización desde `/admin` |
 
 Para comprobar que quedó bien, ejecuta:
 
@@ -315,6 +318,82 @@ Sin `{{ .Token }}` el correo solo trae un enlace y la app no tiene dónde usarlo
 El servidor de correo de prueba de Supabase envía muy pocos correos por hora. Para
 el piloto conviene configurar un SMTP propio (Resend, Brevo, Gmail) en
 **Authentication → Emails → SMTP Settings**.
+
+### 6d. Comisión, beneficio del piloto y límites de cuentas nuevas
+
+`0018_comision_y_limites.sql` deja la comisión en 10 % al cliente y 3 % al comprador
+externo (los valores de la hoja «Supuestos» del flujo de caja) y agrega tres montos que
+se cambian en **/admin → Configuración**:
+
+| Clave | Valor | Qué hace |
+|---|---|---|
+| `limite_cuenta_nueva` | 500 | Tope por pedido (S/) mientras el cliente no completa sus primeros pedidos. Se aplica al publicar (valor referencial) y al aceptar la oferta |
+| `pedidos_para_quitar_limite` | 3 | Pedidos confirmados para dejar de tener el tope |
+| `monto_videollamada` | 1500 | Por encima de este monto, aceptar una oferta exige que un operador haya registrado una videollamada con el cliente |
+
+- **Beneficio del piloto.** Quien tuvo un pedido creado antes del 02/11/2026 con pago
+  retenido o liberado no paga comisión en su primer pedido posterior (el comprador
+  externo sí paga su 3 %). El pago queda marcado con `beneficio_piloto = true`. Si ese
+  pedido se cancela, el beneficio vuelve a estar disponible.
+- **Videollamada.** El operador la hace (WhatsApp o Meet: cara y DNI en cámara) y la
+  registra en **/admin → Cuentas → la cuenta → Registrar videollamada**. Queda en la
+  bitácora.
+
+### 6e. Libro de reclamaciones virtual
+
+Formulario público en `/app/reclamaciones` (enlazado en el pie de la web, en el perfil
+y en cada pedido). Cada hoja recibe un número `REC-AAAA-000001` sin saltos y un plazo
+de 15 días hábiles que descuenta fines de semana y los feriados de la tabla
+`feriados` (cargados 2026 y 2027). Se responde desde **/admin → Reclamaciones**.
+
+La copia al reclamante y la respuesta se envían con la API de Brevo (la misma cuenta
+del SMTP). Una sola vez:
+
+```bash
+npx supabase secrets set BREVO_API_KEY=xkeysib-... CORREO_REMITENTE=remitente-verificado@... CORREO_RECLAMOS=correo-del-equipo@...
+npx supabase functions deploy libro-reclamaciones --no-verify-jwt
+```
+
+La clave se crea en Brevo → **SMTP & API → API Keys** (no es la contraseña SMTP).
+`CORREO_REMITENTE` debe ser un remitente verificado en Brevo. `CORREO_RECLAMOS` recibe
+una copia oculta de cada hoja. Si el correo falla, la hoja igual queda registrada y la
+persona ve la constancia en pantalla.
+
+Antes de publicar, cambia la razón social y el RUC en `PROVEEDOR`
+(`src/lib/negocio.ts` y `supabase/functions/libro-reclamaciones/plantilla.ts`).
+
+### 6f. Eliminar la cuenta (requisito de Google Play)
+
+Google Play exige que una app que deja crear cuentas deje pedir su eliminación desde la
+app y desde un enlace web. La persona la pide en **Perfil → Eliminar mi cuenta** o en
+`https://encargalo.vercel.app/app/eliminar-cuenta` (ese es el enlace que va en la
+sección «Seguridad de los datos» de Play Console). La solicitud aparece en el resumen
+de `/admin`, y el administrador la resuelve en **Cuentas → la cuenta → Eliminar
+cuenta** dentro de 7 días: nombre, DNI, teléfono, correo y fotos se borran, y los
+pedidos y pagos quedan sin datos personales. No se puede con un pedido en curso.
+
+### Indicadores de las tareas
+
+```sql
+-- ES-03 · ingresos por comisión de pagos liberados (por mes)
+select date_trunc('month', liberado_en) as mes,
+       sum(comision_cliente + tarifa_comprador) as ingreso,
+       count(*) filter (where beneficio_piloto) as con_beneficio_piloto
+from pagos where estado = 'liberado' group by 1 order by 1;
+
+-- ES-15 · reclamaciones respondidas en plazo ÷ recibidas
+select count(*) filter (where estado = 'respondido'
+         and (respondido_en at time zone 'America/Lima')::date <= plazo_vence)::numeric
+       / nullif(count(*), 0) as es15
+from reclamaciones;
+
+-- ES-17 · disputas ÷ pedidos con pago retenido (desde el 16/11)
+select (select count(distinct d.pedido_id) from disputas d
+          join pedidos p on p.id = d.pedido_id where p.creado_en >= '2026-11-16')::numeric
+     / nullif((select count(*) from pagos g join pedidos p on p.id = g.pedido_id
+               where p.creado_en >= '2026-11-16'
+                 and g.retenido_en is not null), 0) as es17;
+```
 
 ### 7. Generar el APK para repartir
 

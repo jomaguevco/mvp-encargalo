@@ -54,10 +54,11 @@ const TERMINOS: [string, string][] = [
    'plazos ofrecidos y no usar la plataforma para fines ilícitos. El incumplimiento ' +
    'puede llevar a la suspensión de la cuenta.'],
   ['8. Reclamos',
-   'Los reclamos se presentan por el chat de soporte o por correo, y se responden en ' +
-   'un plazo máximo de 15 días hábiles, según el Código de Protección y Defensa del ' +
-   'Consumidor (Ley N° 29571). El libro de reclamaciones virtual estará disponible ' +
-   'dentro de la aplicación.'],
+   'Los reclamos y las quejas se presentan en el libro de reclamaciones virtual (en tu ' +
+   'perfil o en encargalo.vercel.app/app/reclamaciones), sin necesidad de tener cuenta. ' +
+   'Cada hoja recibe un número correlativo, te llega una copia al correo y se responde ' +
+   'en un plazo máximo de 15 días hábiles, según el Código de Protección y Defensa del ' +
+   'Consumidor (Ley N° 29571).'],
 ];
 
 const PRIVACIDAD: [string, string][] = [

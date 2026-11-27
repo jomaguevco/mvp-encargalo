@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import * as api from '@/lib/api';
 import { ESTADO_PEDIDO, soles } from '@/lib/negocio';
-import type { EstadoPedido, ResumenAdmin } from '@/lib/tipos';
+import type { EstadoPedido, ResumenAdmin, SolicitudEliminacion } from '@/lib/tipos';
 import {
   BarrasDiarias,
   Bloque,
@@ -42,6 +42,7 @@ export default function ResumenAdminPantalla() {
   const [datos, setDatos] = useState<ResumenAdmin | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
+  const [bajas, setBajas] = useState<SolicitudEliminacion[]>([]);
   const { es: escritorio } = useEscritorio();
 
   const cargar = useCallback(async (r: Rango) => {
@@ -51,6 +52,7 @@ export default function ResumenAdminPantalla() {
     try {
       setError(null);
       setDatos(await api.resumenAdmin(desde, hasta));
+      setBajas(await api.solicitudesEliminacion());
     } catch (e) {
       setError((e as Error).message);
     }
@@ -111,6 +113,14 @@ export default function ResumenAdminPantalla() {
           <BotonAdmin titulo="Exportar serie diaria" icono="calendar-outline" onPress={exportarSerie} />
         </>
       }>
+      {bajas.length > 0 && (
+        <Aviso tono="alerta" titulo={`${bajas.length} solicitud(es) para eliminar la cuenta`}>
+          {bajas
+            .map((b) => `${b.nombre} (desde ${b.creado_en.slice(0, 10)}${b.pedidos_en_curso ? `, ${b.pedidos_en_curso} pedido(s) en curso` : ''})`)
+            .join(' · ')}
+          {'\n'}Plazo: 7 días. Ábrelas en Cuentas → la cuenta → Eliminar cuenta.
+        </Aviso>
+      )}
       {/* --------------------------------------------- lo que espera ahora */}
       <Bloque titulo="Ahora mismo" icono="flash-outline">
         <GrillaKpi>

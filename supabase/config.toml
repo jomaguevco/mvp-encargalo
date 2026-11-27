@@ -16,3 +16,9 @@ verify_jwt = false
 
 [functions.verificar-identidad]
 verify_jwt = false
+
+# libro-reclamaciones manda la copia sin sesión (el formulario es público y
+# la protege el token de la hoja); la respuesta exige sesión de administrador
+# y lo comprueba dentro.
+[functions.libro-reclamaciones]
+verify_jwt = false

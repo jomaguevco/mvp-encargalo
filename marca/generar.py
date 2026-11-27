@@ -111,6 +111,10 @@ if __name__ == "__main__":
     png(lienzo(SIMBOLO_OSCURO, 512), img / "splash-icon.png", 512, 512)
     png(lienzo(ISOTIPO, 48), img / "favicon.png", 48, 48)
 
+    print("Google Play:")
+    play = RAIZ / "marca" / "play"
+    png(lienzo(ISOTIPO, 512), play / "icono-512.png", 512, 512)
+
     print("Web:")
     png(lienzo(ISOTIPO, 180), web / "apple-touch-icon.png", 180, 180)
     png(lienzo(ISOTIPO, 32), web / "favicon-32.png", 32, 32)
@@ -122,3 +126,4 @@ if __name__ == "__main__":
     ]:
         if (AQUI / nombre).exists():
             pagina(nombre, ancho, alto, web / salida)
+    pagina("play-destacada.html", 1024, 500, play / "destacada-1024x500.png")

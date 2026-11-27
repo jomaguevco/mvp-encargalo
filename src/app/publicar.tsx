@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { conSesion, volver } from '@/ui/navegacion';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -13,7 +13,8 @@ import {
   View,
 } from 'react-native';
 import { Text } from '@/ui/Texto';
-import { publicarPedido, subirImagenProducto } from '@/lib/api';
+import { misLimites, publicarPedido, subirImagenProducto } from '@/lib/api';
+import type { MisLimites } from '@/lib/tipos';
 import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD, fecha } from '@/lib/negocio';
 import { Aviso, Boton, Campo, Entrada, Etiqueta, Opciones, Tarjeta } from '@/ui/componentes';
 import { estiloCategoria } from '@/ui/iconos';
@@ -53,6 +54,11 @@ function Publicar() {
   const [verProhibidos, setVerProhibidos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [limites, setLimites] = useState<MisLimites | null>(null);
+
+  useEffect(() => {
+    misLimites().then(setLimites);
+  }, []);
 
   async function elegirFoto() {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -67,6 +73,8 @@ function Publicar() {
     if (cantidad < 1 || cantidad > 20) return 'La cantidad debe estar entre 1 y 20';
     if (valor.trim() && (Number.isNaN(Number(valor)) || Number(valor) <= 0))
       return 'El valor referencial debe ser un número mayor que cero';
+    if (limites?.limite != null && valor.trim() && Number(valor) > limites.limite)
+      return `Mientras completas tus primeros ${limites.requeridos} pedidos, cada pedido puede ser de hasta S/ ${limites.limite}.`;
     return null;
   }
 
@@ -121,6 +129,26 @@ function Publicar() {
         </Entrada>
 
         {!!error && <Aviso tono="error">{error}</Aviso>}
+
+        {limites?.beneficio_piloto && (
+          <Aviso tono="exito" titulo="Tu próximo pedido no paga comisión">
+            Gracias por participar en el piloto de Encárgalo. En tu primer pedido desde el 2 de
+            noviembre no pagas el 10 % de comisión.
+          </Aviso>
+        )}
+
+        {limites?.limite != null && (
+          <Aviso titulo={`Cuenta nueva: pedidos de hasta S/ ${limites.limite}`}>
+            Para proteger a todos, hasta completar {limites.requeridos} pedidos cada uno puede ser
+            de hasta S/ {limites.limite}. Llevas {limites.completados} de {limites.requeridos}.
+          </Aviso>
+        )}
+        {limites?.limite == null && limites?.monto_videollamada != null && !limites.videollamada && (
+          <Aviso titulo="Pedidos grandes">
+            Para pedidos de más de S/ {limites.monto_videollamada} haremos una videollamada corta
+            contigo antes de que pagues, para confirmar tu identidad.
+          </Aviso>
+        )}
 
         <Entrada i={1}>
           <Tarjeta>

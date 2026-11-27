@@ -18,6 +18,12 @@ import type {
   FiltroVerificaciones,
   Mensaje,
   MetodoPago,
+  MisLimites,
+  IndicadorReclamaciones,
+  NuevaReclamacion,
+  ReclamacionAdmin,
+  ReclamacionRegistrada,
+  SolicitudEliminacion,
   Oferta,
   OfertaConReputacion,
   OfertaEnviada,
@@ -420,6 +426,13 @@ export async function aceptarOferta(ofertaId: string) {
   });
   revienta(error);
   return data as Pago;
+}
+
+/** Tope por pedido, videollamada y beneficio del piloto (0018). */
+export async function misLimites(): Promise<MisLimites | null> {
+  const { data, error } = await supabase.rpc('mis_limites');
+  if (error) return null; // sin la migración 0018 la app sigue funcionando
+  return data as MisLimites;
 }
 
 // ---------------------------------------------------------------- pagos
@@ -905,6 +918,25 @@ export async function suspenderCuenta(perfilId: string, suspender: boolean, moti
   revienta(error);
 }
 
+/** Verificación reforzada: el operador confirma que hizo la videollamada. */
+export async function registrarVideollamada(perfilId: string, nota?: string) {
+  const { error } = await supabase.rpc('registrar_videollamada', {
+    p_perfil: perfilId,
+    p_nota: nota ?? null,
+  });
+  revienta(error);
+}
+
+/** Cuándo se hizo la videollamada de verificación reforzada; null si no se hizo. */
+export async function videollamadaDe(perfilId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('videollamadas')
+    .select('verificado_en')
+    .eq('perfil_id', perfilId)
+    .maybeSingle();
+  return (data?.verificado_en as string | undefined) ?? null;
+}
+
 export async function asignarRol(perfilId: string, rol: 'operador' | 'admin', activo: boolean) {
   const { error } = await supabase.rpc('admin_asignar_rol', {
     p_perfil: perfilId,
@@ -975,4 +1007,89 @@ export async function bitacoraAdmin(
   });
   revienta(error);
   return (data ?? []) as EntradaBitacora[];
+}
+
+// ------------------------------------------------- libro de reclamaciones
+/**
+ * Registra la hoja (sin sesión también) y pide la copia por correo. La hoja
+ * queda registrada aunque el correo falle: la pantalla muestra la copia.
+ */
+export async function registrarReclamacion(
+  hoja: NuevaReclamacion,
+): Promise<ReclamacionRegistrada> {
+  const { data, error } = await supabase.rpc('registrar_reclamacion', { p: hoja });
+  revienta(error);
+  const r = data as { id: string; correlativo: string; creado_en: string; plazo_vence: string; token: string };
+  let copiaEnviada = false;
+  try {
+    const { data: envio } = await supabase.functions.invoke('libro-reclamaciones', {
+      body: { accion: 'copia', id: r.id, token: r.token },
+    });
+    copiaEnviada = !!(envio as { enviada?: boolean } | null)?.enviada;
+  } catch {
+    /* sin la función desplegada la hoja igual queda registrada */
+  }
+  return { id: r.id, correlativo: r.correlativo, creado_en: r.creado_en, plazo_vence: r.plazo_vence, copiaEnviada };
+}
+
+export async function reclamacionesAdmin(estado?: 'recibido' | 'respondido' | null): Promise<ReclamacionAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_reclamaciones', { p_estado: estado ?? null });
+  revienta(error);
+  return (data ?? []) as ReclamacionAdmin[];
+}
+
+export async function indicadorReclamaciones(): Promise<IndicadorReclamaciones> {
+  const { data, error } = await supabase.rpc('admin_indicador_reclamaciones');
+  revienta(error);
+  return data as IndicadorReclamaciones;
+}
+
+/** Guarda la respuesta y la manda al correo del reclamante. Devuelve si el correo salió. */
+export async function responderReclamacion(id: string, respuesta: string): Promise<boolean> {
+  const { error } = await supabase.rpc('admin_responder_reclamacion', { p_id: id, p_respuesta: respuesta });
+  revienta(error);
+  return reenviarRespuestaReclamacion(id);
+}
+
+export async function reenviarRespuestaReclamacion(id: string): Promise<boolean> {
+  try {
+    const { data } = await supabase.functions.invoke('libro-reclamaciones', {
+      body: { accion: 'respuesta', id },
+    });
+    return !!(data as { enviada?: boolean } | null)?.enviada;
+  } catch {
+    return false;
+  }
+}
+
+// ------------------------------------------------------- eliminar la cuenta
+/** El usuario pide eliminar su cuenta (requisito de Google Play). */
+export async function solicitarEliminacionCuenta(motivo?: string) {
+  const { error } = await supabase.rpc('solicitar_eliminacion_cuenta', { p_motivo: motivo ?? null });
+  revienta(error);
+}
+
+/** Si ya pidió eliminarla y está pendiente, desde cuándo. */
+export async function miSolicitudEliminacion(): Promise<string | null> {
+  const { data } = await supabase
+    .from('solicitudes_eliminacion')
+    .select('creado_en, resuelta_en')
+    .maybeSingle();
+  return data && !data.resuelta_en ? (data.creado_en as string) : null;
+}
+
+export async function solicitudesEliminacion(): Promise<SolicitudEliminacion[]> {
+  const { data, error } = await supabase.rpc('admin_solicitudes_eliminacion');
+  if (error) return []; // sin la migración 0020 el panel sigue funcionando
+  return (data ?? []) as SolicitudEliminacion[];
+}
+
+/** Anonimiza la cuenta y borra sus imágenes del Storage. */
+export async function eliminarCuenta(perfilId: string): Promise<{ accesoBloqueado: boolean }> {
+  const { data, error } = await supabase.rpc('admin_eliminar_cuenta', { p_perfil: perfilId });
+  revienta(error);
+  const r = data as { documentos: string[]; avatares: string[]; acceso_bloqueado: boolean };
+  if (r.documentos?.length) await supabase.storage.from('documentos').remove(r.documentos).catch(() => undefined);
+  if (r.avatares?.length) await supabase.storage.from('avatares').remove(r.avatares).catch(() => undefined);
+  return { accesoBloqueado: r.acceso_bloqueado };
 }

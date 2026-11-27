@@ -21,6 +21,7 @@ const SECCIONES: { ruta: string; titulo: string; icono: Icono; cola?: 'identidad
   { ruta: '/admin/pedidos', titulo: 'Pedidos', icono: 'cube' },
   { ruta: '/admin/pagos', titulo: 'Pagos', icono: 'wallet' },
   { ruta: '/admin/operacion', titulo: 'Operación', icono: 'shield-checkmark', cola: 'operacion' },
+  { ruta: '/admin/reclamaciones', titulo: 'Reclamaciones', icono: 'book' },
   { ruta: '/admin/equipo', titulo: 'Equipo y roles', icono: 'key' },
   { ruta: '/admin/configuracion', titulo: 'Configuración', icono: 'settings' },
   { ruta: '/admin/bitacora', titulo: 'Bitácora', icono: 'document-text' },

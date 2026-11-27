@@ -373,6 +373,20 @@ export default function Perfil() {
         />
         <View style={s.linea} />
         <Opcion
+          icono="book"
+          titulo="Libro de reclamaciones"
+          detalle="Presenta un reclamo o una queja"
+          onPress={() => router.push('/reclamaciones')}
+        />
+        <View style={s.linea} />
+        <Opcion
+          icono="trash"
+          titulo="Eliminar mi cuenta"
+          detalle="Borra tus datos personales de Encárgalo"
+          onPress={() => router.push('/eliminar-cuenta')}
+        />
+        <View style={s.linea} />
+        <Opcion
           icono="log-out"
           color={C.rojo}
           titulo="Cerrar sesión"
