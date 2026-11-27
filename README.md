@@ -105,6 +105,10 @@ el contenido de cada archivo de `supabase/migrations/`:
 | `0015_dni_en_registro.sql` | El DNI escrito en el registro se copia al perfil al crear la cuenta |
 | `0016_seguridad.sql` | Cierra huecos de seguridad: nombre y DNI fijos una vez en revisión o verificado, fotos solo de la carpeta propia y distintas entre sí, nadie oferta ni acepta en su propio pedido, avisos solo desde los *triggers*, aprobación biométrica automática apagada (ver 6b) |
 | `0017_limite_consultas_dni.sql` | Límites persistentes de `consultar-dni` por IP, por usuario y por día (ver 6) |
+| `0018_tope_piloto.sql` | Tope de S/ 150 por pedido (total cobrado) mientras dure el piloto |
+| `0019_limites_cuentas_nuevas.sql` | ES-17: máximo de S/ 500 por pedido para cuentas con menos de 3 pedidos completados y verificación reforzada (videollamada) sobre S/ 1 500; convive con el tope del piloto (vale el menor) |
+| `0020_libro_reclamaciones.sql` | ES-15: libro de reclamaciones virtual público con número correlativo `LR-AAAA-000001`, plazo de 15 días hábiles (con feriados) y respuesta desde `/admin` |
+| `0021_eliminacion_cuenta.sql` | Eliminación de cuenta (Google Play, Ley N° 29733): cola de solicitudes desde el perfil o la página pública `/eliminar-cuenta`; el administrador la completa en `/admin/eliminaciones` y la cuenta se anonimiza (lo contable se conserva) |
 
 Para comprobar que quedó bien, ejecuta:
 

@@ -15,6 +15,18 @@ var PROMOCIONES = [
   { etiqueta: 'Lanzamiento', texto: 'Piloto en Chiclayo: el equipo fundador acompaña cada pedido de punta a punta' },
 ];
 
+/*
+ * Si Supabase devuelve el enlace de recuperación de contraseña a la portada
+ * (cuando /app/recuperar-clave no está en sus Redirect URLs), se pasa a la app
+ * con el mismo fragmento para que ahí se cree la contraseña nueva.
+ */
+(function () {
+  var h = window.location.hash;
+  if (/type=recovery|error_code=/.test(h)) {
+    window.location.replace('/app/recuperar-clave' + h);
+  }
+})();
+
 (function () {
   var soles = function (n) {
     return 'S/ ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');

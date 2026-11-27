@@ -21,6 +21,10 @@ const META: Record<string, { titulo: string; unidad: string; porcentaje?: boolea
   dias_para_confirmar: { titulo: 'Días para confirmar la recepción', unidad: 'días', grupo: 'Plazos' },
   umbral_rostro_aprobar: { titulo: 'Similitud mínima para aprobar sola', unidad: '%', grupo: 'Filtro biométrico' },
   umbral_rostro_rechazar: { titulo: 'Similitud por debajo de la cual se rechaza', unidad: '%', grupo: 'Filtro biométrico' },
+  tope_pedido: { titulo: 'Tope por pedido del piloto (0 = sin tope)', unidad: 'S/', grupo: 'Límites por pedido' },
+  limite_cuenta_nueva: { titulo: 'Máximo por pedido de una cuenta nueva (0 = sin límite)', unidad: 'S/', grupo: 'Límites por pedido' },
+  pedidos_cuenta_establecida: { titulo: 'Pedidos completados para dejar de ser cuenta nueva', unidad: 'pedidos', grupo: 'Límites por pedido' },
+  umbral_verificacion_reforzada: { titulo: 'Monto desde el que se pide videollamada (0 = nunca)', unidad: 'S/', grupo: 'Límites por pedido' },
 };
 
 const aPantalla = (c: ConfigItem) =>
@@ -96,7 +100,7 @@ export default function ConfiguracionAdmin() {
         pagos ya creados no cambian.
       </Aviso>
       {grupos.map((g) => (
-        <Bloque key={g} titulo={g} icono={g === 'Tarifas' ? 'cash-outline' : g === 'Plazos' ? 'time-outline' : g === 'Filtro biométrico' ? 'scan-outline' : 'options-outline'}>
+        <Bloque key={g} titulo={g} icono={g === 'Tarifas' ? 'cash-outline' : g === 'Plazos' ? 'time-outline' : g === 'Filtro biométrico' ? 'scan-outline' : g === 'Límites por pedido' ? 'speedometer-outline' : 'options-outline'}>
           {items
             .filter((c) => (META[c.clave]?.grupo ?? 'Otros') === g)
             .map((c) => {

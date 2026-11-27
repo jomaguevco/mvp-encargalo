@@ -1,6 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { VERSION_TERMINOS } from '@/lib/negocio';
-import { Aviso, Micro, Parrafo, Subtitulo } from '@/ui/componentes';
+import { router } from 'expo-router';
+import { Aviso, Boton, Micro, Parrafo, Subtitulo } from '@/ui/componentes';
 import { E } from '@/ui/tema';
 
 /**
@@ -34,7 +35,12 @@ const TERMINOS: [string, string][] = [
    'cuando el cliente confirma la recepción o, si vence el plazo de confirmación sin ' +
    'que el cliente haya abierto una disputa, cuando Encárgalo revisa el caso y lo ' +
    'libera. Al comprador externo se le descuenta ' +
-   'la tarifa de servicio que también figura en el desglose.'],
+   'la tarifa de servicio que también figura en el desglose. Ese dinero no es un ' +
+   'depósito ni una inversión: Encárgalo no lo presta ni le da otro uso ni genera ' +
+   'rentabilidad con él. Una vez que envías tu comprobante de Yape, lo validamos y ' +
+   'confirmamos la retención en un máximo de 2 horas hábiles. Durante el piloto, el ' +
+   'total de un pedido no puede superar S/ 150. Si el pedido no puede cumplirse, ' +
+   'te devolvemos el monto retenido por el mismo medio de pago.'],
   ['4. Disputas y reembolsos',
    'Si el producto no llega o no corresponde a lo pedido, cualquiera de las dos partes ' +
    'puede abrir una disputa mientras el dinero esté retenido, adjuntando evidencia. ' +
@@ -56,8 +62,9 @@ const TERMINOS: [string, string][] = [
   ['8. Reclamos',
    'Los reclamos se presentan por el chat de soporte o por correo, y se responden en ' +
    'un plazo máximo de 15 días hábiles, según el Código de Protección y Defensa del ' +
-   'Consumidor (Ley N° 29571). El libro de reclamaciones virtual estará disponible ' +
-   'dentro de la aplicación.'],
+   'Consumidor (Ley N° 29571). También puedes registrar una hoja en nuestro libro de ' +
+   'reclamaciones virtual, con o sin cuenta: recibes un número correlativo como ' +
+   'constancia.'],
 ];
 
 const PRIVACIDAD: [string, string][] = [
@@ -79,6 +86,9 @@ const PRIVACIDAD: [string, string][] = [
   ['Tus derechos',
    'Puedes pedir acceder a tus datos, corregirlos, cancelarlos u oponerte a su ' +
    'tratamiento (derechos ARCO, Ley N° 29733) escribiendo al correo de soporte. ' +
+   'También puedes pedir que eliminemos tu cuenta desde Perfil → «Eliminar mi cuenta» o, ' +
+   'sin la aplicación, en la página «Eliminar mi cuenta»: borramos tus datos personales y ' +
+   'conservamos sin tu nombre solo los pedidos y pagos que la ley contable obliga a guardar. ' +
    'Respondemos en los plazos que fija la ley.'],
   ['Seguridad',
    'Las comunicaciones viajan cifradas, las imágenes se guardan en almacenamiento ' +
@@ -107,10 +117,26 @@ export default function Legal() {
         <Bloque key={t} titulo={t} texto={x} />
       ))}
 
+      <Boton
+        titulo="Abrir el libro de reclamaciones"
+        icono="book-outline"
+        variante="fantasma"
+        onPress={() => router.push('/reclamaciones' as never)}
+        style={{ marginBottom: E.xl }}
+      />
+
       <Subtitulo>Política de privacidad</Subtitulo>
       {PRIVACIDAD.map(([t, x]) => (
         <Bloque key={t} titulo={t} texto={x} />
       ))}
+
+      <Boton
+        titulo="Eliminar mi cuenta"
+        icono="trash-outline"
+        variante="fantasma"
+        onPress={() => router.push('/eliminar-cuenta' as never)}
+        style={{ marginBottom: E.lg }}
+      />
 
       <Micro>Versión {VERSION_TERMINOS}</Micro>
     </ScrollView>

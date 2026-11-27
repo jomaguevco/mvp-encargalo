@@ -71,6 +71,16 @@ export function pareceDocumento(dni: string, lineasSelfie: string[]): boolean {
 }
 
 /**
+ * Rutas de los recortes del número y de los nombres que la persona encuadró
+ * sobre la foto del DNI (`uid/dni-123.jpg` → `uid/dni-123-numero.jpg` y
+ * `uid/dni-123-nombres.jpg`). Mismo criterio que rutasRecortes en la app.
+ */
+export function rutasRecortes(ruta: string): string[] {
+  if (!/\/dni-\d+\.jpg$/.test(ruta)) return [];
+  return [ruta.replace(/\.jpg$/, '-numero.jpg'), ruta.replace(/\.jpg$/, '-nombres.jpg')];
+}
+
+/**
  * Aprobado: todo coincide. Rechazado: hay dos rostros y claramente no son la
  * misma persona. Todo lo demás, incluido cualquier fallo del servicio, queda
  * para el operador: la IA nunca rechaza por una foto mala, solo por otra cara.
