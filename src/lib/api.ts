@@ -157,35 +157,55 @@ export async function enviarVerificacion(opts: {
   return { dni, identidad };
 }
 
+async function invocarConsultaDni(cuerpo: { dni: string; nombre?: string }) {
+  const { data, error } = await supabase.functions.invoke('consultar-dni', { body: cuerpo });
+  if (error) {
+    let mensaje = 'No pudimos consultar RENIEC en este momento';
+    try {
+      const respuesta = await (error as { context?: Response }).context?.json();
+      if (respuesta?.error) mensaje = respuesta.error;
+    } catch {
+      /* la función no existe o no devolvió JSON */
+    }
+    throw new Error(mensaje);
+  }
+  return data as {
+    encontrado?: boolean;
+    coincide?: boolean;
+    nombres?: string;
+    apellido_paterno?: string;
+    apellido_materno?: string;
+  } | null;
+}
+
 /**
  * Nombre que figura en RENIEC para un DNI, vía la Edge Function `consultar-dni`.
- * Sirve para completar el nombre solo en el registro y en la verificación.
- * Funciona sin sesión: la clave anónima basta.
+ * Solo con sesión iniciada (la verificación): sin sesión la función no revela
+ * nombres. Tiene un límite diario por usuario.
  *
  * Devuelve la persona, `null` si RENIEC no tiene ese número, o lanza un error
  * con un mensaje legible si el servicio no respondió (sin red, cupo agotado,
  * función sin desplegar). En ese caso la app deja escribir el nombre a mano.
  */
 export async function consultarDni(dni: string): Promise<PersonaReniec | null> {
-  const { data, error } = await supabase.functions.invoke('consultar-dni', {
-    body: { dni },
-  });
-  if (error) {
-    let mensaje = 'No pudimos consultar RENIEC en este momento';
-    try {
-      const cuerpo = await (error as { context?: Response }).context?.json();
-      if (cuerpo?.error) mensaje = cuerpo.error;
-    } catch {
-      /* la función no existe o no devolvió JSON */
-    }
-    throw new Error(mensaje);
-  }
+  const data = await invocarConsultaDni({ dni });
   if (!data?.encontrado) return null;
   return {
     nombres: data.nombres ?? '',
     apellidoPaterno: data.apellido_paterno ?? '',
     apellidoMaterno: data.apellido_materno ?? '',
   };
+}
+
+/**
+ * ¿El nombre escrito coincide con el de RENIEC para ese DNI? Es la consulta del
+ * registro, sin sesión: la función responde sí o no y nunca devuelve el nombre.
+ * `null` = RENIEC no tiene ese número.
+ */
+export async function confirmarNombreDni(dni: string, nombre: string): Promise<boolean | null> {
+  const data = await invocarConsultaDni({ dni, nombre });
+  if (!data?.encontrado) return null;
+  return !!data.coincide;
 }
 
 // ---------------------------------------------------------------- archivos

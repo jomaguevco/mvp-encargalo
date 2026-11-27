@@ -17,8 +17,16 @@
 // salvo que la cuenta tenga activada la exclusión («AI services opt-out
 // policy» en AWS Organizations): actívala antes de usar fotos reales.
 //
-// Secretos (la cuenta IAM solo necesita rekognition:CompareFaces y
-// textract:DetectDocumentText):
+// Contra la suplantación (sin prueba de vida todavía):
+//   - Las dos fotos deben estar en la carpeta del propio usuario y ser distintas.
+//   - Si la selfie es el mismo archivo que el DNI, o en ella se lee un documento
+//     (Rekognition DetectText), queda para el operador.
+//   - La aprobación automática está APAGADA por defecto (config
+//     «aprobacion_automatica» = 0): un resultado «aprobado» queda como
+//     recomendación y lo confirma un operador. Encenderla solo con prueba de vida.
+//
+// Secretos (la cuenta IAM necesita rekognition:CompareFaces,
+// rekognition:DetectText y textract:DetectDocumentText):
 //   supabase secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1
 //   supabase functions deploy verificar-identidad --no-verify-jwt   (ver supabase/config.toml)
 
@@ -29,6 +37,7 @@ import {
   decidir,
   nombreEnDocumento,
   numeroEnDocumento,
+  pareceDocumento,
   type Evaluacion,
   type ResultadoIa,
 } from './decidir.ts';
@@ -95,6 +104,25 @@ async function compararRostros(aws: AwsClient, selfie: string, dni: string): Pro
   return { similitud: Math.round(Math.max(...similitudes) * 100) / 100, sinRostro: null };
 }
 
+/** Texto que Rekognition lee en la selfie. Null = no se pudo leer. */
+async function leerSelfie(aws: AwsClient, selfie: string): Promise<string[] | null> {
+  const { ok, datos } = await llamarAws(aws, 'rekognition', 'DetectText', {
+    Image: { Bytes: selfie },
+  });
+  if (!ok) {
+    console.error('verificar-identidad: DetectText respondió', datos.__type ?? '?');
+    return null;
+  }
+  return (datos.TextDetections ?? [])
+    .filter((t: { Type: string }) => t.Type === 'LINE')
+    .map((t: { DetectedText: string }) => t.DetectedText);
+}
+
+async function huella(bytes: Uint8Array): Promise<string> {
+  const h = await crypto.subtle.digest('SHA-256', bytes);
+  return encodeBase64(new Uint8Array(h));
+}
+
 async function leerDocumento(aws: AwsClient, dni: string): Promise<string[] | null> {
   const { ok, datos } = await llamarAws(aws, 'textract', 'DetectDocumentText', {
     Document: { Bytes: dni },
@@ -141,6 +169,17 @@ Deno.serve(async (req) => {
   if (!perfil.dni || !perfil.dni_frente_path || !perfil.selfie_path) {
     return responder({ error: 'Faltan el DNI o las fotos' }, 400);
   }
+  // Solo fotos de la carpeta de quien llama, y dos fotos distintas. La base ya
+  // lo exige (0016_seguridad.sql); se repite aquí porque esta función lee y
+  // borra archivos con service_role.
+  const carpeta = `${uid}/`;
+  if (
+    !perfil.dni_frente_path.startsWith(carpeta) ||
+    !perfil.selfie_path.startsWith(carpeta) ||
+    perfil.dni_frente_path === perfil.selfie_path
+  ) {
+    return responder({ error: 'Las fotos no corresponden a esta cuenta' }, 403);
+  }
 
   const claveId = Deno.env.get('AWS_ACCESS_KEY_ID');
   const claveSecreta = Deno.env.get('AWS_SECRET_ACCESS_KEY');
@@ -152,29 +191,34 @@ Deno.serve(async (req) => {
   const aws = new AwsClient({ accessKeyId: claveId, secretAccessKey: claveSecreta });
 
   // 2. Las fotos, desde el bucket privado
-  const [fotoDni, fotoSelfie] = await Promise.all(
+  const [bytesDni, bytesSelfie] = await Promise.all(
     [perfil.dni_frente_path, perfil.selfie_path].map(async (ruta) => {
       const { data } = await admin.storage.from('documentos').download(ruta);
-      return data ? encodeBase64(new Uint8Array(await data.arrayBuffer())) : null;
+      return data ? new Uint8Array(await data.arrayBuffer()) : null;
     }),
   );
-  if (!fotoDni || !fotoSelfie) return responder({ error: 'No se encontraron las fotos' }, 404);
+  if (!bytesDni || !bytesSelfie) return responder({ error: 'No se encontraron las fotos' }, 404);
+  const fotoDni = encodeBase64(bytesDni);
+  const fotoSelfie = encodeBase64(bytesSelfie);
+  const mismaImagen = (await huella(bytesDni)) === (await huella(bytesSelfie));
 
   // 3. Umbrales desde config (ver 0010_biometria.sql)
   const { data: filas } = await admin
     .from('config')
     .select('clave, valor')
-    .in('clave', ['umbral_rostro_aprobar', 'umbral_rostro_rechazar']);
+    .in('clave', ['umbral_rostro_aprobar', 'umbral_rostro_rechazar', 'aprobacion_automatica']);
   const umbral = (clave: string, defecto: number) =>
     Number(filas?.find((f) => f.clave === clave)?.valor ?? defecto);
 
   // 4. Rostro y documento, en paralelo
   let rostro: Rostro = { similitud: null, sinRostro: null };
   let lineas: string[] | null = null;
+  let lineasSelfie: string[] | null = null;
   try {
-    [rostro, lineas] = await Promise.all([
+    [rostro, lineas, lineasSelfie] = await Promise.all([
       compararRostros(aws, fotoSelfie, fotoDni),
       leerDocumento(aws, fotoDni),
+      leerSelfie(aws, fotoSelfie),
     ]);
   } catch (e) {
     console.error('verificar-identidad: fallo al llamar a AWS', (e as Error).name);
@@ -185,11 +229,21 @@ Deno.serve(async (req) => {
     numeroCoincide: lineas ? numeroEnDocumento(perfil.dni, lineas) : null,
     nombreCoincide: lineas ? nombreEnDocumento(perfil.nombre_completo, lineas) : null,
     dniValidacion: perfil.dni_validacion,
+    mismaImagen,
+    selfieConDocumento: lineasSelfie ? pareceDocumento(perfil.dni, lineasSelfie) : null,
   };
   const { resultado, motivos } = decidir(evaluacion, {
     aprobar: umbral('umbral_rostro_aprobar', 95),
     rechazar: umbral('umbral_rostro_rechazar', 50),
   });
+
+  // Sin prueba de vida, «aprobado» es una recomendación: la confirma un
+  // operador, salvo que el equipo encienda la aprobación automática.
+  const autoAprobar = umbral('aprobacion_automatica', 0) === 1;
+  const decide = resultado === 'rechazado' || (resultado === 'aprobado' && autoAprobar);
+  if (resultado === 'aprobado' && !autoAprobar) {
+    motivos.push('Todo coincide; falta la confirmación de un operador');
+  }
 
   // 5. Se guarda solo el resultado. Con service_role los triggers lo permiten.
   const cambios: Record<string, unknown> = {
@@ -202,7 +256,7 @@ Deno.serve(async (req) => {
   };
 
   // 6. Si ya está resuelto, las fotos sobran: se borran después de guardar.
-  if (resultado !== 'revisar') {
+  if (decide) {
     Object.assign(cambios, {
       verificacion: resultado === 'aprobado' ? 'verificado' : 'rechazado',
       verificado_en: resultado === 'aprobado' ? new Date().toISOString() : null,
@@ -221,7 +275,7 @@ Deno.serve(async (req) => {
     return responder({ error: 'No se pudo guardar el resultado' }, 500);
   }
 
-  if (resultado !== 'revisar') {
+  if (decide) {
     await admin.storage
       .from('documentos')
       .remove([perfil.dni_frente_path, perfil.selfie_path]);

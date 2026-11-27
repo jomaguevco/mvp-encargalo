@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Text } from './Texto';
-import { consultarDni } from '@/lib/api';
+import { confirmarNombreDni, consultarDni } from '@/lib/api';
 import { nombreDeReniec } from '@/lib/negocio';
 import type { PersonaReniec } from '@/lib/tipos';
 import { Campo } from './componentes';
@@ -15,10 +15,23 @@ export type EstadoDni =
   | { tipo: 'no_existe' }
   | { tipo: 'sin_servicio'; mensaje: string }
   /** Ya se consultó en RENIEC con este DNI y este nombre: no se gasta otra consulta. */
-  | { tipo: 'previo'; nombre: string };
+  | { tipo: 'previo'; nombre: string }
+  /** Modo confirmar (registro, sin sesión): RENIEC solo dice si el nombre coincide. */
+  | { tipo: 'coincide' }
+  | { tipo: 'no_coincide' };
+
+/** Al menos dos palabras: lo mismo que pide la comparación del servidor. */
+const nombreCompleto = (n: string) => n.trim().split(/\s+/).filter((p) => p.length >= 2).length >= 2;
 
 /**
  * Campo de DNI que consulta RENIEC solo.
+ *
+ * Dos modos:
+ *   - Completar (con sesión, la verificación): trae el nombre de RENIEC.
+ *   - Confirmar (`nombre` presente, el registro sin sesión): manda el DNI y el
+ *     nombre que escribió la persona, y RENIEC solo responde si coinciden. Sin
+ *     sesión la función nunca revela nombres, para que nadie la use como
+ *     buscador de personas.
  *
  * Al completar los ocho dígitos llama a la Edge Function `consultar-dni` y
  * muestra debajo el nombre que figura en el documento. La pantalla que lo usa
@@ -35,6 +48,7 @@ export function CampoDni({
   onEstado,
   error,
   previo,
+  nombre,
 }: {
   valor: string;
   onCambiar: (v: string) => void;
@@ -46,7 +60,10 @@ export function CampoDni({
    * consulta de nuevo; si la persona lo cambia, sí.
    */
   previo?: { dni: string; nombre: string } | null;
+  /** Nombre escrito por la persona. Si se pasa, el campo trabaja en modo confirmar. */
+  nombre?: string;
 }) {
+  const confirmar = nombre !== undefined;
   const [estado, setEstado] = useState<EstadoDni>({ tipo: 'vacio' });
   // El callback puede cambiar en cada render de la pantalla; se guarda en una
   // referencia para que el efecto dependa solo del número.
@@ -66,12 +83,28 @@ export function CampoDni({
       cambiar({ tipo: 'previo', nombre: previo.nombre });
       return;
     }
+    if (confirmar && !nombreCompleto(nombre ?? '')) {
+      cambiar({ tipo: 'vacio' });
+      return;
+    }
     let vivo = true;
     cambiar({ tipo: 'buscando' });
     // Un respiro antes de consultar: si la persona sigue corrigiendo el número
-    // no se gasta una consulta del cupo en cada tecla.
+    // (o escribiendo su nombre) no se gasta una consulta del cupo en cada tecla.
     const reloj = setTimeout(async () => {
       try {
+        if (confirmar) {
+          const coincide = await confirmarNombreDni(valor, nombre ?? '');
+          if (!vivo) return;
+          cambiar(
+            coincide === null
+              ? { tipo: 'no_existe' }
+              : coincide
+                ? { tipo: 'coincide' }
+                : { tipo: 'no_coincide' },
+          );
+          return;
+        }
         const persona = await consultarDni(valor);
         if (!vivo) return;
         cambiar(
@@ -82,14 +115,14 @@ export function CampoDni({
       } catch (e) {
         if (vivo) cambiar({ tipo: 'sin_servicio', mensaje: (e as Error).message });
       }
-    }, 350);
+    }, confirmar ? 800 : 350);
     return () => {
       vivo = false;
       clearTimeout(reloj);
     };
     // previo se compara por valor: un objeto nuevo en cada render no debe consultar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valor, previo?.dni, previo?.nombre]);
+  }, [valor, previo?.dni, previo?.nombre, confirmar, nombre?.trim()]);
 
   return (
     <View>
@@ -102,13 +135,19 @@ export function CampoDni({
         maxLength={8}
         placeholder="8 dígitos"
         error={error}
-        ayuda={estado.tipo === 'vacio' ? 'Lo consultamos en RENIEC para completar tu nombre' : undefined}
+        ayuda={
+          estado.tipo !== 'vacio'
+            ? undefined
+            : confirmar
+              ? 'Lo validamos en RENIEC junto con tu nombre'
+              : 'Lo consultamos en RENIEC para completar tu nombre'
+        }
         derecha={
           estado.tipo === 'buscando' ? (
             <ActivityIndicator size="small" color={C.azulMedio} />
-          ) : estado.tipo === 'encontrado' || estado.tipo === 'previo' ? (
+          ) : estado.tipo === 'encontrado' || estado.tipo === 'previo' || estado.tipo === 'coincide' ? (
             <Ionicons name="checkmark-circle" size={22} color={C.verde} />
-          ) : estado.tipo === 'no_existe' ? (
+          ) : estado.tipo === 'no_existe' || estado.tipo === 'no_coincide' ? (
             <Ionicons name="close-circle" size={22} color={C.rojo} />
           ) : null
         }
@@ -141,6 +180,30 @@ export function CampoDni({
             <Text style={s.resultadoEtiqueta}>Ya validado con RENIEC</Text>
             <Text style={s.resultadoNombre}>{estado.nombre}</Text>
           </View>
+        </View>
+      )}
+
+      {estado.tipo === 'coincide' && (
+        <View style={[s.resultado, { backgroundColor: C.verdeClaro, borderColor: `${C.verde}40` }]}>
+          <View style={s.sello}>
+            <Ionicons name="shield-checkmark" size={18} color={C.blanco} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.resultadoEtiqueta}>Validado con RENIEC</Text>
+            <Text style={[s.resultadoTexto, { color: C.verdeOscuro }]}>
+              Tu nombre coincide con el de tu DNI
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {estado.tipo === 'no_coincide' && (
+        <View style={[s.resultado, { backgroundColor: C.rojoClaro, borderColor: `${C.rojo}40` }]}>
+          <Ionicons name="alert-circle" size={20} color={C.rojo} />
+          <Text style={[s.resultadoTexto, { color: C.rojoOscuro }]}>
+            Tu nombre no coincide con el de este DNI en RENIEC. Escríbelo como figura en tu
+            documento, con tus dos apellidos.
+          </Text>
         </View>
       )}
 

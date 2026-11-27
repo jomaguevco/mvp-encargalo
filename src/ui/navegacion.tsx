@@ -17,6 +17,17 @@ export function volver(respaldo: Href) {
   else router.replace(respaldo);
 }
 
+/**
+ * Empieza la navegación de cero en `destino`: saca del historial todo lo que
+ * había debajo (ingreso, registro, la app de la sesión anterior) y lo reemplaza.
+ * Sin esto, el botón «atrás» del teléfono volvía al formulario de registro o de
+ * ingreso después de entrar, o a la app después de cerrar sesión.
+ */
+export function empezarEn(destino: Href) {
+  if (router.canDismiss()) router.dismissAll();
+  router.replace(destino);
+}
+
 type Icono = keyof typeof Ionicons.glyphMap;
 
 /**

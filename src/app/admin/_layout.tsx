@@ -103,7 +103,7 @@ export default function AdminLayout() {
         accessibilityRole="link"
         accessibilityState={{ selected: on }}
         onPress={() => router.push(sec.ruta as never)}
-        style={({ hovered }: { hovered?: boolean }) => [
+        style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [
           escritorio ? s.item : s.itemChico,
           on ? s.itemActivo : hovered && s.itemEncima,
         ]}>
@@ -182,7 +182,7 @@ export default function AdminLayout() {
                   key={op.texto}
                   onPress={op.accion}
                   accessibilityRole="menuitem"
-                  style={({ hovered }: { hovered?: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
+                  style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
                   <Ionicons name={op.icono} size={17} color={C.sobreOscuro} />
                   <Text style={s.menuTexto}>{op.texto}</Text>
                 </Pressable>
@@ -191,7 +191,7 @@ export default function AdminLayout() {
               <Pressable
                 onPress={salir}
                 accessibilityRole="menuitem"
-                style={({ hovered }: { hovered?: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
+                style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [s.menuItem, hovered && s.itemEncima]}>
                 <Ionicons name="log-out-outline" size={17} color={C.naranjaClaro} />
                 <Text style={[s.menuTexto, { color: C.naranjaClaro }]}>Cerrar sesión</Text>
               </Pressable>
@@ -202,7 +202,7 @@ export default function AdminLayout() {
             accessibilityRole="button"
             accessibilityState={{ expanded: menu }}
             accessibilityLabel="Opciones de la cuenta"
-            style={({ hovered }: { hovered?: boolean }) => [s.yo, (hovered || menu) && s.itemEncima]}>
+            style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [s.yo, (hovered || menu) && s.itemEncima]}>
             <Avatar nombre={perfil?.nombre_completo} foto={api.urlFoto(perfil?.foto_path)} tamano={34} />
             <View style={{ flex: 1 }}>
               <Text style={s.pieNombre} numberOfLines={1}>

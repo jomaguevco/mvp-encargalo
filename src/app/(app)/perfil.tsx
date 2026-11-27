@@ -30,7 +30,7 @@ import {
 import { avisar, confirmar } from '@/ui/dialogos';
 import { useEscritorio } from '@/ui/escritorio';
 import { PedidoCard } from '@/ui/PedidoCard';
-import { accesoPublicar } from '@/ui/navegacion';
+import { accesoPublicar, empezarEn } from '@/ui/navegacion';
 import { C, E, R } from '@/ui/tema';
 
 /** Una fila de dato o de ajuste dentro de una tarjeta. */
@@ -200,7 +200,7 @@ export default function Perfil() {
           variante="fantasma"
           onPress={async () => {
             await salir();
-            router.replace('/entrar');
+            empezarEn('/entrar');
           }}
         />
       </View>
@@ -385,7 +385,7 @@ export default function Perfil() {
             );
             if (!seguro) return;
             await salir();
-            router.replace('/entrar');
+            empezarEn('/entrar');
           }}
         />
       </Tarjeta>

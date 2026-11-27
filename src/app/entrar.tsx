@@ -15,6 +15,7 @@ import { useAuth } from '@/ctx/auth';
 import { soyAdmin } from '@/lib/api';
 import { Aviso, Boton, Campo, Entrada } from '@/ui/componentes';
 import { useEscritorio } from '@/ui/escritorio';
+import { empezarEn } from '@/ui/navegacion';
 import { Simbolo } from '@/ui/Logo';
 import { C, E, R } from '@/ui/tema';
 
@@ -83,7 +84,7 @@ export default function Entrar() {
       // El administrador va directo a su panel. Se pregunta aquí y no en el
       // contexto porque el permiso llega un instante después de la sesión.
       const vuelta = destino && destino.startsWith('/') && !destino.startsWith('/entrar') ? destino : null;
-      router.replace((vuelta as Href) ?? ((await soyAdmin()) ? '/admin' : '/(app)/pedidos'));
+      empezarEn((vuelta as Href) ?? ((await soyAdmin()) ? '/admin' : '/(app)/pedidos'));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -185,6 +186,19 @@ export default function Entrar() {
                 }
               />
 
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/recuperar',
+                    params: correo.includes('@') ? { correo: correo.trim() } : {},
+                  })
+                }
+                accessibilityRole="link"
+                hitSlop={8}
+                style={s.olvide}>
+                <Text style={s.olvideTexto}>¿Olvidaste tu contraseña?</Text>
+              </Pressable>
+
               <Boton titulo="Entrar" icono="log-in-outline" onPress={enviar} cargando={cargando} />
 
               <View style={s.separador}>
@@ -263,6 +277,9 @@ const s = StyleSheet.create({
     marginTop: 2,
     marginBottom: E.lg,
   },
+
+  olvide: { alignSelf: 'flex-end', marginTop: -E.xs, marginBottom: E.md },
+  olvideTexto: { color: C.azulMedio, fontWeight: '600', fontSize: 14 },
 
   separador: {
     flexDirection: 'row',

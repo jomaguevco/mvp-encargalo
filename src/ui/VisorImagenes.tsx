@@ -82,7 +82,7 @@ export function VisorImagenes({
       disabled={deshabilitado}
       accessibilityRole="button"
       accessibilityLabel={texto}
-      style={({ hovered }: { hovered?: boolean }) => [
+      style={({ hovered }: { hovered?: boolean; pressed: boolean }) => [
         s.accion,
         activo && s.accionActiva,
         hovered && !deshabilitado && { backgroundColor: 'rgba(242,235,225,0.18)' },
