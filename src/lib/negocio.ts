@@ -174,9 +174,10 @@ export const SIGUIENTE_PASO_COMPRADOR: Partial<
 
 /** Cómo se muestra cada aviso en la bandeja. */
 export const TIPO_AVISO: Record<
-  'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion',
+  'oferta' | 'pedido' | 'pago' | 'mensaje' | 'calificacion' | 'verificacion' | 'reforzada',
   { etiqueta: string; color: string }
 > = {
+  reforzada: { etiqueta: 'Verificación', color: '#9C6B12' },
   oferta: { etiqueta: 'Oferta', color: '#2E6A55' },
   pedido: { etiqueta: 'Pedido', color: '#C65A3A' },
   pago: { etiqueta: 'Dinero', color: '#3B7F4C' },
@@ -233,7 +234,7 @@ export const ORIGENES = [
 ] as const;
 
 /** Versión de los términos que el usuario acepta. Cambia cuando cambia el texto. */
-export const VERSION_TERMINOS = '2026-10-borrador';
+export const VERSION_TERMINOS = '2026-11-22-borrador';
 
 /**
  * Código de referido de un usuario (requisito R18): las seis primeras letras de
@@ -254,6 +255,51 @@ export const PROHIBIDOS = [
   'Productos inflamables, baterías sueltas y aerosoles',
   'Dinero, joyas de alto valor y bienes de origen dudoso',
   'Drogas y productos con sustancias controladas',
+];
+
+/**
+ * Libro de reclamaciones virtual (acción ES-15, Ley N° 29571 y D.S. N°
+ * 011-2011-PCM). El formato oficial pide identificar al proveedor.
+ * TODO(ES-15): completar razón social, RUC y domicilio fiscal cuando la
+ * empresa esté constituida; hasta entonces se muestra «en trámite».
+ */
+export const PROVEEDOR = {
+  nombre: 'Encárgalo',
+  razonSocial: null as string | null,
+  ruc: null as string | null,
+  domicilio: 'Chiclayo, Lambayeque, Perú',
+};
+
+/** Las dos clases de hoja que distingue el reglamento. */
+export const TIPO_RECLAMACION = {
+  reclamo: {
+    etiqueta: 'Reclamo',
+    detalle: 'Disconformidad con el producto o el servicio que contrataste.',
+  },
+  queja: {
+    etiqueta: 'Queja',
+    detalle:
+      'Malestar con la atención recibida, o una disconformidad que no tiene que ver con el producto o el servicio.',
+  },
+} as const;
+
+/**
+ * Lo que pasa con cada dato al eliminar la cuenta (Google Play, Ley N° 29733).
+ * Tiene que coincidir con admin_resolver_eliminacion en 0021_eliminacion_cuenta.
+ */
+export const SE_BORRA = [
+  'Tu nombre, celular y número de DNI',
+  'Tu foto de perfil y cualquier imagen de tu DNI o selfie que quedara pendiente',
+  'Tus avisos dentro de la aplicación',
+  'Tu acceso: la cuenta deja de poder entrar, publicar u ofertar',
+  'Los pedidos que publicaste y todavía no tenían comprador, y tus ofertas sin responder',
+];
+
+export const SE_CONSERVA = [
+  'Los pedidos, pagos y comprobantes ya cerrados, sin tu nombre: la ley tributaria y contable obliga a conservarlos',
+  'Los mensajes y calificaciones de esos pedidos, para que la otra persona mantenga su historial y su reputación',
+  'Las disputas y las hojas del libro de reclamaciones, mientras dure el plazo legal para atenderlas',
+  'El registro interno de las acciones del equipo (bitácora)',
 ];
 
 /** Umbral desde el que un envío paga impuestos de importación (US$). */

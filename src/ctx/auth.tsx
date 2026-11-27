@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 import { avisosNoLeidos, miPerfil, soyAdmin, soyOperador } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { Perfil } from '@/lib/tipos';
@@ -26,7 +27,85 @@ type Ctx = {
   entrar: (correo: string, clave: string) => Promise<void>;
   registrar: (datos: DatosRegistro) => Promise<void>;
   salir: () => Promise<void>;
+  /**
+   * Recuperación de contraseña. `recuperacion` es verdadero mientras la sesión
+   * abierta viene de un enlace o un código de recuperación: la pantalla
+   * /recuperar-clave pide la contraseña nueva antes de dejar pasar a la app.
+   */
+  recuperacion: boolean;
+  /** El enlace del correo llegó vencido o ya usado. */
+  errorRecuperacion: string | null;
+  pedirRecuperacion: (correo: string) => Promise<void>;
+  verificarCodigoRecuperacion: (correo: string, codigo: string) => Promise<void>;
+  cambiarClave: (clave: string) => Promise<void>;
+  terminarRecuperacion: () => void;
 };
+
+/**
+ * Página web a la que lleva el enlace del correo de recuperación. Es siempre la
+ * web, también desde Android: el correo se abre en el navegador y ahí se cambia
+ * la contraseña; luego se ingresa en la app con la nueva. Debe estar en
+ * Supabase → Authentication → URL Configuration → Redirect URLs.
+ */
+const WEB_APP = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://encargalo.vercel.app').replace(/\/$/, '');
+
+function urlRecuperacion() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    // En producción la app vive bajo /app (experiments.baseUrl); en desarrollo, en la raíz.
+    const base = /^\/app(\/|$)/.test(window.location.pathname) ? '/app' : '';
+    return `${window.location.origin}${base}/recuperar-clave`;
+  }
+  return `${WEB_APP}/app/recuperar-clave`;
+}
+
+/**
+ * Lee lo que Supabase deja en el fragmento (#) de la URL al volver del correo:
+ * los tokens de la sesión de recuperación o el error si el enlace venció. Como
+ * el cliente tiene detectSessionInUrl en falso, se hace aquí y a mano.
+ */
+function leerFragmentoRecuperacion():
+  | { tipo: 'tokens'; access_token: string; refresh_token: string }
+  | { tipo: 'error'; mensaje: string }
+  | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  const hash = window.location.hash.replace(/^#/, '');
+  if (!hash) return null;
+  const p = new URLSearchParams(hash);
+  const limpiar = () =>
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  if (p.get('error_code') || p.get('error')) {
+    limpiar();
+    return {
+      tipo: 'error',
+      mensaje:
+        p.get('error_code') === 'otp_expired'
+          ? 'El enlace venció o ya se usó. Pide uno nuevo.'
+          : 'No pudimos abrir el enlace. Pide uno nuevo.',
+    };
+  }
+  const access_token = p.get('access_token');
+  const refresh_token = p.get('refresh_token');
+  if (p.get('type') !== 'recovery' || !access_token || !refresh_token) return null;
+  limpiar();
+  return { tipo: 'tokens', access_token, refresh_token };
+}
+
+/** Los mensajes de Supabase Auth que el usuario puede llegar a ver, en español. */
+function traducirErrorAuth(mensaje: string) {
+  if (/only request this after|rate limit|too many/i.test(mensaje)) {
+    return 'Ya enviamos un correo hace poco. Espera un minuto y vuelve a intentarlo.';
+  }
+  if (/expired|invalid/i.test(mensaje) && /token|otp/i.test(mensaje)) {
+    return 'El código no es válido o ya venció. Pide uno nuevo.';
+  }
+  if (/different from the old|same password/i.test(mensaje)) {
+    return 'La contraseña nueva debe ser distinta de la anterior.';
+  }
+  if (/weak|at least/i.test(mensaje)) {
+    return 'La contraseña es muy débil: usa al menos 8 caracteres con letras y números.';
+  }
+  return mensaje;
+}
 
 /**
  * Lo que pide la pantalla de registro. El origen, el código de referido y la
@@ -58,6 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [esAdmin, setEsAdmin] = useState(false);
   const [avisosPendientes, setAvisosPendientes] = useState(0);
   const [cargando, setCargando] = useState(true);
+  const [recuperacion, setRecuperacion] = useState(false);
+  const [errorRecuperacion, setErrorRecuperacion] = useState<string | null>(null);
 
   const refrescarAvisos = useCallback(async () => {
     try {
@@ -85,15 +166,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let vivo = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    (async () => {
+      // Primero el enlace de recuperación, si se llegó desde el correo: abre la
+      // sesión con esos tokens antes de mirar si había otra guardada.
+      const fragmento = leerFragmentoRecuperacion();
+      if (fragmento?.tipo === 'error') {
+        setErrorRecuperacion(fragmento.mensaje);
+      } else if (fragmento?.tipo === 'tokens') {
+        const { error } = await supabase.auth.setSession({
+          access_token: fragmento.access_token,
+          refresh_token: fragmento.refresh_token,
+        });
+        if (error) setErrorRecuperacion('El enlace venció o ya se usó. Pide uno nuevo.');
+        else setRecuperacion(true);
+      }
+      return supabase.auth.getSession();
+    })().then(async ({ data }) => {
       if (!vivo) return;
       setSesion(data.session);
       if (data.session) await refrescarPerfil();
       if (vivo) setCargando(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_evento, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (evento, s) => {
       if (!vivo) return;
+      if (evento === 'PASSWORD_RECOVERY') setRecuperacion(true);
       setSesion(s);
       if (s) {
         await refrescarPerfil();
@@ -102,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setEsOperador(false);
         setEsAdmin(false);
         setAvisosPendientes(0);
+        setRecuperacion(false);
       }
       setCargando(false);
     });
@@ -179,6 +277,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const pedirRecuperacion = useCallback(async (correo: string) => {
+    setErrorRecuperacion(null);
+    const email = correo.trim().toLowerCase();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: urlRecuperacion(),
+    });
+    // Si el correo no existe, Supabase no lo dice, y está bien: así nadie puede
+    // averiguar quién tiene cuenta. Solo se muestran los errores reales.
+    if (error) throw new Error(traducirErrorAuth(error.message));
+  }, []);
+
+  const verificarCodigoRecuperacion = useCallback(async (correo: string, codigo: string) => {
+    const email = correo.trim().toLowerCase();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: codigo.replace(/\s/g, ''),
+      type: 'recovery',
+    });
+    if (error) throw new Error(traducirErrorAuth(error.message));
+    setRecuperacion(true);
+  }, []);
+
+  const cambiarClave = useCallback(async (clave: string) => {
+    const { error } = await supabase.auth.updateUser({ password: clave });
+    if (error) throw new Error(traducirErrorAuth(error.message));
+  }, []);
+
+  const terminarRecuperacion = useCallback(() => {
+    setRecuperacion(false);
+    setErrorRecuperacion(null);
+  }, []);
+
   const valor = useMemo<Ctx>(
     () => ({
       sesion,
@@ -193,6 +323,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       entrar,
       registrar,
       salir,
+      recuperacion,
+      errorRecuperacion,
+      pedirRecuperacion,
+      verificarCodigoRecuperacion,
+      cambiarClave,
+      terminarRecuperacion,
     }),
     [
       sesion,
@@ -206,6 +342,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       entrar,
       registrar,
       salir,
+      recuperacion,
+      errorRecuperacion,
+      pedirRecuperacion,
+      verificarCodigoRecuperacion,
+      cambiarClave,
+      terminarRecuperacion,
     ],
   );
 

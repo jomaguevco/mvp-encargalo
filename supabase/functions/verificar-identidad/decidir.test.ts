@@ -5,6 +5,7 @@ import {
   nombreEnDocumento,
   numeroEnDocumento,
   pareceDocumento,
+  rutasRecortes,
   type Evaluacion,
 } from './decidir.ts';
 
@@ -94,4 +95,10 @@ Deno.test('reconoce un documento fotografiado como selfie', () => {
   assert(pareceDocumento('11111111', ['Republica del Peru']));
   assert(!pareceDocumento('46027897', []));
   assert(!pareceDocumento('46027897', ['ADIDAS', 'I LOVE NY']));
+});
+
+Deno.test('los recortes van junto a la foto del DNI y solo a ella', () => {
+  assertEquals(rutasRecortes('abc/dni-123.jpg'), ['abc/dni-123-numero.jpg', 'abc/dni-123-nombres.jpg']);
+  assertEquals(rutasRecortes('abc/selfie-123.jpg'), []);
+  assertEquals(rutasRecortes('abc/dni-123-numero.jpg'), []);
 });

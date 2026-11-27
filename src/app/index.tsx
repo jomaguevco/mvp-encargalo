@@ -5,7 +5,7 @@ import { Cargando } from '@/ui/componentes';
 import { C } from '@/ui/tema';
 
 export default function Entrada() {
-  const { sesion, cargando, esAdmin } = useAuth();
+  const { sesion, cargando, esAdmin, recuperacion, errorRecuperacion } = useAuth();
 
   if (cargando) {
     return (
@@ -15,6 +15,10 @@ export default function Entrada() {
     );
   }
 
-    // El administrador aterriza en su panel; desde ahí puede ir a la app.
+  // Volvió del correo de recuperación a la raíz (la URL del sitio en Supabase):
+  // primero la contraseña nueva.
+  if (recuperacion || errorRecuperacion) return <Redirect href="/recuperar-clave" />;
+
+  // El administrador aterriza en su panel; desde ahí puede ir a la app.
   return <Redirect href={!sesion ? '/entrar' : esAdmin ? '/admin' : '/(app)/pedidos'} />;
 }

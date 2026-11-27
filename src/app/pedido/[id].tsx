@@ -31,6 +31,7 @@ import {
 } from '@/lib/negocio';
 import type {
   DesglosePrecio,
+  EstadoReforzada,
   EventoPedido,
   Mensaje,
   MetodoPago,
@@ -587,6 +588,7 @@ function DetallePedido() {
         {pago && (
           <PanelPago
             pago={pago}
+            reforzada={pedido.reforzada_estado ?? null}
             soyCliente={soyCliente}
             esOperador={esOperador}
             ocupado={ocupado}
@@ -1028,6 +1030,7 @@ function FormularioOferta({
 // =====================================================================
 function PanelPago({
   pago,
+  reforzada,
   soyCliente,
   esOperador,
   ocupado,
@@ -1035,6 +1038,8 @@ function PanelPago({
   onConfirmarRetencion,
 }: {
   pago: Pago;
+  /** Verificación reforzada (0017): mientras no esté aprobada, no se paga. */
+  reforzada: EstadoReforzada | null;
   soyCliente: boolean;
   esOperador: boolean;
   ocupado: string | null;
@@ -1116,7 +1121,27 @@ function PanelPago({
           </>
         )}
 
-        {soyCliente && pago.estado === 'pendiente' && (
+        {pago.estado === 'pendiente' && reforzada === 'pendiente' && (
+          <View style={{ marginTop: E.lg }}>
+            <Aviso tono="alerta" titulo="Antes de pagar: verificación reforzada">
+              {soyCliente
+                ? 'Por el monto de este pedido, el equipo de Encárgalo te hará una videollamada corta para confirmar tu identidad. Te escribiremos por el chat para coordinarla. Todavía no yapees: cuando quede aprobada, aquí aparecerán los datos para pagar.'
+                : 'Por el monto del pedido, el equipo hará una videollamada con el cliente antes de que pague. No compres todavía.'}
+            </Aviso>
+          </View>
+        )}
+
+        {pago.estado === 'pendiente' && reforzada === 'rechazada' && (
+          <View style={{ marginTop: E.lg }}>
+            <Aviso tono="error" titulo="Verificación reforzada no aprobada">
+              {soyCliente
+                ? 'El equipo no pudo aprobar este pedido, así que no se puede pagar. Puedes cancelarlo o escribirnos para revisarlo.'
+                : 'El equipo no aprobó la verificación reforzada del cliente: este pedido no se va a pagar.'}
+            </Aviso>
+          </View>
+        )}
+
+        {soyCliente && pago.estado === 'pendiente' && reforzada !== 'pendiente' && reforzada !== 'rechazada' && (
           <View style={{ marginTop: E.lg }}>
             <View style={s.yape}>
               <View style={s.yapeIcono}>

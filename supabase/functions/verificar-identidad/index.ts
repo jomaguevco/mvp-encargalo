@@ -38,6 +38,7 @@ import {
   nombreEnDocumento,
   numeroEnDocumento,
   pareceDocumento,
+  rutasRecortes,
   type Evaluacion,
   type ResultadoIa,
 } from './decidir.ts';
@@ -224,10 +225,35 @@ Deno.serve(async (req) => {
     console.error('verificar-identidad: fallo al llamar a AWS', (e as Error).name);
   }
 
+  let numeroCoincide = lineas ? numeroEnDocumento(perfil.dni, lineas) : null;
+  let nombreCoincide = lineas ? nombreEnDocumento(perfil.nombre_completo, lineas) : null;
+
+  // 4b. Si en la foto completa no aparece el número o el nombre, se leen los
+  // recortes que la persona encuadró a mano (si los subió). Cuestan una
+  // lectura más cada uno, por eso solo se usan cuando hacen falta.
+  const recortes = rutasRecortes(perfil.dni_frente_path);
+  if (recortes.length && (numeroCoincide !== true || nombreCoincide !== true)) {
+    try {
+      const [rNumero, rNombres] = await Promise.all(
+        recortes.map(async (ruta) => {
+          const { data } = await admin.storage.from('documentos').download(ruta);
+          if (!data) return null;
+          return leerDocumento(aws, encodeBase64(new Uint8Array(await data.arrayBuffer())));
+        }),
+      );
+      if (numeroCoincide !== true && rNumero) numeroCoincide = numeroEnDocumento(perfil.dni, rNumero);
+      if (nombreCoincide !== true && rNombres) {
+        nombreCoincide = nombreEnDocumento(perfil.nombre_completo, rNombres);
+      }
+    } catch (e) {
+      console.error('verificar-identidad: fallo al leer los recortes', (e as Error).name);
+    }
+  }
+
   const evaluacion: Evaluacion = {
     ...rostro,
-    numeroCoincide: lineas ? numeroEnDocumento(perfil.dni, lineas) : null,
-    nombreCoincide: lineas ? nombreEnDocumento(perfil.nombre_completo, lineas) : null,
+    numeroCoincide,
+    nombreCoincide,
     dniValidacion: perfil.dni_validacion,
     mismaImagen,
     selfieConDocumento: lineasSelfie ? pareceDocumento(perfil.dni, lineasSelfie) : null,
@@ -278,7 +304,7 @@ Deno.serve(async (req) => {
   if (decide) {
     await admin.storage
       .from('documentos')
-      .remove([perfil.dni_frente_path, perfil.selfie_path]);
+      .remove([perfil.dni_frente_path, perfil.selfie_path, ...recortes]);
   }
 
   return responder({ resultado });

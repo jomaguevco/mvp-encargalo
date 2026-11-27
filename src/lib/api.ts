@@ -6,18 +6,22 @@ import type {
   Calificacion,
   ConfigItem,
   ConfirmacionVencida,
+  ConstanciaReclamacion,
   CuentaAdmin,
   CuentaParecida,
   DesglosePrecio,
   DisputaAbierta,
+  EliminacionAdmin,
   EntradaBitacora,
   EstadoPedido,
   EventoPedido,
   FichaCuenta,
   FiltroCuentas,
   FiltroVerificaciones,
+  LimitesPedido,
   Mensaje,
   MetodoPago,
+  NuevaReclamacion,
   Oferta,
   OfertaConReputacion,
   OfertaEnviada,
@@ -28,11 +32,14 @@ import type {
   PedidoAdmin,
   Perfil,
   PersonaReniec,
+  ReclamacionAdmin,
+  ReforzadaAdmin,
   Reputacion,
   Resena,
   ResultadoDni,
   ResultadoIa,
   ResumenAdmin,
+  SolicitudEliminacion,
   VerificacionHistorial,
   VerificacionPendiente,
 } from './tipos';
@@ -88,6 +95,8 @@ export async function enviarVerificacion(opts: {
   dni: string;
   dniFrenteUri: string;
   selfieUri: string;
+  /** Recortes del número y de los nombres que la persona encuadró a mano. */
+  recortes?: { numero: string; nombres: string };
 }): Promise<{ dni: ResultadoDni | null; identidad: ResultadoIa | null }> {
   const { data: sesion } = await supabase.auth.getUser();
   const uid = sesion.user?.id;
@@ -112,6 +121,17 @@ export async function enviarVerificacion(opts: {
   const selfiePath = `${uid}/selfie-${Date.now()}.jpg`;
   await subirArchivo('documentos', dniPath, opts.dniFrenteUri);
   await subirArchivo('documentos', selfiePath, opts.selfieUri);
+  // Los recortes van junto a la foto, con el mismo nombre y un sufijo: así
+  // verificar-identidad los encuentra y se borran con ella (rutasRecortes).
+  if (opts.recortes) {
+    const [numero, nombres] = rutasRecortes(dniPath);
+    try {
+      await subirArchivo('documentos', numero, opts.recortes.numero);
+      await subirArchivo('documentos', nombres, opts.recortes.nombres);
+    } catch {
+      /* son un respaldo: sin ellos se lee la foto completa */
+    }
+  }
 
   await actualizarPerfil({
     dni: opts.dni,
@@ -227,6 +247,16 @@ async function leerImagen(uri: string): Promise<{ bytes: Uint8Array; tipo: strin
     };
   }
   return { bytes: await new File(uri).bytes(), tipo: 'image/jpeg' };
+}
+
+/**
+ * Rutas de los recortes del número y de los nombres de una foto del DNI
+ * (`uid/dni-123.jpg` → `uid/dni-123-numero.jpg`, `uid/dni-123-nombres.jpg`).
+ * Para otra imagen no hay recortes. Mismo criterio en verificar-identidad.
+ */
+export function rutasRecortes(ruta: string): string[] {
+  if (!/\/dni-\d+\.jpg$/.test(ruta)) return [];
+  return [ruta.replace(/\.jpg$/, '-numero.jpg'), ruta.replace(/\.jpg$/, '-nombres.jpg')];
 }
 
 export async function subirArchivo(bucket: string, ruta: string, uri: string) {
@@ -765,7 +795,7 @@ export async function liberarPorVencimiento(pedidoId: string) {
  * (retención mínima, Ley N° 29733).
  */
 export async function borrarDocumentos(rutas: (string | null)[]) {
-  const limpias = rutas.filter((r): r is string => !!r);
+  const limpias = rutas.filter((r): r is string => !!r).flatMap((r) => [r, ...rutasRecortes(r)]);
   if (limpias.length === 0) return;
   const { error } = await supabase.storage.from('documentos').remove(limpias);
   // Si falla, la verificación ya quedó resuelta: se avisa pero no se revierte.
@@ -975,4 +1005,128 @@ export async function bitacoraAdmin(
   });
   revienta(error);
   return (data ?? []) as EntradaBitacora[];
+}
+
+// ---------------------------------------------------------------- límites (ES-17)
+/** Límites que aplican hoy a la cuenta que publica (0019_limites_cuentas_nuevas). */
+export async function misLimitesPedido(): Promise<LimitesPedido | null> {
+  const { data, error } = await supabase.rpc('mis_limites_pedido');
+  revienta(error);
+  const fila = (Array.isArray(data) ? data[0] : data) as LimitesPedido | undefined;
+  return fila ?? null;
+}
+
+export async function reforzadasAdmin(estado?: string | null): Promise<ReforzadaAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_verificaciones_reforzadas', {
+    p_estado: estado ?? null,
+  });
+  revienta(error);
+  return (data ?? []) as ReforzadaAdmin[];
+}
+
+export async function resolverReforzada(pedidoId: string, aprobar: boolean, nota: string) {
+  const { error } = await supabase.rpc('admin_resolver_reforzada', {
+    p_pedido: pedidoId,
+    p_aprobar: aprobar,
+    p_nota: nota,
+  });
+  revienta(error);
+}
+
+// ---------------------------------------------------------------- libro de reclamaciones (ES-15)
+/** Funciona sin sesión: la base genera el número correlativo y el plazo. */
+export async function presentarReclamacion(r: NuevaReclamacion): Promise<ConstanciaReclamacion> {
+  const { data, error } = await supabase.rpc('presentar_reclamacion', {
+    p_nombre: r.nombre,
+    p_tipo_documento: r.tipo_documento,
+    p_numero_documento: r.numero_documento,
+    p_domicilio: r.domicilio,
+    p_telefono: r.telefono,
+    p_correo: r.correo,
+    p_menor_de_edad: r.menor_de_edad,
+    p_apoderado: r.apoderado,
+    p_bien_tipo: r.bien_tipo,
+    p_bien_descripcion: r.bien_descripcion,
+    p_monto: r.monto,
+    p_codigo_pedido: r.codigo_pedido,
+    p_tipo: r.tipo,
+    p_detalle: r.detalle,
+    p_pedido_consumidor: r.pedido_consumidor,
+    p_acepta_tratamiento: r.acepta_tratamiento,
+  });
+  revienta(error);
+  const fila = (Array.isArray(data) ? data[0] : data) as ConstanciaReclamacion | undefined;
+  if (!fila) throw new Error('No recibimos el número de tu hoja. Inténtalo de nuevo.');
+  return fila;
+}
+
+export async function reclamacionesAdmin(estado?: string | null): Promise<ReclamacionAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_reclamaciones', { p_estado: estado ?? null });
+  revienta(error);
+  return (data ?? []) as ReclamacionAdmin[];
+}
+
+export async function responderReclamacion(id: string, respuesta: string) {
+  const { error } = await supabase.rpc('admin_responder_reclamacion', {
+    p_id: id,
+    p_respuesta: respuesta,
+  });
+  revienta(error);
+}
+
+// ---------------------------------------------------------------- eliminación de cuenta (0019)
+/** La solicitud abierta de la cuenta con sesión, si hay una. */
+export async function miSolicitudEliminacion(): Promise<SolicitudEliminacion | null> {
+  const { data, error } = await supabase
+    .from('solicitudes_eliminacion')
+    .select('*')
+    .in('estado', ['pendiente', 'en_espera'])
+    .order('creado_en', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  revienta(error);
+  return (data as SolicitudEliminacion | null) ?? null;
+}
+
+export async function solicitarEliminacionCuenta(motivo?: string): Promise<SolicitudEliminacion> {
+  const { data, error } = await supabase.rpc('solicitar_eliminacion_cuenta', {
+    p_motivo: motivo?.trim() || null,
+  });
+  revienta(error);
+  return data as SolicitudEliminacion;
+}
+
+/** Formulario web, sin sesión. No revela si la cuenta existe. */
+export async function solicitarEliminacionPublica(correo: string, dni: string, motivo?: string) {
+  const { error } = await supabase.rpc('solicitar_eliminacion_publica', {
+    p_correo: correo.trim(),
+    p_dni: dni.trim(),
+    p_motivo: motivo?.trim() || null,
+  });
+  revienta(error);
+}
+
+export async function eliminacionesAdmin(estado?: string | null): Promise<EliminacionAdmin[]> {
+  const { data, error } = await supabase.rpc('admin_solicitudes_eliminacion', {
+    p_estado: estado ?? null,
+  });
+  revienta(error);
+  return (data ?? []) as EliminacionAdmin[];
+}
+
+/** Al completarla, la base anonimiza la cuenta y aquí se borra la foto del bucket. */
+export async function resolverEliminacion(
+  id: string,
+  estado: 'en_espera' | 'completada' | 'rechazada',
+  nota: string,
+) {
+  const { data, error } = await supabase.rpc('admin_resolver_eliminacion', {
+    p_id: id,
+    p_estado: estado,
+    p_nota: nota,
+  });
+  revienta(error);
+  if (typeof data === 'string' && data) {
+    await supabase.storage.from('avatares').remove([data]).catch(() => undefined);
+  }
 }

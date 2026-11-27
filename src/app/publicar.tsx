@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { conSesion, volver } from '@/ui/navegacion';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -13,8 +13,9 @@ import {
   View,
 } from 'react-native';
 import { Text } from '@/ui/Texto';
-import { publicarPedido, subirImagenProducto } from '@/lib/api';
-import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD, fecha } from '@/lib/negocio';
+import { misLimitesPedido, publicarPedido, subirImagenProducto } from '@/lib/api';
+import { CATEGORIAS, PROHIBIDOS, UMBRAL_IMPUESTO_USD, fecha, soles } from '@/lib/negocio';
+import type { LimitesPedido } from '@/lib/tipos';
 import { Aviso, Boton, Campo, Entrada, Etiqueta, Opciones, Tarjeta } from '@/ui/componentes';
 import { estiloCategoria } from '@/ui/iconos';
 import { C, E, R } from '@/ui/tema';
@@ -53,6 +54,17 @@ function Publicar() {
   const [verProhibidos, setVerProhibidos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Límites de la cuenta (0017): los números vienen de `config`, no del código.
+  const [limites, setLimites] = useState<LimitesPedido | null>(null);
+
+  useEffect(() => {
+    misLimitesPedido()
+      .then(setLimites)
+      // Si no se pudieron leer, la base igual los aplica al publicar.
+      .catch(() => setLimites(null));
+  }, []);
+
+  const monto = valor.trim() ? Number(valor.replace(',', '.')) : null;
 
   async function elegirFoto() {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -65,8 +77,10 @@ function Publicar() {
   function validar(): string | null {
     if (titulo.trim().length < 3) return 'Escribe qué producto quieres';
     if (cantidad < 1 || cantidad > 20) return 'La cantidad debe estar entre 1 y 20';
-    if (valor.trim() && (Number.isNaN(Number(valor)) || Number(valor) <= 0))
+    if (monto != null && (Number.isNaN(monto) || monto <= 0))
       return 'El valor referencial debe ser un número mayor que cero';
+    if (monto != null && limites?.limite_cuenta_nueva != null && monto > limites.limite_cuenta_nueva)
+      return mensajeCuentaNueva(limites, monto);
     return null;
   }
 
@@ -88,7 +102,7 @@ function Publicar() {
         cantidad,
         ciudad_entrega: 'Chiclayo',
         fecha_limite: enDias(Number(plazo)),
-        valor_referencial: valor.trim() ? Number(valor) : null,
+        valor_referencial: monto,
         imagen_path: imagen,
       });
       router.replace(`/pedido/${pedido.id}`);
@@ -256,6 +270,8 @@ function Publicar() {
               ayuda="Opcional. Sirve de referencia para quienes te van a ofertar"
             />
 
+            <AvisoLimites limites={limites} monto={monto} />
+
             <Etiqueta>¿Para cuándo lo necesitas?</Etiqueta>
             <Opciones
               valor={plazo}
@@ -323,6 +339,55 @@ function Publicar() {
         <Boton titulo="Publicar pedido" icono="rocket" onPress={enviar} cargando={enviando} />
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function mensajeCuentaNueva(l: LimitesPedido, monto: number) {
+  const faltan = l.pedidos_necesarios - l.completados;
+  return (
+    `Mientras tengas menos de ${l.pedidos_necesarios} pedidos completados, cada pedido puede ser de ` +
+    `hasta ${soles(l.limite_cuenta_nueva)} (este es de ${soles(monto)}). ` +
+    `Te ${faltan === 1 ? 'falta 1 pedido' : `faltan ${faltan} pedidos`} para que el límite se levante.`
+  );
+}
+
+/**
+ * Lo que la cuenta puede publicar hoy (acción ES-17). Las reglas las aplica
+ * la base (0018 y 0019); aquí solo se explican antes de que choquen.
+ *  · Tope del piloto y límite de cuenta nueva: vale el menor.
+ *  · Sobre el umbral: no se bloquea, pero antes de pagar hay videollamada.
+ */
+function AvisoLimites({ limites, monto }: { limites: LimitesPedido | null; monto: number | null }) {
+  if (!limites) return null;
+  const valido = monto != null && !Number.isNaN(monto) && monto > 0;
+
+  if (valido && limites.limite_cuenta_nueva != null && monto > limites.limite_cuenta_nueva) {
+    return (
+      <Aviso tono="error" titulo="Pasa el límite de tu cuenta">
+        {mensajeCuentaNueva(limites, monto)}
+      </Aviso>
+    );
+  }
+  if (valido && limites.umbral_reforzada != null && monto > limites.umbral_reforzada) {
+    return (
+      <Aviso tono="alerta" titulo="Este pedido necesita verificación reforzada">
+        {`Por ser de más de ${soles(limites.umbral_reforzada)}, antes de que pagues te haremos una ` +
+          'videollamada corta para confirmar tu identidad. Puedes publicarlo y recibir ofertas desde ya.'}
+      </Aviso>
+    );
+  }
+  if (limites.maximo == null) return null;
+
+  const porPiloto =
+    limites.tope_piloto != null &&
+    (limites.limite_cuenta_nueva == null || limites.tope_piloto <= limites.limite_cuenta_nueva);
+  return (
+    <Aviso tono="info" titulo={`Tu pedido puede ser de hasta ${soles(limites.maximo)}`}>
+      {porPiloto
+        ? `Durante el piloto, el total que pagas por un pedido (con comisión y procesamiento) no puede superar ${soles(limites.tope_piloto)}.`
+        : `Es el límite para cuentas nuevas: se levanta cuando completes ${limites.pedidos_necesarios} pedidos ` +
+          `(llevas ${limites.completados}). Se aplica al total que pagas, con comisión y procesamiento.`}
+    </Aviso>
   );
 }
 
